@@ -1,0 +1,92 @@
+<!-- Use the shared accounts base template for overall layout and styling -->
+{% extends "accounts/base.html" %}
+
+<!-- Set the page title, including the module code for context -->
+{% block title %}Create Assignment – {{ module.code }} | Eagna{% endblock %}
+
+<!-- Begin the main content block that will be inserted into the base template -->
+{% block content %}
+<!-- Outer container that uses dashboard styling for consistent layout -->
+<div class="dashboard-container">
+  <!-- Section that wraps the heading, errors, and assignment creation form -->
+  <section class="dashboard-section">
+    <!-- Main heading explaining that this page creates an assignment for a module -->
+    <h1 class="section-title">Create Assignment – {{ module.code }} {{ module.title }}</h1>
+
+    <!-- If there are any validation errors, display them in a list -->
+    {% if errors %}
+      <!-- Unordered list of error messages for the form -->
+      <ul class="error-list">
+        <!-- Loop through each error string in the errors collection -->
+        {% for e in errors %}
+          <!-- Single list item showing one validation error -->
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <!-- Form for entering assignment details and uploading optional files -->
+    <form method="post" enctype="multipart/form-data" class="auth-container">
+      <!-- CSRF protection token required for POST requests in Django -->
+      {% csrf_token %}
+
+      <!-- Group for the assignment title input field -->
+      <div class="form-group">
+        <!-- Label describing the assignment title field -->
+        <label for="id_title">Title</label>
+        <!-- Text input where the lecturer enters the assignment title -->
+        <input type="text" id="id_title" name="title"
+               value="{{ initial.title }}">
+      </div>
+
+      <!-- Group for the optional assignment description text -->
+      <div class="form-group">
+        <!-- Label describing the description textarea (optional field) -->
+        <label for="id_description">Description (optional)</label>
+        <!-- Textarea for entering a longer description or instructions -->
+        <textarea id="id_description" name="description" rows="4"
+                  class="week-description-input">{{ initial.description }}</textarea>
+      </div>
+
+      <!-- Group for choosing the assignment due date -->
+      <div class="form-group">
+        <!-- Label associated with the date input for the due date -->
+        <label for="id_due_date">Due date</label>
+        <!-- HTML date input for selecting the calendar date of the deadline -->
+        <input type="date" id="id_due_date" name="due_date"
+               value="{{ initial.due_date }}">
+      </div>
+
+      <!-- Group for choosing the assignment due time -->
+      <div class="form-group">
+        <!-- Label associated with the time input for the due time -->
+        <label for="id_due_time">Due time</label>
+        <!-- HTML time input for selecting the time of day of the deadline -->
+        <input type="time" id="id_due_time" name="due_time"
+               value="{{ initial.due_time }}">
+      </div>
+
+      <!-- Group for specifying the maximum mark for this assignment -->
+      <div class="form-group">
+        <!-- Label describing the maximum mark field -->
+        <label for="id_max_mark">Max mark</label>
+        <!-- Numeric input allowing decimal values for the maximum mark -->
+        <input type="number" step="0.01" id="id_max_mark" name="max_mark"
+               value="{{ initial.max_mark }}">
+      </div>
+
+      <!-- Group for attaching one or more resource files to the assignment -->
+      <div class="form-group">
+        <!-- Label explaining that files are optional and multiple can be selected -->
+        <label for="id_files">Attach files (optional, you can select multiple)</label>
+        <!-- File input allowing multiple assignment resource files to be uploaded -->
+        <input type="file" id="id_files" name="files" multiple>
+      </div>
+
+      <!-- Button to submit the form and create the new assignment -->
+      <button type="submit">Create assignment</button>
+    </form>
+  </section>
+</div>
+<!-- End of the main content block for this page -->
+{% endblock %}

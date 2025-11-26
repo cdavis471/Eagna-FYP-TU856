@@ -1,0 +1,106 @@
+<!-- Use the shared accounts base template for overall layout and styling -->
+{% extends "accounts/base.html" %}
+
+<!-- Set the browser tab title, including the assignment title being graded -->
+{% block title %}Grade Submission – {{ assignment.title }} | Eagna{% endblock %}
+
+<!-- Begin the main content block injected into the base template -->
+{% block content %}
+<!-- Outer container for the page content, matching dashboard styling -->
+<div class="dashboard-container">
+  <!-- Section containing the header, submission info, and grading form -->
+  <section class="dashboard-section">
+    <!-- Main heading showing that this page is used to grade a submission -->
+    <h1 class="section-title">
+      Grade Submission – {{ assignment.title }}
+    </h1>
+    <!-- Subtext that shows which module and student this submission belongs to -->
+    <p class="muted">
+      <!-- Display the module code and title for context -->
+      Module: {{ module.code }} {{ module.title }}<br>
+      <!-- Display the student's name, falling back to username if full name is missing -->
+      Student: {{ submission.student.user.get_full_name|default:submission.student.user.username }}
+    </p>
+
+    <!-- If there are any validation errors, show them as a list -->
+    {% if errors %}
+      <!-- Unordered list used to display each error message -->
+      <ul class="error-list">
+        <!-- Loop through each error string in the errors collection -->
+        {% for e in errors %}
+          <!-- Single list item showing one error message -->
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <!-- Block showing a summary of the submission's details and uploaded files -->
+    <div class="week-block">
+      <!-- Subheading for the submission details section -->
+      <h3 class="week-title">Submission Details</h3>
+      <!-- Paragraph with key metadata about the submission -->
+      <p class="card-meta">
+        <!-- Human-readable status (e.g. Submitted, Late) -->
+        Status: {{ submission.get_status_display }}<br>
+        <!-- Date and time when the submission was made -->
+        Submitted: {{ submission.submitted_at|date:"Y-m-d H:i" }}
+      </p>
+
+      <!-- Only show submitted files if there are any associated with this submission -->
+      {% if submission.files.all %}
+        <!-- Subheading for the list of files the student submitted -->
+        <h4 class="week-files-title">Submitted files</h4>
+        <!-- Unordered list of all submitted files -->
+        <ul class="week-files">
+          <!-- Loop through each file object linked to this submission -->
+          {% for f in submission.files.all %}
+            <!-- List item for a single submitted file -->
+            <li>
+              <!-- Link to open or download the file in a new browser tab -->
+              <a href="{{ f.file.url }}" target="_blank">
+                <!-- Show friendly original filename, or fall back to stored file name -->
+                {{ f.original_name|default:f.file.name }}
+              </a>
+              <!-- Small text showing when this file was uploaded -->
+              <span class="week-file-meta">
+                (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <!-- Message shown if the submission has no files uploaded -->
+        <p class="muted">No files uploaded.</p>
+      {% endif %}
+    </div>
+
+    <!-- Form used by the lecturer to enter or update the grade and feedback -->
+    <form method="post" class="auth-container">
+      <!-- CSRF protection token required for POST requests in Django -->
+      {% csrf_token %}
+
+      <!-- Group for the numeric mark input field -->
+      <div class="form-group">
+        <!-- Label showing that the mark is out of the assignment's maximum mark -->
+        <label for="id_value">Mark (out of {{ assignment.max_mark }})</label>
+        <!-- Number input for the mark, allowing decimal values -->
+        <input type="number" step="0.01" id="id_value" name="value"
+               value="{{ initial.value }}">
+      </div>
+
+      <!-- Group for the free-text feedback textarea -->
+      <div class="form-group">
+        <!-- Label describing the optional feedback field -->
+        <label for="id_feedback">Feedback (optional)</label>
+        <!-- Textarea where the lecturer can type feedback for the student -->
+        <textarea id="id_feedback" name="feedback" rows="4"
+                  class="week-description-input">{{ initial.feedback }}</textarea>
+      </div>
+
+      <!-- Button to submit the form and save the grade and feedback -->
+      <button type="submit">Save grade</button>
+    </form>
+  </section>
+</div>
+<!-- End of the main content block for this page -->
+{% endblock %}
