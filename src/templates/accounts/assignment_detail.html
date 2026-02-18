@@ -1,0 +1,224 @@
+<!-- Use the shared base layout for all accounts pages -->
+{% extends "accounts/base.html" %}
+
+<!-- Set the browser tab title using the assignment title and module code -->
+{% block title %}{{ assignment.title }} – {{ module.code }} | Eagna{% endblock %}
+
+<!-- Begin the main content block rendered inside the base template -->
+{% block content %}
+<!-- Outer container for the assignment detail page using dashboard styling -->
+<div class="dashboard-container">
+  <!-- Section containing assignment overview and materials -->
+  <section class="dashboard-section">
+    <!-- Main heading showing assignment title and module information -->
+    <h1 class="section-title">
+      {{ assignment.title }} – {{ module.code }} {{ module.title }}
+    </h1>
+    <!-- Line showing when the assignment is due and its maximum mark -->
+    <p class="muted">
+      Due: {{ assignment.due_datetime|date:"Y-m-d H:i" }} · Max mark: {{ assignment.max_mark }}
+    </p>
+
+    <!-- Only show the description block if the assignment has descriptive text -->
+    {% if assignment.description %}
+      <!-- Block containing the assignment description -->
+      <div class="week-block">
+        <!-- Subheading for the description section -->
+        <h3 class="week-title">Description</h3>
+        <!-- Paragraph showing the full assignment description -->
+        <p class="week-description-text">{{ assignment.description }}</p>
+      </div>
+    {% endif %}
+
+    <!-- Only show assignment materials if any files are attached -->
+    {% if assignment.files.all %}
+      <!-- Block containing the list of assignment resource files -->
+      <div class="week-block">
+        <!-- Subheading for assignment materials -->
+        <h3 class="week-title">Assignment Materials</h3>
+        <!-- Unordered list of attached assignment files -->
+        <ul class="week-files">
+          <!-- Loop through each file associated with the assignment -->
+          {% for f in assignment.files.all %}
+            <!-- Single list item showing one resource file -->
+            <li>
+              <!-- Link to open or download the file in a new tab -->
+              <a href="{{ f.file.url }}" target="_blank">
+                {{ f.original_name|default:f.file.name }}
+              </a>
+              <!-- Small text showing when this file was uploaded -->
+              <span class="week-file-meta">
+                (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+  </section>
+
+  <!-- Branch for the student-facing view of this assignment -->
+  {% if role == "student" %}
+    <!-- Section where a student can view and manage their submission -->
+    <!-- Student submission area -->
+    <section class="dashboard-section">
+      <!-- Heading for the student's submission information -->
+      <h2 class="section-title">Your Submission</h2>
+
+      <!-- If the student already has a submission, show its details -->
+      {% if submission %}
+        <!-- Block displaying the current submission status, files, and grade -->
+        <div class="week-block">
+          <!-- Basic metadata about the submission -->
+          <p class="card-meta">
+            Status: {{ submission.get_status_display }}<br>
+            Submitted: {{ submission.submitted_at|date:"Y-m-d H:i" }}
+          </p>
+
+          <!-- Show submitted files only if any exist for this submission -->
+          {% if submission.files.all %}
+            <!-- Subheading for the student's submitted files -->
+            <h4 class="week-files-title">Submitted files</h4>
+            <!-- Unordered list of files the student has uploaded -->
+            <ul class="week-files">
+              <!-- Loop through each file belonging to the submission -->
+              {% for f in submission.files.all %}
+                <!-- Single list item representing one submitted file -->
+                <li>
+                  <!-- Link to open or download the file -->
+                  <a href="{{ f.file.url }}" target="_blank">
+                    {{ f.original_name|default:f.file.name }}
+                  </a>
+                  <!-- Metadata showing when the file was uploaded -->
+                  <span class="week-file-meta">
+                    (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                  </span>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+          <!-- If a grade has been recorded, show the mark and any feedback -->
+          {% if submission.grade %}
+            <!-- Subheading for the grade information -->
+            <h4 class="week-files-title">Grade</h4>
+            <!-- Paragraph containing mark and optional feedback -->
+            <p class="card-meta">
+              Mark: {{ submission.grade.value }} / {{ assignment.max_mark }}<br>
+              {% if submission.grade.feedback_text %}
+                Feedback: {{ submission.grade.feedback_text }}
+              {% endif %}
+            </p>
+          {% endif %}
+        </div>
+      {% else %}
+        <!-- Message shown if the student has not yet submitted anything -->
+        <p class="muted">You have not submitted this assignment yet.</p>
+      {% endif %}
+
+      <!-- Block containing the upload form for student submissions -->
+      <div class="week-block">
+        <!-- Subheading introducing the submission form -->
+        <h3 class="week-title">Submit work</h3>
+        <!-- Form allowing a student to upload one or more files for this assignment -->
+        <form method="post"
+              action="{% url 'accounts:submit_assignment' module.code assignment.id %}"
+              enctype="multipart/form-data"
+              class="week-upload-form">
+          <!-- CSRF token required for secure POST requests -->
+          {% csrf_token %}
+          <!-- Informational text describing how new uploads affect the submission -->
+          <p class="muted" style="font-size: 0.85rem;">
+            Upload one or more files. New uploads will be added to your submission and update the submitted time.
+          </p>
+          <!-- File input that supports selecting multiple files -->
+          <input type="file" name="files" multiple class="week-upload-input">
+          <!-- Submit button to upload or re-upload submission files -->
+          <button type="submit" class="small-button">Submit / Upload</button>
+        </form>
+      </div>
+    </section>
+
+  <!-- Branch for the lecturer-facing view of this assignment -->
+  {% elif role == "lecturer" %}
+    <!-- Section listing all student submissions for this assignment -->
+    <!-- Lecturer submissions list -->
+    <section class="dashboard-section">
+      <!-- Heading for the list of student submissions -->
+      <h2 class="section-title">Student Submissions</h2>
+
+      <!-- Only show submission blocks if at least one student has submitted -->
+      {% if submissions %}
+        <!-- Loop over each student submission for this assignment -->
+        {% for s in submissions %}
+          <!-- Block showing details for a single student's submission -->
+          <div class="week-block">
+            <!-- Subheading displaying the student's name or username -->
+            <h3 class="week-title">
+              {{ s.student.user.get_full_name|default:s.student.user.username }}
+            </h3>
+            <!-- Basic metadata about the submission status and time -->
+            <p class="card-meta">
+              Status: {{ s.get_status_display }}<br>
+              Submitted: {{ s.submitted_at|date:"Y-m-d H:i" }}
+            </p>
+
+            <!-- Show files only if the student has uploaded any -->
+            {% if s.files.all %}
+              <!-- Subheading for the list of submitted files -->
+              <h4 class="week-files-title">Files</h4>
+              <!-- Unordered list of the student's submitted files -->
+              <ul class="week-files">
+                <!-- Loop through each file in this submission -->
+                {% for f in s.files.all %}
+                  <!-- List item representing one file -->
+                  <li>
+                    <!-- Link to open or download the file in a new tab -->
+                    <a href="{{ f.file.url }}" target="_blank">
+                      {{ f.original_name|default:f.file.name }}
+                    </a>
+                    <!-- Metadata showing upload time for this file -->
+                    <span class="week-file-meta">
+                      (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% else %}
+              <!-- Message when a submission exists but contains no files -->
+              <p class="muted">No files uploaded yet.</p>
+            {% endif %}
+
+            <!-- If a grade already exists, show it and provide a link to edit -->
+            {% if s.grade %}
+              <!-- Paragraph showing the current grade and optional feedback -->
+              <p class="card-meta">
+                Grade: {{ s.grade.value }} / {{ assignment.max_mark }}<br>
+                {% if s.grade.feedback_text %}
+                  Feedback: {{ s.grade.feedback_text }}
+                {% endif %}
+              </p>
+              <!-- Button-style link allowing the lecturer to edit this grade -->
+              <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
+                 class="small-button">
+                Edit grade
+              </a>
+            {% else %}
+              <!-- Button-style link allowing the lecturer to add a new grade -->
+              <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
+                 class="small-button">
+                Add grade
+              </a>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <!-- Message shown if no student has submitted this assignment yet -->
+        <p class="muted">No submissions yet for this assignment.</p>
+      {% endif %}
+    </section>
+  {% endif %}
+</div>
+<!-- End of the main content block for this assignment detail page -->
+{% endblock %}
+

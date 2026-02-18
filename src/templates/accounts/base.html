@@ -1,0 +1,101 @@
+<!-- Declare the HTML5 document type so browsers know how to interpret the page -->
+<!DOCTYPE html>
+<!-- Root HTML element with language set to English -->
+<html lang="en">
+<head>
+  <!-- Load Django's static template tag library so we can reference static files -->
+  {% load static %}
+  <!-- Specify the character encoding used for the document -->
+  <meta charset="UTF-8" />
+  <!-- Define the contents of the <title> element, allowing child templates to override -->
+  <title>{% block title %}Eagna VLE{% endblock %}</title>
+  <!-- Link to the main stylesheet for the accounts app using Django's static file system -->
+  <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
+  <!-- Include the HTMX library from a CDN so templates can use HTMX attributes and features -->
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+</head>
+<body>
+  <!-- Site-wide header displayed at the top of every page -->
+  <header class="site-header">
+    <!-- Left side of the header containing the brand name -->
+    <div class="header-left">
+      <!-- Brand label or logo text for the application -->
+      <span class="brand">Eagna</span>
+    </div>
+
+    <!-- Center part of the header containing the main navigation links -->
+    <div class="header-center">
+      <!-- Primary navigation menu for the site -->
+      <nav class="main-nav">
+        <!-- Only render nav items if a nav_items list has been provided in context -->
+        {% if nav_items %}
+          <!-- Unordered list of navigation links -->
+          <ul>
+            <!-- Loop over each navigation item passed into the template -->
+            {% for item in nav_items %}
+              <!-- Single navigation entry -->
+              <li>
+                <!-- Anchor link using the item's URL and label text -->
+                <a href="{{ item.url }}">{{ item.label }}</a>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      </nav>
+    </div>
+
+    <!-- Right side of the header containing user info and logout control -->
+    <div class="header-right">
+      <!-- Example placeholder for a notifications button (currently commented out) -->
+      <!-- <button class="icon-button" type="button" title="Notifications">🔔</button> -->
+      <!-- Only show user information and logout button if a user is logged in -->
+      {% if user.is_authenticated %}
+        <!-- Text label showing the logged-in user's name or username -->
+        <span class="user-label">
+  		{{ user.get_full_name|default:user.username }}
+	</span>
+        <!-- Logout form that posts to the accounts:logout URL -->
+        <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+          <!-- CSRF token required for secure POST requests in Django -->
+          {% csrf_token %}
+          <!-- Button that submits the logout request when clicked -->
+          <button type="submit" class="logout-button">Logout</button>
+        </form>
+      {% endif %}
+    </div>
+  </header>
+
+  <!-- Main page content area where child templates inject their specific content -->
+  <main class="page-content">
+    <!-- Content block to be overridden by individual page templates -->
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Site-wide footer shown at the bottom of every page -->
+  <footer class="site-footer">
+    <!-- Upper part of the footer, here showing the TU Dublin logo -->
+    <div class="footer-top">
+	<img src="https://pxl01-tudublinie.terminalfour.net/prod01/tudublin-cdn-pxl/media/website/site-assets/images/tu-dublin-logo.svg">
+    </div>
+
+    <!-- Footer navigation area, mirroring the nav_items if provided -->
+    <div class="footer-nav">
+      <!-- Only show footer navigation if nav_items are available -->
+      {% if nav_items %}
+        <!-- Unordered list of footer navigation links -->
+        <ul>
+          <!-- Loop through each navigation item again for the footer -->
+          {% for item in nav_items %}
+            <!-- Single footer navigation entry -->
+            <li>
+              <!-- Anchor link using the item's URL and label -->
+              <a href="{{ item.url }}">{{ item.label }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+  </footer>
+</body>
+</html>
+

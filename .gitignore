@@ -1,0 +1,23 @@
+cat > /srv/eagna/.gitignore <<'EOF'
+# Secrets
+.env
+*.pem
+*.key
+*.crt
+
+# Python/Django
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.sqlite3
+
+# Virtualenv
+.venv/
+venv/
+
+# Runtime / generated (adjust to your layout)
+var/media/
+var/static/
+*.log
+EOF

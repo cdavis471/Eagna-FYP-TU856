@@ -1,0 +1,50 @@
+from django.urls import path  # Imports the path function for defining URL patterns in this app
+from django.contrib.auth.views import LogoutView  # Imports Django's built-in view for handling user logout
+from django.conf.urls.static import static  # Provides helper to serve static files in development (even if not used here directly)
+
+from .views import RoleBasedLoginView, dashboard, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission  # Imports all view functions/classes referenced in this URL config
+
+app_name = "accounts"  # Namespaces these URLs under "accounts" so they can be reversed with the 'accounts:' prefix
+
+urlpatterns = [  # List of URL patterns that map URLs to views for this app
+    path("", dashboard, name="dashboard"),  # Root of the accounts app; sends user to the dashboard view
+    path("login/", RoleBasedLoginView.as_view(), name="login"),  # URL for logging in; uses custom role-based login view
+    path("logout/", LogoutView.as_view(next_page="accounts:login"), name="logout"),  # URL for logging out; redirects to login page afterwards
+    path("student-dashboard/", dashboard, name="student_dashboard"),  # URL alias for student dashboard; uses same dashboard view
+    path("lecturer-dashboard/", dashboard, name="lecturer_dashboard"),  # URL alias for lecturer dashboard; also uses shared dashboard view
+
+    path("modules/<str:code>/", module_detail, name="module_detail"),  # URL for viewing a specific module; 'code' dynamic segment identifies module
+
+    path(  # URL pattern to upload a file for a specific week of a module
+        "modules/<str:code>/weeks/<int:week_number>/upload/",  # Path with module code and week number as URL parameters
+        upload_week_file,  # View handling the file upload logic for that week
+        name="upload_week_file",  # Name used to reverse this route in templates and code
+    ),
+    path(  # URL pattern to edit description text for a specific week of a module
+        "modules/<str:code>/weeks/<int:week_number>/description/",  # Path with module code and week number for description edits
+        edit_week_description,  # View that processes updating the week description
+        name="edit_week_description",  # Named route used for URL reversing in templates/forms
+    ),
+
+    path(  # URL pattern for creating a new assignment within a module
+        "modules/<str:code>/assignments/new/",  # Module code in URL, with 'new' indicating assignment creation
+        create_assignment,  # View that displays and processes the assignment creation form
+        name="create_assignment",  # Named route for linking to the assignment creation page
+    ),
+    path(  # URL pattern for viewing details of a specific assignment
+        "modules/<str:code>/assignments/<int:assignment_id>/",  # Includes module code and assignment ID as URL parameters
+        assignment_detail,  # View that shows assignment info (different display for student/lecturer)
+        name="assignment_detail",  # Name used for reversing this assignment detail URL
+    ),
+    path(  # URL pattern for a student to submit work for a specific assignment
+        "modules/<str:code>/assignments/<int:assignment_id>/submit/",  # Path including module and assignment identifiers with 'submit' action
+        submit_assignment,  # View that handles creating/updating an assignment submission
+        name="submit_assignment",  # Named route to use in assignment submission forms
+    ),
+    path(  # URL pattern for a lecturer to grade a specific submission for an assignment
+        "modules/<str:code>/assignments/<int:assignment_id>/submissions/<int:submission_id>/grade/",  # Includes module, assignment, and submission IDs
+        grade_submission,  # View that displays and processes the grading form
+        name="grade_submission",  # Named route for linking to or redirecting to the grading page
+    ),
+]
+
