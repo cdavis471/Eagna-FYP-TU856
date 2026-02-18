@@ -1,0 +1,106 @@
+<!-- Use the shared base template for all accounts pages -->
+{% extends "accounts/base.html" %}
+
+<!-- Set the page title that will appear in the browser tab or base template -->
+{% block title %}Student Dashboard - Eagna{% endblock %}
+
+<!-- Begin the main content area that will be injected into the base layout -->
+{% block content %}
+<!-- Top-level container that wraps all dashboard content for the student -->
+<div class="dashboard-container">
+  <!-- Section that highlights the student's upcoming assignments -->
+  <!-- Upcoming Assignments -->
+  <!-- Semantic section element for the upcoming assignments list -->
+  <section class="dashboard-section">
+    <!-- Heading for the upcoming assignments section -->
+    <h2 class="section-title">Upcoming Assignments</h2>
+    <!-- Check if there are any upcoming assignments to display -->
+    {% if upcoming_assignments %}
+      <!-- Grid layout container for individual assignment cards -->
+      <div class="card-grid">
+        <!-- Loop through each upcoming assignment object -->
+        {% for a in upcoming_assignments %}
+          <!-- Clickable wrapper that links to the assignment detail page -->
+          <a href="{% url 'accounts:assignment_detail' a.module.code a.id %}" class="card-link-wrapper">
+            <!-- Card representing a single upcoming assignment -->
+            <article class="card card-clickable">
+              <!-- Display the title of the assignment -->
+              <h3 class="card-title">{{ a.title }}</h3>
+              <!-- Row of metadata showing module title and code -->
+              <p class="card-meta">
+                <!-- Show the full name of the module this assignment belongs to -->
+                <span>{{ a.module.title }}</span> ·
+                <!-- Show the short module code (e.g. TU856) -->
+                <span>{{ a.module.code }}</span>
+              </p>
+              <!-- Row that shows the due date and time for the assignment -->
+              <p class="card-meta">
+                <!-- Render the due date using a specific date-time format -->
+                Due: {{ a.due_datetime|date:"Y-m-d H:i" }}
+              </p>
+              <!-- Only show a short description if the assignment actually has one -->
+              {% if a.description %}
+                <!-- Short preview of the assignment description text -->
+                <p class="card-meta">
+                  <!-- Truncate the description so the card stays compact -->
+                  {{ a.description|truncatechars:120 }}
+                </p>
+              {% endif %}
+            </article>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Message shown when there are no upcoming assignments -->
+      <p class="muted">No upcoming assignments.</p>
+    {% endif %}
+  </section>
+
+  <!-- Section showing the modules that this student is enrolled in -->
+  <!-- Your Modules -->
+  <!-- Semantic section for listing all of the student's modules -->
+  <section class="dashboard-section">
+    <!-- Heading for the modules section -->
+    <h2 class="section-title">Your Modules</h2>
+    <!-- Check if the student currently has any modules attached -->
+    {% if modules %}
+      <!-- Grid layout for rendering each module as a card -->
+      <div class="card-grid">
+        <!-- Loop through each module object assigned to the student -->
+        {% for m in modules %}
+          <!-- Clickable card wrapper linking to the module detail page -->
+          <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
+            <!-- Card container for a single module -->
+            <article class="card card-clickable">
+              <!-- Display the module title/textual name -->
+              <h3 class="card-title">{{ m.title }}</h3>
+              <!-- Row of metadata containing the module code -->
+              <p class="card-meta">
+                <!-- Show only the module code here -->
+                <span>{{ m.code }}</span>
+              </p>
+              <!-- Row that shows the module's lecturer or a fallback label -->
+              <p class="card-meta">
+                <!-- Check if there is at least one lecturer associated with this module -->
+                {% if m.lecturers.all %}
+                  <!-- Label for the lecturer information -->
+                  Lecturer:
+                  <!-- Show first lecturer's full name, or their username if no full name is set -->
+                  {{ m.lecturers.first.user.get_full_name|default:m.lecturers.first.user.username }}
+                {% else %}
+                  <!-- Fallback text indicating that a lecturer has not yet been assigned -->
+                  Lecturer: TBA
+                {% endif %}
+              </p>
+            </article>
+          </a>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- Message shown when the student has no modules linked yet -->
+      <p class="muted">No modules are currently assigned.</p>
+    {% endif %}
+  </section>
+</div>
+<!-- Close the main content block so the base template can render the page -->
+{% endblock %}

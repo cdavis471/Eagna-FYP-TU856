@@ -1,0 +1,99 @@
+Students:							#	Student Record
+
+StudentID,							#	Primary Key Identifier
+StudentFirstName					#	Text
+StudentSurname						#	Text
+StudentEmail,						#	...@mytudublin.ie
+StudentPassword						#	SHA-256 Encryption
+StudentCourseCode					#	Text
+StudentCourseTitle					#	Text
+
+Lecturers:							#	Lecturer Record
+
+LecturerID,							#	Primary Key Identifier
+LecturerFirstName					#	Text
+LecturerSurname						#	Text
+LecturerEmail,						#	...@tudublin.ie
+LecturerPassword					#	SHA-256 Encryption
+
+Admins:								#	Admin Record
+
+AdminID,							#	Primary Key Identifier
+AdminEmail,							#	...@tudublin.ie
+AdminPassword						#	SHA-256 Encryption
+
+Module:								#	Module Record
+
+ModuleID,							#	Primary Key Identifier
+ModuleCode,							#	6 Character String Followed by 4 Numbers (LAW1051 or FNBSH1000)
+ModuleTitle,						#	Advanced Databases
+ModuleAcademicYearSemester			#	(2024/2025-1) -- 0 -> Full Year -- 1 -> Semester 1 -- 2 -> Semester 2
+ModuleWeekLength					#	Weeks --> Integer Value >= 1
+ModuleActive						#	Yes / No
+
+ModuleEnrollmentLecturer:			#	Module Associated Lecturer
+
+ModuleEnrollmentID					#	Primary Key Identifier
+ModuleEnrollmentLecturerID			#	Secondary Key (Links Lecturers Table)
+ModuleID							#	Secondary Key (Links Module Table)
+
+ModuleEnrollmentStudent:			#	Module Associated Students
+
+ModuleEnrollmentID					#	Primary Key Identifier
+ModuleEnrollmentStudentID			#	Secondary Key (Links Student Table)
+ModuleID							#	Secondary Key (Links Module Table)
+
+ModuleWeek:							#	Module Academic Week
+
+ModuleWeekID,						#	Primary Key Identifier
+ModuleID,							#	Secondary Key (Links Module Table
+ModuleWeekTitle						#	Title --> Text
+ModuleWeekDesc,						#	Description --> Text
+
+ModuleWeekFile:						#	Weekly Notes Associated Files (PDF, DOCX, ZIP etc.)
+
+ModuleWeekFileID,					#	Primary Key Identifier
+ModuleWeekID						# 	Secondary Key (Links ModuleWeek Table)
+ModuleWeekFileName					#	Stores File Name -- > Text
+ModuleWeekFileMime					#	Stores File Media Type --> Text
+ModuleWeekFileContent				#	Stores BYTEA
+
+Assignment:							#	Assignment
+
+AssignmentID,						#	Primary Key Identifier
+ModuleID,							#	Secondary Key (Links Module Table
+AssignmentDesc,						#	Description (Long Paragraph String)
+
+AssignmentSubmission:				#	Assignment Submission
+
+AssignmentSubmissionID,				#	Primary Key Identifier
+AssignmentID,						#	Secondary Key (Links Assignment Table)
+StudentID							#	Secondary Key (Links Student Table)
+
+AssignmentSubmissionFiles:			#	Assignment Submission Associated Files (PDF, DOCX, ZIP etc.)
+
+AssignmentSubmissionFilesID,		#	Primary Key Identifier
+AssignmentSubmissionID				# 	Secondary Key (Links AssignmentSubmission Table)
+AssignmentSubmissionFileName		#	Stores File Name -- > Text
+AssignmentSubmissionFileMime		#	Stores File Media Type --> Text
+AssignmentSubmissionFileContent		#	Stores BYTEA
+
+AssignmentGrade:					#	Assignment Grade (Based on Submission)
+
+AssignmentGradeID,					#	Primary Key Identifier
+AssignmentSubmissionID,				#	Secondary Key (Links Assignment Table)
+AssignmentGradeValue				#	Integer Value ( <= AssignmentGradeValueMax)
+AssignmentGradeValueMax				#	Integer Value
+
+GlobalAnnouncements:				#	Global Site Announcement
+
+GlobalAnnouncementID				#	Primary Key Identifier
+GlobalAnnouncementTitle				#	Title of Announcement --> Text
+GlobalAnnouncementDesc				#	Description of Announcment --> Text
+
+ModuleAnnouncment:					#	Module Wide Announcement
+
+ModuleAnnouncementID				#	Primary Key Identifier
+ModuleID							#	Secondary Key (Links Module Table)
+ModuleAnnouncementTitle				#	Title of Announcement --> Text
+ModuleAnnouncementDesc				#	Description of Announcment --> Text
