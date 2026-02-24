@@ -26,7 +26,12 @@ class StudentProfile(models.Model):  # Extra data model for users who are studen
         related_name="student_profile",  # Allows reverse access via user.student_profile
     )
     student_number = models.CharField(max_length=32, unique=True)  # Unique identifier for a student (e.g. student ID)
-    course = models.CharField(max_length=64, help_text="Course Code & Name (e.g. TU856 - BSc in Computer Science)")
+    course = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        help_text="Course Code & Name (e.g. TU856 - BSc in Computer Science)"
+    )
 
     def __str__(self):  # String representation used in admin and shell
         return f"{self.student_number} - {self.user.get_full_name() or self.user.username}"  # Shows ID plus student name or username

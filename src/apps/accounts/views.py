@@ -10,6 +10,7 @@ from datetime import datetime  # Standard library datetime class used for parsin
 from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile  # Imports all custom models referenced by these views
 import re  # Regular expressions module, used for validating input
 from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
+from django.db.models import Q # Import Q for complex query lookups (used in filtering with OR conditions)
 
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
@@ -24,16 +25,6 @@ class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’
         return "/"  # fallback  # If neither role matches, fall back to redirecting to the site root
     
 def register_student(request):
-    """
-    Public student registration.
-
-    Fields:
-      - first_name, last_name
-      - email (used as username, must end with @mytudublin.ie)
-      - password1, password2 (strength-checked)
-      - course (string; must be one of the course codes derived from Module.allowed_courses)
-      - modules (multi-select; each chosen module must allow that course)
-    """
     # If someone is already logged in, don't let them register again
     if request.user.is_authenticated:
         return redirect("accounts:dashboard")
@@ -49,7 +40,7 @@ def register_student(request):
 
         errors: dict[str, list[str]] = {}
 
-        # ---- Presence checks ----
+        # Presence Checks
         if not first_name:
             errors.setdefault("first_name", []).append("First name is required.")
         if not last_name:
@@ -63,7 +54,7 @@ def register_student(request):
         if not module_ids:
             errors.setdefault("modules", []).append("Please select at least one module.")
 
-        # ---- Email rules ----
+        # Email Rules
         if email and not email.endswith("@mytudublin.ie"):
             errors.setdefault("email", []).append(
                 "Student email must end with @mytudublin.ie."
@@ -74,7 +65,7 @@ def register_student(request):
                 "An account already exists for this email address."
             )
 
-        # ---- Password rules ----
+        # Password Rules
         if password1 and password2 and password1 != password2:
             errors.setdefault("password", []).append("Passwords do not match.")
 
@@ -82,21 +73,19 @@ def register_student(request):
         if pw_errors:
             errors.setdefault("password", []).extend(pw_errors)
 
-        # ---- Course validity: must be one of the codes from allowed_courses ----
+        # Course validity: must be one of the codes from allowed_courses
         valid_courses = _get_all_valid_courses()
         if course and course not in valid_courses:
             errors.setdefault("course", []).append(
                 "Selected course is not recognised for any module."
             )
 
-        # ---- Modules must exist and allow this course ----
+        # Modules must exist and allow this course
         selected_modules = []
         if module_ids:
             selected_modules = list(
-                Module.objects.filter(
-                    pk__in=module_ids,
-                    is_active=True,
-                    allowed_courses__contains=[course],  # JSONField containment; requires PostgreSQL
+                Module.objects.filter(pk__in=module_ids, is_active=True).filter(
+                    Q(allowed_courses=[]) | Q(allowed_courses__contains=[course])
                 )
             )
             if len(selected_modules) != len(module_ids):
@@ -106,7 +95,9 @@ def register_student(request):
 
         if errors:
             # Re-render form with errors + previous data
-            all_modules = Module.objects.filter(is_active=True).order_by("code")
+            all_modules = Module.objects.filter(is_active=True).filter(
+                Q(allowed_courses=[]) | Q(allowed_courses__contains=[course])
+            ).order_by("code")
             context = {
                 "errors": errors,
                 "form_data": {
@@ -119,9 +110,9 @@ def register_student(request):
                 "valid_courses": valid_courses,
                 "modules": all_modules,
             }
-            return render(request, "accounts/register_student.html", context)
+            return render(request, "accounts/registration.html", context)
 
-        # ---- Create User + StudentProfile ----
+        # Create User + StudentProfile
         user = User.objects.create_user(
             username=email,         # login identifier
             email=email,            # store real email as well
@@ -147,7 +138,7 @@ def register_student(request):
 
         messages.success(
             request,
-            "Registration successful. You can now log in with your student email and password.",
+            "Registration Successful. You can now log in with your student email and password!",
         )
         return redirect("accounts:login")
 
@@ -161,7 +152,7 @@ def register_student(request):
         "valid_courses": valid_courses,
         "modules": all_modules,
     }
-    return render(request, "accounts/register_student.html", context)
+    return render(request, "accounts/registration.html", context)
 
 
 @login_required  # Ensures only authenticated users can view the dashboard
@@ -243,11 +234,7 @@ def dashboard(request):  # Main dashboard view for both students and lecturers
 
 @login_required  # Only authenticated users can view module details
 def module_detail(request, code):  # View that shows detailed information for a specific module by its code
-    """
-    Show details for a single module:
-    - For students: module info + assignments + weeks that have files
-    - For lecturers: module info + assignments + all weeks (1–15) with upload & edit
-    """
+
     user: User = request.user  # Get the currently authenticated user from the request
 
     # Shared nav items for header + footer
@@ -349,7 +336,7 @@ def module_detail(request, code):  # View that shows detailed information for a 
 
 @login_required  # Restrict file uploads to authenticated users
 def upload_week_file(request, code, week_number):  # View for lecturers to upload a file to a specific module week
-    """Lecturer-only upload of a file for a given week."""
+
     user: User = request.user  # Get the logged-in user
     if not user.is_lecturer():  # Check that the user is a lecturer before proceeding
         raise Http404("Not found")  # Return 404 to hide this functionality from non-lecturers
@@ -377,7 +364,7 @@ def upload_week_file(request, code, week_number):  # View for lecturers to uploa
 
 @login_required  # Only authenticated users can access week description editing
 def edit_week_description(request, code, week_number):  # View allowing lecturers to edit text description for a week
-    """Lecturer-only: update the description text for a given week."""
+
     user: User = request.user  # Retrieve the current user
     if not user.is_lecturer():  # Confirm the user has lecturer role
         raise Http404("Not found")  # Return 404 to disallow non-lecturer access
@@ -402,10 +389,7 @@ def edit_week_description(request, code, week_number):  # View allowing lecturer
 @login_required  # Require authentication for creating assignments
 @require_http_methods(["GET", "POST"])  # Limit this view to only handle GET and POST methods
 def create_assignment(request, code):  # View that lets a lecturer create a new assignment for a given module
-    """
-    Lecturer-only view: create an assignment for a specific module,
-    with optional attached files.
-    """
+
     user: User = request.user  # Get the current user from request
     if not user.is_lecturer():  # Verify the user has lecturer privileges
         raise Http404("Not found")  # Deny access to non-lecturers with a 404
@@ -499,11 +483,7 @@ def create_assignment(request, code):  # View that lets a lecturer create a new 
 
 @login_required  # Ensure only authenticated users can view assignment details
 def assignment_detail(request, code, assignment_id):  # View that displays details for a particular assignment within a module
-    """
-    Show details for a single assignment.
-    - Student: sees description, lecturer files, their own submission (+ grade if any), upload form.
-    - Lecturer: sees description, files, and all submissions for that assignment.
-    """
+
     user: User = request.user  # Get the current authenticated user
 
     # Shared nav items for header + footer
@@ -582,10 +562,7 @@ def assignment_detail(request, code, assignment_id):  # View that displays detai
 @login_required  # Require authentication to submit assignments
 @require_http_methods(["POST"])  # This view only accepts POST requests (submissions)
 def submit_assignment(request, code, assignment_id):  # View that handles submission of assignment files by a student
-    """
-    Student-only: submit files for an assignment.
-    Creates or updates a single AssignmentSubmission per student+assignment.
-    """
+
     user: User = request.user  # Get the authenticated user
     if not user.is_student():  # Ensure that only students can submit assignments
         raise Http404("Not found")  # Return 404 if a non-student tries this endpoint
@@ -634,9 +611,7 @@ def submit_assignment(request, code, assignment_id):  # View that handles submis
 @login_required  # Ensure user is logged in to grade submissions
 @require_http_methods(["GET", "POST"])  # Allow both GET (display form) and POST (submit form) on this view
 def grade_submission(request, code, assignment_id, submission_id):  # View for lecturers to create or update a grade for a submission
-    """
-    Lecturer-only: create or update a grade for a specific submission.
-    """
+
     user: User = request.user  # Get the current authenticated user
     if not user.is_lecturer():  # Make sure only lecturers can access grading functionality
         raise Http404("Not found")  # Return 404 for unauthorized roles to conceal endpoint
