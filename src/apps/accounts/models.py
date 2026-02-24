@@ -2,7 +2,6 @@ from django.contrib.auth.models import AbstractUser  # Import Django's base user
 from django.db import models  # Import Django's ORM model base classes and field types
 from django.conf import settings  # Import project settings to reference AUTH_USER_MODEL, etc.
 
-
 class User(AbstractUser):  # Custom user model extending Django's AbstractUser
     class Role(models.TextChoices):  # Inner class defining choices for the user's role
         STUDENT = "STUDENT", "Student"  # Database value and human-readable label for student role
@@ -20,7 +19,6 @@ class User(AbstractUser):  # Custom user model extending Django's AbstractUser
     def is_lecturer(self):  # Helper method to check if user is a lecturer
         return self.role == self.Role.LECTURER  # Returns True if role field equals the LECTURER choice
 
-
 class StudentProfile(models.Model):  # Extra data model for users who are students
     user = models.OneToOneField(  # One-to-one link between StudentProfile and User
         User,  # Related model is the custom User model
@@ -28,10 +26,10 @@ class StudentProfile(models.Model):  # Extra data model for users who are studen
         related_name="student_profile",  # Allows reverse access via user.student_profile
     )
     student_number = models.CharField(max_length=32, unique=True)  # Unique identifier for a student (e.g. student ID)
+    course = models.CharField(max_length=64, help_text="Course Code & Name (e.g. TU856 - BSc in Computer Science)")
 
     def __str__(self):  # String representation used in admin and shell
         return f"{self.student_number} - {self.user.get_full_name() or self.user.username}"  # Shows ID plus student name or username
-
 
 class LecturerProfile(models.Model):  # Extra data model for users who are lecturers
     user = models.OneToOneField(  # One-to-one link between LecturerProfile and User
@@ -44,7 +42,6 @@ class LecturerProfile(models.Model):  # Extra data model for users who are lectu
     def __str__(self):  # String representation for lecturer profile
         return f"{self.staff_id} - {self.user.get_full_name() or self.user.username}"  # Shows staff ID and lecturer name/username
 
-
 # =========================
 # Modules & Enrolment
 # =========================
@@ -54,7 +51,7 @@ class Module(models.Model):  # Represents a module/course unit students can be e
     title = models.CharField(max_length=255)  # Human-readable title/name of the module
 
     academic_year_start = models.PositiveIntegerField(default=2025)  # Starting year of academic cycle, e.g. 2025
-    semester = models.PositiveSmallIntegerField(default=1)           # Semester number (e.g. 1 or 2) for the module
+    semester = models.PositiveSmallIntegerField(default=1) # Semester number (e.g. 1 or 2) for the module
 
     is_active = models.BooleanField(default=True)  # Flag to mark whether module is active/available
 
@@ -71,9 +68,14 @@ class Module(models.Model):  # Represents a module/course unit students can be e
         blank=True,  # Can be empty (no lecturers assigned yet)
     )
 
+    allowed_courses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of course codes (e.g. ['TU856', 'TU123']) that are allowed to enroll in this module. Leave empty for no restrictions."
+    )
+
     def __str__(self):  # String representation for a module
         return f"{self.code} - {self.title}"  # Shows module code with its title
-
 
 class ModuleEnrollmentStudent(models.Model):  # Through model representing a student's enrolment in a module
     module = models.ForeignKey(  # Link to the module that the student is enrolled in
@@ -94,7 +96,6 @@ class ModuleEnrollmentStudent(models.Model):  # Through model representing a stu
     def __str__(self):  # String representation of student enrolment
         return f"{self.student} -> {self.module}"  # Shows which student is enrolled in which module
 
-
 class ModuleEnrollmentLecturer(models.Model):  # Through model representing a lecturer assigned to a module
     module = models.ForeignKey(  # Link to the module being taught
         Module,  # Related module model
@@ -113,7 +114,6 @@ class ModuleEnrollmentLecturer(models.Model):  # Through model representing a le
 
     def __str__(self):  # String representation of lecturer enrolment
         return f"{self.lecturer} -> {self.module}"  # Shows which lecturer is linked to which module
-
 
 # =========================
 # Assignments & Submissions
@@ -140,7 +140,6 @@ class Assignment(models.Model):  # Represents an assignment belonging to a modul
 
     def __str__(self):  # String representation of an assignment
         return f"{self.module.code} - {self.title}"  # Shows module code followed by assignment title
-
 
 class AssignmentSubmission(models.Model):  # Represents a student's submission for an assignment
     class Status(models.TextChoices):  # Inner choices class to represent submission status
@@ -170,7 +169,6 @@ class AssignmentSubmission(models.Model):  # Represents a student's submission f
     def __str__(self):  # String representation for a submission
         return f"{self.assignment} - {self.student}"  # Shows assignment and student together
 
-
 def submission_file_upload_path(instance, filename):  # Helper function to compute upload path for submission files
     return (  # Return a dynamic path that organizes files by module, assignment, and student
         f"submission_files/{instance.submission.assignment.module.code}/"  # Folder by module code
@@ -178,7 +176,6 @@ def submission_file_upload_path(instance, filename):  # Helper function to compu
         f"{instance.submission.student.student_number or instance.submission.student.id}/"  # Folder by student number or ID
         f"{filename}"  # Final part is the original filename
     )
-
 
 class SubmissionFile(models.Model):  # Represents an individual file attached to a student's submission
     submission = models.ForeignKey(  # Link to the submission this file belongs to
@@ -198,7 +195,6 @@ class SubmissionFile(models.Model):  # Represents an individual file attached to
 
     def __str__(self):  # String representation of a submission file
         return self.original_name or self.file.name  # Prefer original name, fallback to stored file name
-
 
 class AssignmentGrade(models.Model):  # Represents the grade/mark for a submission
     submission = models.OneToOneField(  # One-to-one relationship: each submission has at most one grade
@@ -224,13 +220,11 @@ class AssignmentGrade(models.Model):  # Represents the grade/mark for a submissi
     def __str__(self):  # String representation of grade
         return f"{self.submission} - {self.value}/{self.submission.assignment.max_mark}"  # Shows submission and mark over max
 
-
 def assignment_file_upload_path(instance, filename):  # Helper function for assignment file storage path
     return (  # Return path that organizes files by module and assignment
         f"assignment_files/{instance.assignment.module.code}/"  # Folder by module code
         f"{instance.assignment.id}/{filename}"  # Nested folder by assignment ID and filename
     )
-
 
 class AssignmentFile(models.Model):  # Represents files attached by lecturers to an assignment
     assignment = models.ForeignKey(  # Link to the assignment this file belongs to
@@ -251,7 +245,6 @@ class AssignmentFile(models.Model):  # Represents files attached by lecturers to
     def __str__(self):  # String representation of assignment file
         return self.original_name or self.file.name  # Prefer original file name or fallback to stored name
 
-
 class ModuleWeek(models.Model):  # Represents a single teaching week within a module
     module = models.ForeignKey(  # Link to the module this week belongs to
         Module,  # Related module model
@@ -269,13 +262,11 @@ class ModuleWeek(models.Model):  # Represents a single teaching week within a mo
     def __str__(self):  # String representation of a module week
         return f"{self.module.code} - Week {self.week_number}"  # Shows module code plus week number
 
-
 def module_week_file_upload_path(instance, filename):  # Helper to determine upload path for weekly module files
     return (  # Build a structured path for module week files
         f"module_files/{instance.week.module.code}/"  # Folder by module code
         f"week-{instance.week.week_number}/{filename}"  # Nested folder by week number and filename
     )
-
 
 class ModuleWeekFile(models.Model):  # Represents a file resource attached to a specific teaching week
     week = models.ForeignKey(  # Link to the week this file belongs to

@@ -8,7 +8,8 @@ from django.db.models import Count, Q  # ORM helpers: Count for aggregation and 
 from django.views.decorators.http import require_http_methods  # Decorator to restrict allowed HTTP methods per view
 from datetime import datetime  # Standard library datetime class used for parsing date and time input
 from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile  # Imports all custom models referenced by these views
-
+import re  # Regular expressions module, used for validating input
+from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
 
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
@@ -21,6 +22,146 @@ class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’
         if user.is_lecturer():  # If the user has the lecturer role, send them to the lecturer dashboard
             return "/lecturer-dashboard/"
         return "/"  # fallback  # If neither role matches, fall back to redirecting to the site root
+    
+def register_student(request):
+    """
+    Public student registration.
+
+    Fields:
+      - first_name, last_name
+      - email (used as username, must end with @mytudublin.ie)
+      - password1, password2 (strength-checked)
+      - course (string; must be one of the course codes derived from Module.allowed_courses)
+      - modules (multi-select; each chosen module must allow that course)
+    """
+    # If someone is already logged in, don't let them register again
+    if request.user.is_authenticated:
+        return redirect("accounts:dashboard")
+
+    if request.method == "POST":
+        first_name = (request.POST.get("first_name") or "").strip()
+        last_name = (request.POST.get("last_name") or "").strip()
+        email = (request.POST.get("email") or "").strip().lower()
+        password1 = request.POST.get("password1") or ""
+        password2 = request.POST.get("password2") or ""
+        course = (request.POST.get("course") or "").strip()
+        module_ids = request.POST.getlist("module_ids")  # multiple values
+
+        errors: dict[str, list[str]] = {}
+
+        # ---- Presence checks ----
+        if not first_name:
+            errors.setdefault("first_name", []).append("First name is required.")
+        if not last_name:
+            errors.setdefault("last_name", []).append("Surname is required.")
+        if not email:
+            errors.setdefault("email", []).append("Student email is required.")
+        if not password1 or not password2:
+            errors.setdefault("password", []).append("Both password fields are required.")
+        if not course:
+            errors.setdefault("course", []).append("Please choose a course.")
+        if not module_ids:
+            errors.setdefault("modules", []).append("Please select at least one module.")
+
+        # ---- Email rules ----
+        if email and not email.endswith("@mytudublin.ie"):
+            errors.setdefault("email", []).append(
+                "Student email must end with @mytudublin.ie."
+            )
+
+        if email and User.objects.filter(username=email).exists():
+            errors.setdefault("email", []).append(
+                "An account already exists for this email address."
+            )
+
+        # ---- Password rules ----
+        if password1 and password2 and password1 != password2:
+            errors.setdefault("password", []).append("Passwords do not match.")
+
+        pw_errors = _validate_password_strength(password1)
+        if pw_errors:
+            errors.setdefault("password", []).extend(pw_errors)
+
+        # ---- Course validity: must be one of the codes from allowed_courses ----
+        valid_courses = _get_all_valid_courses()
+        if course and course not in valid_courses:
+            errors.setdefault("course", []).append(
+                "Selected course is not recognised for any module."
+            )
+
+        # ---- Modules must exist and allow this course ----
+        selected_modules = []
+        if module_ids:
+            selected_modules = list(
+                Module.objects.filter(
+                    pk__in=module_ids,
+                    is_active=True,
+                    allowed_courses__contains=[course],  # JSONField containment; requires PostgreSQL
+                )
+            )
+            if len(selected_modules) != len(module_ids):
+                errors.setdefault("modules", []).append(
+                    "One or more selected modules are invalid for the chosen course."
+                )
+
+        if errors:
+            # Re-render form with errors + previous data
+            all_modules = Module.objects.filter(is_active=True).order_by("code")
+            context = {
+                "errors": errors,
+                "form_data": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "email": email,
+                    "course": course,
+                    "module_ids": module_ids,
+                },
+                "valid_courses": valid_courses,
+                "modules": all_modules,
+            }
+            return render(request, "accounts/register_student.html", context)
+
+        # ---- Create User + StudentProfile ----
+        user = User.objects.create_user(
+            username=email,         # login identifier
+            email=email,            # store real email as well
+            password=password1,
+            first_name=first_name,
+            last_name=last_name,
+            role=User.Role.STUDENT,
+        )
+
+        # Use the part before '@' as student_number (e.g. 'C20441826')
+        student_number = email.split("@")[0]
+
+        from .models import StudentProfile  # local import to avoid circulars
+
+        student_profile = StudentProfile.objects.create(
+            user=user,
+            student_number=student_number,
+            course=course,  # store course code here
+        )
+
+        # Link modules (through ModuleEnrollmentStudent via the M2M)
+        student_profile.modules.set(selected_modules)
+
+        messages.success(
+            request,
+            "Registration successful. You can now log in with your student email and password.",
+        )
+        return redirect("accounts:login")
+
+    # ---- GET: show empty form ----
+    valid_courses = _get_all_valid_courses()
+    all_modules = Module.objects.filter(is_active=True).order_by("code")
+
+    context = {
+        "errors": {},
+        "form_data": {},
+        "valid_courses": valid_courses,
+        "modules": all_modules,
+    }
+    return render(request, "accounts/register_student.html", context)
 
 
 @login_required  # Ensures only authenticated users can view the dashboard
@@ -568,3 +709,28 @@ def grade_submission(request, code, assignment_id, submission_id):  # View for l
 
     return render(request, "accounts/grade_submission.html", context)  # Render the grade submission template with provided context
 
+def _validate_password_strength(password: str) -> list[str]:
+    errors: list[str] = []
+    if len(password) < 8:
+        errors.append("Password must be at least 8 characters long.")
+    if not re.search(r"[A-Z]", password):
+        errors.append("Password must contain at least one uppercase letter.")
+    if not re.search(r"\d", password):
+        errors.append("Password must contain at least one number.")
+    if not re.search(r"[^\w\s]", password):
+        errors.append("Password must contain at least one special character (e.g. !, @, #).")
+    return errors
+
+def _get_all_valid_courses() -> list[str]:
+    """
+    Aggregate all allowed course codes from Module.allowed_courses.
+    Returns a sorted unique list, e.g. ["TU856", "TU123"].
+    """
+    courses_set = set()
+    # allowed_courses is a JSONField storing a list of course codes per module
+    for allowed in Module.objects.values_list("allowed_courses", flat=True):
+        if isinstance(allowed, list):
+            for c in allowed:
+                if c:
+                    courses_set.add(str(c))
+    return sorted(courses_set)

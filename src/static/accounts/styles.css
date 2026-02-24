@@ -346,6 +346,20 @@ button[type="submit"]:hover {
   font-size: 0.9rem;
 }
 
+.secondary-button {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  text-decoration: none;
+  background-color: #07164d;
+  color: #ffffff;
+  font-weight: 500;
+}
+
+.secondary-button:hover {
+  opacity: 0.9;
+}
+
 /* 
 ======
 Footer
