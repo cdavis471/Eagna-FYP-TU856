@@ -9,20 +9,16 @@
 <!-- Container that automatically wraps the registration form content -->
 <div class="auth-container">
     <!-- Heading text shown at the top of the registration form -->
-    <h1>Student Registration</h1>
+    <h2>Student Registration</h2>
     <!-- Display form validation errors if they exist -->
     {% if errors %}
-        <!-- Box that highlights the presence of form errors and lists them out -->
-        <div class="error-box">
-        <p>Please fix the following issues:</p>
-        <ul>
-            {% for field, field_errors in errors.items %}
-            {% for err in field_errors %}
-                <li>{{ err }}</li>
-            {% endfor %}
-            {% endfor %}
-        </ul>
-        </div>
+    <ul class="error-list">
+        {% for field, field_errors in errors.items %}
+        {% for err in field_errors %}
+            <li>{{ err }}</li>
+        {% endfor %}
+        {% endfor %}
+    </ul>
     {% endif %}
 
     <!-- Display any Django messages (e.g. success or error notifications) if they exist -->
@@ -39,120 +35,116 @@
         <!-- CSRF token required by Django to protect against cross-site request forgery -->
         {% csrf_token %}
         <!-- First Name Input Field -->
-        <div class="form-row">
-        <label for="id_first_name">First name</label>
-        <input
-            type="text"
-            id="id_first_name"
-            name="first_name"
-            value="{{ form_data.first_name|default_if_none:'' }}"
-            required
-        >
+        <div class="form-group">
+            <label for="id_first_name">First Name</label>
+            <input
+                type="text"
+                id="id_first_name"
+                name="first_name"
+                value="{{ form_data.first_name|default_if_none:'' }}"
+                required
+            >
         </div>
         <!-- Last Name Input Field -->
-        <div class="form-row">
-        <label for="id_last_name">Surname</label>
-        <input
-            type="text"
-            id="id_last_name"
-            name="last_name"
-            value="{{ form_data.last_name|default_if_none:'' }}"
-            required
-        >
+        <div class="form-group">
+            <label for="id_last_name">Surname</label>
+            <input
+                type="text"
+                id="id_last_name"
+                name="last_name"
+                value="{{ form_data.last_name|default_if_none:'' }}"
+                required
+            >
         </div>
         <!-- Email Input Field -->
-        <div class="form-row">
-        <label for="id_email">Student email</label>
-        <input
-            type="email"
-            id="id_email"
-            name="email"
-            value="{{ form_data.email|default_if_none:'' }}"
-            placeholder="C12345678@mytudublin.ie"
-            required
-        >
-        <small class="hint">Must end with @mytudublin.ie</small>
+        <div class="form-group">
+            <label for="id_email">Student Email</label>
+            <input
+                type="email"
+                id="id_email"
+                name="email"
+                value="{{ form_data.email|default_if_none:'' }}"
+                placeholder="C12345678@mytudublin.ie"
+                required
+            >
+            <small class="hint">Must end with @mytudublin.ie</small>
         </div>
         <!-- Password Input Field -->
-        <div class="form-row">
-        <label for="id_password1">Password</label>
-        <input
-            type="password"
-            id="id_password1"
-            name="password1"
-            required
-        >
-        <small class="hint">
-            At least 8 characters, 1 uppercase letter, 1 number, 1 special character.
-        </small>
+        <div class="form-group">
+            <label for="id_password1">Password</label>
+            <input
+                type="password"
+                id="id_password1"
+                name="password1"
+                required
+            >
+            <small class="hint">
+                At least 8 characters, 1 uppercase letter, 1 number, 1 special character.
+            </small>
         </div>
         <!-- Password Confirmation Input Field -->
-        <div class="form-row">
-        <label for="id_password2">Re-enter password</label>
-        <input
-            type="password"
-            id="id_password2"
-            name="password2"
-            required
-        >
+        <div class="form-group">
+            <label for="id_password2">Re-Enter Password</label>
+            <input
+                type="password"
+                id="id_password2"
+                name="password2"
+                required
+            >
         </div>
 
         <hr>
 
         <!-- Course Code Input Field with Datalist for Autocomplete; stored in DB -->
-        <div class="form-row">
-        <label for="id_course">Course</label>
-        <input
-            type="text"
-            id="id_course"
-            name="course"
-            list="course-options"
-            value="{{ form_data.course|default_if_none:'' }}"
-            placeholder="Start typing your course code (e.g. TU856)..."
-            required
-        >
-        <datalist id="course-options">
-            {% for c in valid_courses %}
-            <option value="{{ c }}"></option>
-            {% endfor %}
-        </datalist>
-        <small class="hint">
-            Course options are derived from modules' allowed course codes.
-        </small>
+        <div class="form-group">
+            <label for="id_course">Course</label>
+            <input
+                type="text"
+                id="id_course"
+                name="course"
+                list="course-options"
+                value="{{ form_data.course|default_if_none:'' }}"
+                placeholder="Start typing your course code (e.g. TU856)..."
+                required
+            >
+            <datalist id="course-options">
+                {% for c in valid_courses %}
+                <option value="{{ c }}"></option>
+                {% endfor %}
+            </datalist>
+            <small class="hint">
+                Course options are derived from modules' allowed course codes.
+            </small>
         </div>
 
         <hr>
 
         <!-- Modules: multi-select with text filter; stored in DB -->
-        <div class="form-row">
-        <label for="module-search">Modules</label>
-        <input
-            type="text"
-            id="module-search"
-            placeholder="Type to filter modules..."
-            oninput="filterModuleOptions()"
-        >
-        <select id="id_module_ids" name="module_ids" multiple size="8" required>
-            {% for m in modules %}
-            <option
-                value="{{ m.id }}"
-                data-courses="{{ m.allowed_courses|join:', ' }}"
-                {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
-                selected
-                {% endif %}
-            >
-                {{ m.code }} – {{ m.title }} [{{ m.allowed_courses|join:', ' }}]
-            </option>
-            {% endfor %}
-        </select>
-        <small class="hint">
-            Only modules that list your course code as allowed will be accepted when you submit.
-            Hold Ctrl (Cmd on Mac) to select multiple modules.
-        </small>
+        <div class="form-group">
+            <label for="module-search">Modules</label>
+            <input type="text" id="module-search" placeholder="Type to filter modules..." oninput="filterModuleOptions()">
+            <select id="id_module_ids" name="module_ids" multiple size="8" required>
+                {% for m in modules %}
+                <option
+                    value="{{ m.id }}"
+                    data-courses="{{ m.allowed_courses|join:', ' }}"
+                    {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
+                    selected
+                    {% endif %}
+                >
+                    {{ m.code }} – {{ m.title }} [{{ m.allowed_courses|join:', ' }}]
+                </option>
+                {% endfor %}
+            </select>
+            <small class="hint">
+                Only modules that list your course code as allowed will be accepted when you submit.
+                Hold Ctrl (Cmd on Mac) to select multiple modules together at once.
+            </small>
         </div>
         <!-- Submit Button for the Registration Form -->
-        <div class="form-row">
-        <button type="submit" class="primary-button">Register</button>
+        <div class="form-group">
+            <button type="submit">Register</button>
+            <a href="{% url 'accounts:login' %}" class="secondary-button">Back to Login</a>
         </div>
     </form>
 </div>

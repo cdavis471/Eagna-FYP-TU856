@@ -360,6 +360,29 @@ button[type="submit"]:hover {
   opacity: 0.9;
 }
 
+.form-group select {
+  width: 100%;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border-soft);
+  font-size: 0.95rem;
+  outline: none;
+  color: var(--text-on-light);
+}
+
+.form-group select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 1px rgba(53, 81, 184, 0.15);
+  background-color: #f9fafb;
+}
+
+.hint {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--muted-dark);
+}
+
 /* 
 ======
 Footer
