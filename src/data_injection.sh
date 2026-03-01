@@ -1,28 +1,21 @@
 ﻿#!/usr/bin/env bash
 set -euo pipefail
 
-# Run from the folder containing manage.py
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-# Auto Activate Venv
+# Auto Activate Venv (supports /srv/eagna/src and /srv/eagna)
 if [ -f "venv/bin/activate" ]; then
   source venv/bin/activate
+elif [ -f "../venv/bin/activate" ]; then
+  source ../venv/bin/activate
 fi
 
-# Migrate
 python manage.py migrate
-
-# Seed Data Message
 echo "Seeding Demo Dataset (1 student, 8 lecturers, 8 modules)..."
 
-# Run Code in Django Shell
 python manage.py shell << 'PY'
-from datetime import date
-from django.db import transaction
-from django.core.exceptions import FieldDoesNotExist
-
-from accounts.models import (
+from apps.accounts.models import (
     User,
     StudentProfile,
     LecturerProfile,
