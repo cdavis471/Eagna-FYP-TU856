@@ -323,7 +323,7 @@ button[type="submit"] {
   padding: 0.75rem 1.2rem;
   border-radius: 0.75rem;
   border: none;
-  background: var(--primary);
+  background: var(--tertiary);
   color: var(--text-on-dark);      
   font-weight: 600;
   font-size: 0.95rem;
@@ -350,7 +350,7 @@ button[type="submit"]:hover {
   border-radius: 0.75rem;
   border: none;
 
-  background: var(--primary);
+  background: var(--tertiary);
   color: var(--text-on-dark);
   font-weight: 600;
   font-size: 0.95rem;

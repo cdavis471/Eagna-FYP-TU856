@@ -15,11 +15,13 @@
       <!-- Insert the module code and title from the context -->
       {{ module.code }} – {{ module.title }}
     </h1>
-    <!-- Subtext showing academic year and semester information -->
+    <!-- Subtext showing academic year information -->
     <p class="muted">
-      <!-- Show academic year as start year / next year pair and the current semester -->
-      Academic year: {{ module.academic_year_start }}/{{ module.academic_year_start|add:1 }},
-      Semester {{ module.semester }}
+      {% if run_start and run_end %}
+        Academic Period: {{ run_start|date:"Y-m-d" }} → {{ run_end|date:"Y-m-d" }}
+      {% else %}
+        Academic Period: N/A
+      {% endif %}
     </p>
   </section>
   <!-- Branch into the student-specific view if the role is "student" -->

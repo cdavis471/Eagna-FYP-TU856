@@ -1,6 +1,8 @@
 from django.contrib.auth.models import AbstractUser  # Import Django's base user model that can be extended
-from django.db import models  # Import Django's ORM model base classes and field types
+from django.db import models, transaction  # Import Django's ORM model base classes and field types, and transaction management for atomic operations
+from django.utils import timezone # Import timezone utilities to work with date and time fields in a timezone-aware manner
 from django.conf import settings  # Import project settings to reference AUTH_USER_MODEL, etc.
+from datetime import date # Import date class for handling module cycle dates
 
 class User(AbstractUser):  # Custom user model extending Django's AbstractUser
     class Role(models.TextChoices):  # Inner class defining choices for the user's role
@@ -51,37 +53,132 @@ class LecturerProfile(models.Model):  # Extra data model for users who are lectu
 # Modules & Enrolment
 # =========================
 
-class Module(models.Model):  # Represents a module/course unit students can be enrolled in
-    code = models.CharField(max_length=32, unique=True)  # Unique code that identifies the module (e.g., TU856)
-    title = models.CharField(max_length=255)  # Human-readable title/name of the module
+class Module(models.Model):
+    code = models.CharField(max_length=32, unique=True)
+    title = models.CharField(max_length=255)
 
-    academic_year_start = models.PositiveIntegerField(default=2025)  # Starting year of academic cycle, e.g. 2025
-    semester = models.PositiveSmallIntegerField(default=1) # Semester number (e.g. 1 or 2) for the module
-
-    is_active = models.BooleanField(default=True)  # Flag to mark whether module is active/available
-
-    students = models.ManyToManyField(  # Many-to-many relation to students enrolled in this module
-        StudentProfile,  # Related model is StudentProfile
-        through="ModuleEnrollmentStudent",  # Uses a custom through model storing extra enrolment data
-        related_name="modules",  # Allows reverse lookup via student_profile.modules
-        blank=True,  # Can be empty (no students enrolled yet)
-    )
-    lecturers = models.ManyToManyField(  # Many-to-many relation to lecturers teaching this module
-        LecturerProfile,  # Related model is LecturerProfile
-        through="ModuleEnrollmentLecturer",  # Uses a custom through model for lecturer enrolments
-        related_name="modules",  # Allows reverse lookup via lecturer_profile.modules
-        blank=True,  # Can be empty (no lecturers assigned yet)
-    )
-
-    allowed_courses = models.CharField(
-        max_length=10,
+    start_date = models.DateField(
         null=True,
         blank=True,
-        help_text="List of course codes (e.g. ['TU856', 'TU123']) that are allowed to enroll in this module. Leave empty for no restrictions."
+        help_text="Module start date (month/day used for annual rollover).",
+    )
+    end_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Module end date (month/day used; can be before start for Sep→May style modules).",
     )
 
-    def __str__(self):  # String representation for a module
-        return f"{self.code} - {self.title}"  # Shows module code with its title
+    last_rollover_year = models.PositiveIntegerField(
+        default=0,
+        help_text="The start-year of the most recent rollover cycle (e.g. 2025).",
+    )
+
+    is_active = models.BooleanField(default=True)
+
+    students = models.ManyToManyField(
+        StudentProfile,
+        through="ModuleEnrollmentStudent",
+        related_name="modules",
+        blank=True,
+    )
+    lecturers = models.ManyToManyField(
+        LecturerProfile,
+        through="ModuleEnrollmentLecturer",
+        related_name="modules",
+        blank=True,
+    )
+
+    allowed_courses = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of course codes allowed to enroll (e.g. ['TU856','DT228']). Empty = no restriction.",
+    )
+
+    def __str__(self):
+        return f"{self.code} - {self.title}"
+
+    def _start_md(self):
+        return (self.start_date.month, self.start_date.day) if self.start_date else None
+
+    def _end_md(self):
+        return (self.end_date.month, self.end_date.day) if self.end_date else None
+
+    def current_cycle_window(self):
+        """
+        Returns (run_start, run_end) for the current cycle, based on last_rollover_year.
+        Handles cross-year modules like Sep→May.
+        """
+        if not self.start_date or not self.end_date:
+            return (None, None)
+
+        start_md = self._start_md()
+        end_md = self._end_md()
+        if not start_md or not end_md:
+            return (None, None)
+
+        start_year = self.last_rollover_year or self.start_date.year
+
+        run_start = date(start_year, start_md[0], start_md[1])
+
+        ends_next_year = (end_md[0], end_md[1]) < (start_md[0], start_md[1])
+        end_year = start_year + 1 if ends_next_year else start_year
+        run_end = date(end_year, end_md[0], end_md[1])
+
+        return (run_start, run_end)
+
+    def needs_rollover(self, today=None):
+        """
+        True if we've passed the module's start month/day in the current calendar year,
+        and we haven't rolled over for this year yet.
+        """
+        if not self.start_date:
+            return False
+
+        today = today or timezone.localdate()
+        start_md = self._start_md()
+        if not start_md:
+            return False
+
+        start_this_year = date(today.year, start_md[0], start_md[1])
+        return today >= start_this_year and self.last_rollover_year < today.year
+
+    @transaction.atomic
+    def rollover(self, today=None):
+        """
+        Wipes module content for a new iteration:
+        - Deletes assignments + submissions + grades + all related files
+        - Deletes weeks + week files
+        - Removes student enrolments
+        - Keeps lecturer enrolments
+        """
+        today = today or timezone.localdate()
+        if not self.needs_rollover(today=today):
+            return False
+
+        for wf in ModuleWeekFile.objects.filter(week__module=self):
+            if wf.file:
+                wf.file.delete(save=False)
+        ModuleWeekFile.objects.filter(week__module=self).delete()
+        ModuleWeek.objects.filter(module=self).delete()
+
+        for sf in SubmissionFile.objects.filter(submission__assignment__module=self):
+            if sf.file:
+                sf.file.delete(save=False)
+        SubmissionFile.objects.filter(submission__assignment__module=self).delete()
+
+        for af in AssignmentFile.objects.filter(assignment__module=self):
+            if af.file:
+                af.file.delete(save=False)
+        AssignmentFile.objects.filter(assignment__module=self).delete()
+
+        Assignment.objects.filter(module=self).delete()
+
+        ModuleEnrollmentStudent.objects.filter(module=self).delete()
+
+        self.last_rollover_year = today.year
+        self.save(update_fields=["last_rollover_year"])
+
+        return True
 
 class ModuleEnrollmentStudent(models.Model):  # Through model representing a student's enrolment in a module
     module = models.ForeignKey(  # Link to the module that the student is enrolled in

@@ -11,6 +11,14 @@ from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGr
 import re  # Regular expressions module, used for validating input
 from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
 
+# Rollover Maintenance
+def _rollover_modules_if_due():
+    today = timezone.localdate()
+    qs = Module.objects.filter(is_active=True).exclude(start_date__isnull=True)
+    for m in qs:
+        if m.needs_rollover(today=today):
+            m.rollover(today=today)
+
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
 
@@ -159,6 +167,7 @@ def register_student(request):
 
 @login_required  # Ensures only authenticated users can view the dashboard
 def dashboard(request):  # Main dashboard view for both students and lecturers
+    _rollover_modules_if_due() # Check For Rollover
     user: User = request.user  # Retrieve the currently logged-in user from the request
 
     # Shared nav items for header + footer
@@ -255,6 +264,8 @@ def module_detail(request, code):  # View that shows detailed information for a 
         )
     except Module.DoesNotExist:  # If the module code is invalid or not found
         raise Http404("Module not found")  # Immediately return a 404 response indicating missing module
+    
+    run_start, run_end = module.current_cycle_window()  # Get the current run's start and end dates for display in the template
 
     if user.is_student():  # Branch for student view of module details
         student = user.student_profile  # Retrieve Student profile linked to current user
@@ -281,6 +292,8 @@ def module_detail(request, code):  # View that shows detailed information for a 
             "role": role,  # Role string so template can branch on permissions
             "assignments": assignments,  # List of assignments in this module
             "weeks": weeks,  # Only weeks that have attached learning files
+            "run_start": run_start, # Pass the module's run_start date for display in the template
+            "run_end": run_end, # Pass the module's run_end date for display in the template
         }
 
     elif user.is_lecturer():  # Branch for lecturer view of module details
@@ -328,6 +341,8 @@ def module_detail(request, code):  # View that shows detailed information for a 
             "role": role,  # Lecturer role for template branching
             "assignments": assignments,  # Assignments along with submission counts
             "weeks": weeks,  # All weeks for this module, even without content
+            "run_start": run_start, # Pass the module's run_start date for display in the template
+            "run_end": run_end, # Pass the module's run_end date for display in the template
         }
 
     else:  # If user is neither student nor lecturer
