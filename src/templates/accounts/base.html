@@ -17,11 +17,12 @@
 <body>
   <!-- Site-wide header displayed at the top of every page -->
   <header class="site-header">
-    <!-- Left side of the header containing the brand name -->
+    <!-- Left side of the header containing the logo -->
     <div class="header-left">
-      <!-- Brand label or logo text for the application -->
-      <span class="brand">Eagna</span>
-    </div>
+    <a class="brand" href="{% url 'accounts:dashboard' %}" aria-label="Eagna Home">
+      <img src="{% static 'accounts/logos/eagna-logo-white.png' %}" alt="Eagna" class="brand-logo">
+    </a>
+  </div>
 
     <!-- Center part of the header containing the main navigation links -->
     <div class="header-center">

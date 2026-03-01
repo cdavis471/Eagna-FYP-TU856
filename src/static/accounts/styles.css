@@ -90,11 +90,15 @@ Header
 }
 
 .brand {
-  font-weight: 700;
-  font-size: 1.35rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--secondary); 
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 3vh;
+  width: auto;
+  display: block;
 }
 
 .main-nav ul,
@@ -347,17 +351,24 @@ button[type="submit"]:hover {
 }
 
 .secondary-button {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  padding: 0.75rem 1.2rem;
+  border-radius: 0.75rem;
   text-decoration: none;
-  background-color: #07164d;
-  color: #ffffff;
-  font-weight: 500;
+  background: var(--primary); 
+  color: var(--text-on-dark);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-top: 0.75rem;
 }
 
 .secondary-button:hover {
-  opacity: 0.9;
+  opacity: 0.95;
+  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
+  transform: translateY(-1px);
 }
 
 .form-group select {
@@ -381,6 +392,65 @@ button[type="submit"]:hover {
   margin-top: 0.35rem;
   font-size: 0.85rem;
   color: var(--muted-dark);
+}
+
+.dropdown {
+  margin-top: 0.5rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.55rem;
+  background: var(--bg-card);
+  color: var(--text-on-light);
+  max-height: 220px;
+  overflow-y: auto;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.18);
+}
+
+.dropdown-item {
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(209, 213, 219, 0.5);
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
+}
+
+.dropdown-item:hover {
+  background: rgba(53, 81, 184, 0.08);
+}
+
+.dropdown-item--disabled {
+  cursor: default;
+  opacity: 0.75;
+}
+
+.selected-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.module-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
+  background: var(--tertiary);
+  color: var(--text-on-dark);
+  font-size: 0.85rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.module-chip:hover {
+  opacity: 0.9;
+}
+
+.module-chip .chip-x {
+  font-weight: 700;
+  opacity: 0.9;
 }
 
 /* 
