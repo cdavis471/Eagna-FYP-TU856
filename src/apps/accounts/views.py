@@ -10,7 +10,6 @@ from datetime import datetime  # Standard library datetime class used for parsin
 from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile  # Imports all custom models referenced by these views
 import re  # Regular expressions module, used for validating input
 from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
-from django.db.models import Q # Import Q for complex query lookups (used in filtering with OR conditions)
 
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
@@ -35,7 +34,8 @@ def register_student(request):
         email = (request.POST.get("email") or "").strip().lower()
         password1 = request.POST.get("password1") or ""
         password2 = request.POST.get("password2") or ""
-        course = (request.POST.get("course") or "").strip()
+        course_raw = request.POST.get("course") or ""
+        course = _normalize_course_code(course_raw)
         module_ids = request.POST.getlist("module_ids")  # multiple values
 
         errors: dict[str, list[str]] = {}
@@ -50,7 +50,11 @@ def register_student(request):
         if not password1 or not password2:
             errors.setdefault("password", []).append("Both password fields are required.")
         if not course:
-            errors.setdefault("course", []).append("Please choose a course.")
+            errors.setdefault("course", []).append("Course code is required.")
+        elif not COURSE_CODE_RE.match(course):
+            errors.setdefault("course", []).append(
+                "Course code must be 3–10 characters and contain only letters / numbers."
+            )
         if not module_ids:
             errors.setdefault("modules", []).append("Please select at least one module.")
 
@@ -95,9 +99,7 @@ def register_student(request):
 
         if errors:
             # Re-render form with errors + previous data
-            all_modules = Module.objects.filter(is_active=True).filter(
-                Q(allowed_courses=[]) | Q(allowed_courses__contains=[course])
-            ).order_by("code")
+            all_modules = Module.objects.filter(is_active=True).order_by("code")
             context = {
                 "errors": errors,
                 "form_data": {
@@ -699,13 +701,26 @@ def _validate_password_strength(password: str) -> list[str]:
 def _get_all_valid_courses() -> list[str]:
     """
     Aggregate all allowed course codes from Module.allowed_courses.
-    Returns a sorted unique list, e.g. ["TU856", "TU123"].
+    Returns a sorted unique list of normalized codes (3–10 chars, A–Z/0–9).
     """
     courses_set = set()
-    # allowed_courses is a JSONField storing a list of course codes per module
     for allowed in Module.objects.values_list("allowed_courses", flat=True):
         if isinstance(allowed, list):
             for c in allowed:
-                if c:
-                    courses_set.add(str(c))
+                code = _normalize_course_code(str(c))
+                if COURSE_CODE_RE.match(code):
+                    courses_set.add(code)
     return sorted(courses_set)
+
+COURSE_CODE_RE = re.compile(r"^[A-Z0-9]{3,10}$")
+
+def _normalize_course_code(raw: str) -> str:
+    """
+    Normalize user-entered course code:
+    - strip whitespace
+    - remove internal spaces
+    - uppercase
+    """
+    raw = (raw or "").strip().upper()
+    raw = raw.replace(" ", "")
+    return raw

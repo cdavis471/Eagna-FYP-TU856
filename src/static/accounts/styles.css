@@ -96,9 +96,10 @@ Header
 }
 
 .brand-logo {
-  height: 1vh;
-  width: auto;
   display: block;
+  width: auto;
+  max-height: 3rem;  
+  height: auto;          
 }
 
 .main-nav ul,
@@ -365,6 +366,10 @@ button[type="submit"]:hover {
   opacity: 0.95;
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
   transform: translateY(-1px);
+}
+
+.auth-button--tertiary {
+  background: var(--tertiary);
 }
 
 .error-list {

@@ -27,10 +27,10 @@ class StudentProfile(models.Model):  # Extra data model for users who are studen
     )
     student_number = models.CharField(max_length=32, unique=True)  # Unique identifier for a student (e.g. student ID)
     course = models.CharField(
-        max_length=64,
+        max_length=10,
         null=True,
         blank=True,
-        help_text="Course Code & Name (e.g. TU856 - BSc in Computer Science)"
+        help_text="Course Code(e.g. TU856 - No Name Included)"
     )
 
     def __str__(self):  # String representation used in admin and shell
@@ -73,8 +73,9 @@ class Module(models.Model):  # Represents a module/course unit students can be e
         blank=True,  # Can be empty (no lecturers assigned yet)
     )
 
-    allowed_courses = models.JSONField(
-        default=list,
+    allowed_courses = models.CharField(
+        max_length=10,
+        null=True,
         blank=True,
         help_text="List of course codes (e.g. ['TU856', 'TU123']) that are allowed to enroll in this module. Leave empty for no restrictions."
     )

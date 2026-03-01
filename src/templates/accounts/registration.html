@@ -122,43 +122,49 @@
 
         <!-- Modules - Multi-Select With Text Filter & Stored in DB -->
         <div class="form-group">
-        <label for="module-search">Modules</label>
+            <label for="module-search">Modules</label>
 
-        <!-- Search Bar -->
-        <input
-            type="text"
-            id="module-search"
-            placeholder="Search modules (code or title)..."
-            autocomplete="off"
-        >
-        <!-- Scrollable Dropdown Results -->
-        <div id="module-dropdown" class="dropdown" hidden></div>
-
-        <!-- Selected Modules -->
-        <div id="selected-modules" class="selected-modules"></div>
-
-        <!-- Optional helper message -->
-        <div id="module-helper" class="hint" aria-live="polite"></div>
-
-        <!-- Hidden Multi-Select -->
-        <select id="id_module_ids" name="module_ids" multiple hidden required>
-            {% for m in modules %}
-            <option
-                value="{{ m.id }}"
-                data-courses="{{ m.allowed_courses|join:',' }}"
-                {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
-                selected
-                {% endif %}
+            <!-- Search Bar -->
+            <input
+                type="text"
+                id="module-search"
+                placeholder="Search modules (code or title)..."
+                autocomplete="off"
             >
-                {{ m.code }} – {{ m.title }}
-            </option>
-            {% endfor %}
-        </select>
+            <!-- Scrollable Dropdown Results -->
+            <div id="module-dropdown" class="dropdown" hidden></div>
 
-        <small class="hint">
-            Start typing to search modules. Results are filtered by your chosen course.
-        </small>
+            <!-- Selected Modules -->
+            <div id="selected-modules" class="selected-modules"></div>
+
+            <!-- Optional helper message -->
+            <div id="module-helper" class="hint" aria-live="polite"></div>
+
+            <!-- Hidden Multi-Select -->
+            <select id="id_module_ids" name="module_ids" multiple hidden required>
+                {% for m in modules %}
+                <option
+                    value="{{ m.id }}"
+                    data-courses="{{ m.allowed_courses|join:',' }}"
+                    {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
+                    selected
+                    {% endif %}
+                >
+                    {{ m.code }} – {{ m.title }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <small class="hint">
+                Start typing to search modules. Results are filtered by your chosen course.
+            </small>
         </div>
+
+        <div class="form-row">
+            <button type="submit">Create Account</button>
+        </div>
+
+        <a href="{% url 'accounts:login' %}" class="auth-button auth-button--tertiary">Back to Login</a>
     </form>
 </div>
 
