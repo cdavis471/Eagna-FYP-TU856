@@ -483,19 +483,14 @@ def upload_week_file(request, code, week_number):  # View for lecturers to uploa
         except ValueError as exc:
             messages.error(request, str(exc))
             return redirect("accounts:module_detail", code=module.code)
-        except Exception:
-            return HttpResponse(
-                "<pre>" + escape(traceback.format_exc()) + "</pre>",
-                status=500,
-            )
         
-        # except Exception:
-        #    messages.error(
-        #        request,
-        #        "The file could not be translated into accessible HTML. "
-        #        "Please upload a readable .docx or .pptx containing text, tables, and images.",
-        #    )
-        #    return redirect("accounts:module_detail", code=module.code)
+        except Exception:
+            messages.error(
+               request,
+               "The file could not be translated into accessible HTML. "
+               "Please upload a readable .docx or .pptx containing text, tables, and images.",
+            )
+            return redirect("accounts:module_detail", code=module.code)
 
         week_file = None
 
@@ -517,15 +512,11 @@ def upload_week_file(request, code, week_number):  # View for lecturers to uploa
             if week_file and week_file.file:
                 week_file.file.delete(save=False)
 
-            # messages.error(
-            #     request,
-            #     "The file was not published because parsing/storage failed.",
-            # )
-            return HttpResponse(
-                "<pre>" + escape(traceback.format_exc()) + "</pre>",
-                status=500,
+            messages.error(
+                request,
+                "The file was not published because parsing/storage failed.",
             )
-            # return redirect("accounts:module_detail", code=module.code)
+            return redirect("accounts:module_detail", code=module.code)
 
         messages.success(request, "Weekly file uploaded and parsed successfully.")
 
@@ -606,14 +597,9 @@ def create_assignment(request, code):
                 except ValueError as exc:
                     errors.append(f"{uploaded.name}: {exc}")
                 except Exception:
-                    return HttpResponse(
-                        "<pre>" + escape(traceback.format_exc()) + "</pre>",
-                        status=500,
+                    errors.append(
+                        f"{uploaded.name}: The file could not be translated into accessible HTML."
                     )
-                # except Exception:
-                #     errors.append(
-                #         f"{uploaded.name}: The file could not be translated into accessible HTML."
-                #     )
 
         if not errors and due_dt is not None:
             assignment = None
@@ -649,14 +635,10 @@ def create_assignment(request, code):
                 for assignment_file in created_assignment_files:
                     if assignment_file.file:
                         assignment_file.file.delete(save=False)
-                return HttpResponse(
-                    "<pre>" + escape(traceback.format_exc()) + "</pre>",
-                    status=500,
+                errors.append(
+                    "The assignment was not published because one or more uploaded files "
+                    "failed during parsing/storage."
                 )
-                # errors.append(
-                #     "The assignment was not published because one or more uploaded files "
-                #     "failed during parsing/storage."
-                # )
             else:
                 messages.success(request, "Assignment created successfully.")
                 return redirect(
