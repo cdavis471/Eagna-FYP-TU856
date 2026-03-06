@@ -44,7 +44,7 @@ SAFE_TAGS = {
 }
 
 SAFE_ATTRIBUTES = {
-    "a": {"href", "target", "rel"},
+    "a": {"href", "target"},
     "img": {"src", "alt"},
     "th": {"colspan", "rowspan"},
     "td": {"colspan", "rowspan"},
@@ -407,7 +407,7 @@ def _paragraph_inline_html(paragraph) -> str:
         if href:
             text = (
                 f'<a href="{escape(href, quote=True)}" '
-                f'target="_blank" rel="noopener noreferrer">{text}</a>'
+                f'target="_blank">{text}</a>'
             )
 
         if getattr(getattr(run, "font", None), "bold", False):
