@@ -65,7 +65,15 @@
       {% endif %}
     </div>
   </header>
-
+  {% if messages %}
+    <div class="flash-messages">
+      {% for message in messages %}
+        <div class="flash-message flash-message--{{ message.tags|default:'info' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
   <!-- Main page content area where child templates inject their specific content -->
   <main class="page-content">
     <!-- Content block to be overridden by individual page templates -->
@@ -97,6 +105,44 @@
       {% endif %}
     </div>
   </footer>
+  <div id="parsed-modal" class="parsed-modal hidden" aria-hidden="true">
+    <div class="parsed-modal-backdrop" onclick="closeParsedModal()"></div>
+
+    <div class="parsed-modal-panel" role="dialog" aria-modal="true" aria-labelledby="parsed-modal-title">
+      <button type="button" class="parsed-modal-close" onclick="closeParsedModal()">
+        Close
+      </button>
+
+      <div id="parsed-modal-body"></div>
+    </div>
+  </div>
+
+  <script>
+    function openParsedModal() {
+      const modal = document.getElementById("parsed-modal");
+      modal.classList.remove("hidden");
+      modal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeParsedModal() {
+      const modal = document.getElementById("parsed-modal");
+      modal.classList.add("hidden");
+      modal.setAttribute("aria-hidden", "true");
+      document.getElementById("parsed-modal-body").innerHTML = "";
+    }
+
+    document.body.addEventListener("htmx:afterSwap", function (event) {
+      if (event.detail.target.id === "parsed-modal-body") {
+        openParsedModal();
+      }
+    });
+
+    document.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") {
+        closeParsedModal();
+      }
+    });
+  </script>
 </body>
 </html>
 

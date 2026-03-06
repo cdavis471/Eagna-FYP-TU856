@@ -2,7 +2,7 @@ from django.urls import path  # Imports the path function for defining URL patte
 from django.contrib.auth.views import LogoutView  # Imports Django's built-in view for handling user logout
 from django.conf.urls.static import static  # Provides helper to serve static files in development (even if not used here directly)
 
-from .views import RoleBasedLoginView, dashboard, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student  # Imports all view functions/classes referenced in this URL config
+from .views import RoleBasedLoginView, dashboard, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images  # Imports all view functions/classes referenced in this URL config
 
 app_name = "accounts"  # Namespaces these URLs under "accounts" so they can be reversed with the 'accounts:' prefix
 
@@ -46,6 +46,16 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
         "modules/<str:code>/assignments/<int:assignment_id>/submissions/<int:submission_id>/grade/",  # Includes module, assignment, and submission IDs
         grade_submission,  # View that displays and processes the grading form
         name="grade_submission",  # Named route for linking to or redirecting to the grading page
+    ),
+    path(
+        "parsed-documents/<int:parsed_id>/modal/",
+        parsed_document_modal,
+        name="parsed_document_modal",
+    ),
+    path(
+        "parsed-documents/<int:parsed_id>/images/",
+        edit_parsed_document_images,
+        name="edit_parsed_document_images",
     ),
 ]
 

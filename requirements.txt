@@ -1,0 +1,8 @@
+Django
+psycopg[binary]
+mammoth
+python-pptx
+beautifulsoup4
+lxml
+nh3
+Pillow

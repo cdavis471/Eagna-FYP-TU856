@@ -40,16 +40,40 @@
         <ul class="week-files">
           <!-- Loop through each file associated with the assignment -->
           {% for f in assignment.files.all %}
-            <!-- Single list item showing one resource file -->
-            <li>
-              <!-- Link to open or download the file in a new tab -->
+            <li class="week-file-item">
               <a href="{{ f.file.url }}" target="_blank">
                 {{ f.original_name|default:f.file.name }}
               </a>
-              <!-- Small text showing when this file was uploaded -->
+
               <span class="week-file-meta">
                 (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
               </span>
+
+              {% if f.parsed_document %}
+                {% if f.parsed_document.parser_status == "READY" %}
+                  <span class="status-badge ready">Ready</span>
+
+                  <button type="button"
+                          class="small-button"
+                          hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
+                          hx-target="#parsed-modal-body"
+                          hx-swap="innerHTML">
+                    View parsed version
+                  </button>
+
+                  {% if role == "lecturer" and f.parsed_document.images.all %}
+                    <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}"
+                      class="small-button">
+                      Edit image descriptions
+                    </a>
+                  {% endif %}
+
+                {% elif f.parsed_document.parser_status == "PROCESSING" %}
+                  <span class="status-badge processing">Processing</span>
+                {% elif f.parsed_document.parser_status == "FAILED" %}
+                  <span class="status-badge failed">Failed</span>
+                {% endif %}
+              {% endif %}
             </li>
           {% endfor %}
         </ul>
@@ -221,4 +245,3 @@
 </div>
 <!-- End of the main content block for this assignment detail page -->
 {% endblock %}
-

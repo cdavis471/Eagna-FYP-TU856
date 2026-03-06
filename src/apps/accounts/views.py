@@ -7,9 +7,123 @@ from django.http import Http404  # Exception used to immediately return a 404 No
 from django.db.models import Count, Q  # ORM helpers: Count for aggregation and Q for complex query filters
 from django.views.decorators.http import require_http_methods  # Decorator to restrict allowed HTTP methods per view
 from datetime import datetime  # Standard library datetime class used for parsing date and time input
-from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile  # Imports all custom models referenced by these views
-import re  # Regular expressions module, used for validating input
 from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
+from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
+from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
+from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
+from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage  # Imports all custom models referenced by these views
+import re  # Regular expressions module, used for validating input
+
+# Shared Navigation Menu Items (used in multiple views for consistent header/footer links)
+def _shared_nav_items():
+    return [
+        {"label": "Dashboard", "url": reverse("accounts:dashboard")},
+        {"label": "Inbox", "url": "https://outlook.office.com/mail/"},
+        {"label": "Website", "url": "https://www.tudublin.ie/"},
+    ]
+
+# Parsed Document Handling
+# Rebuild the rendered HTML for a parsed document based on its blocks and associated images, and optionally save the updated document. 
+# This is used after parsing a new document or when updating an existing one to ensure the rendered HTML reflects the current parsed content and images.
+def _rebuild_parsed_document_html(parsed_document: ParsedDocument, save: bool = True) -> str:
+    image_lookup = {
+        image.token: {
+            "src": image.image.url,
+            "alt_text": image.alt_text or "",
+        }
+        for image in parsed_document.images.all()
+    }
+
+    parsed_document.rendered_html = build_rendered_html_from_blocks(
+        parsed_document.parsed_blocks or [],
+        image_lookup=image_lookup,
+    )
+
+    if save:
+        parsed_document.save(update_fields=["rendered_html", "updated_at"])
+
+    return parsed_document.rendered_html
+
+# Persistent Parsed Document Creation with Error Handling
+# This function takes the raw parsed payload from the document parsing process, creates a ParsedDocument record, saves associated images, and builds the rendered HTML. 
+# If any step fails, it ensures that all created records and files are cleaned up to maintain data integrity.
+def _persist_parsed_document(
+    *,
+    parsed_payload: dict,
+    week_file: ModuleWeekFile | None = None,
+    assignment_file: AssignmentFile | None = None,
+) -> ParsedDocument:
+    parsed_document = ParsedDocument.objects.create(
+        week_file=week_file,
+        assignment_file=assignment_file,
+        source_extension=parsed_payload["extension"],
+        parser_status=ParsedDocument.Status.PROCESSING,
+        parsed_blocks=parsed_payload["blocks"],
+        page_count=parsed_payload["page_count"],
+    )
+
+    created_images: list[ParsedDocumentImage] = []
+
+    try:
+        for image_data in parsed_payload.get("images", []):
+            image_obj = ParsedDocumentImage(
+                parsed_document=parsed_document,
+                token=image_data["token"],
+                display_order=image_data.get("display_order") or 0,
+                page_number=image_data.get("page_number"),
+                original_name=image_data.get("filename", ""),
+                alt_text=image_data.get("alt_text", ""),
+            )
+            image_obj.image.save(
+                image_data["filename"],
+                ContentFile(image_data["content"]),
+                save=True,
+            )
+            created_images.append(image_obj)
+
+        _rebuild_parsed_document_html(parsed_document, save=False)
+
+        parsed_document.parser_status = ParsedDocument.Status.READY
+        parsed_document.parse_error = ""
+        parsed_document.save(update_fields=["rendered_html", "parser_status", "parse_error", "updated_at"])
+
+        return parsed_document
+
+    except Exception:
+        for image in created_images:
+            if image.image:
+                image.image.delete(save=False)
+
+        ParsedDocumentImage.objects.filter(parsed_document=parsed_document).delete()
+        parsed_document.delete()
+        raise
+
+# Authorization Check for Parsed Document Access
+# This function retrieves a ParsedDocument by its ID and checks if the given user has permission to access it based on their role and module associations. 
+# It returns the parsed document and its source module if authorized, or raises a 404 error if the document doesn't exist or the user isn't authorized to view it.
+def _get_authorised_parsed_document(parsed_id: int, user: User) -> tuple[ParsedDocument, Module]:
+    parsed_document = get_object_or_404(
+        ParsedDocument.objects.select_related(
+            "week_file__week__module",
+            "assignment_file__assignment__module",
+        ).prefetch_related("images"),
+        pk=parsed_id,
+    )
+
+    module = parsed_document.get_source_module()
+    if module is None:
+        raise Http404("Parsed document not found")
+
+    if user.is_student():
+        if not user.student_profile.modules.filter(pk=module.pk).exists():
+            raise Http404("Parsed document not found")
+    elif user.is_lecturer():
+        if not user.lecturer_profile.modules.filter(pk=module.pk).exists():
+            raise Http404("Parsed document not found")
+    else:
+        raise Http404("Parsed document not found")
+
+    return parsed_document, module
 
 # Rollover Maintenance
 def _rollover_modules_if_due():
@@ -170,14 +284,6 @@ def dashboard(request):  # Main dashboard view for both students and lecturers
     _rollover_modules_if_due() # Check For Rollover
     user: User = request.user  # Retrieve the currently logged-in user from the request
 
-    # Shared nav items for header + footer
-    nav_items = [  # Defines navigation links shared across dashboard templates
-        {"label": "Dashboard", "url": reverse("accounts:dashboard")},  # Link back to the dashboard using URL reversing
-        # {"label": "Tools", "url": "#"},   # Placeholder for potential future navigation item
-        {"label": "Inbox", "url": "https://outlook.office.com/mail/"},   # External link to email inbox (Outlook)
-        {"label": "Website", "url": "https://www.tudublin.ie/"},  # External link to institution’s main website
-    ]
-
     now = timezone.now()  # Capture the current timezone-aware datetime for use in date comparisons
 
     if user.is_student():  # Branch logic if the logged-in user is a student
@@ -202,7 +308,7 @@ def dashboard(request):  # Main dashboard view for both students and lecturers
 
         context = {  # Context passed into the student dashboard template
             "user": user,  # Provide the current user object so the template can show user-related information
-            "nav_items": nav_items,  # Provide navigation items for the header and footer
+            "nav_items": _shared_nav_items(),  # Provide navigation items for the header and footer
             "modules": modules_qs,  # Provide the queryset of modules that the student is taking
             "upcoming_assignments": upcoming_assignments_qs,  # Provide the list of upcoming assignments for display
         }
@@ -232,7 +338,7 @@ def dashboard(request):  # Main dashboard view for both students and lecturers
 
         context = {  # Context passed into the lecturer dashboard template
             "user": user,  # Current logged-in user
-            "nav_items": nav_items,  # Navigation links shown in the template
+            "nav_items": _shared_nav_items(),  # Navigation links shown in the template
             "modules": modules_qs,  # List of modules taught by the lecturer
             "ungraded_submissions": ungraded_submissions_qs,  # List of submissions needing grading
         }
@@ -248,13 +354,6 @@ def module_detail(request, code):  # View that shows detailed information for a 
 
     user: User = request.user  # Get the currently authenticated user from the request
 
-    # Shared nav items for header + footer
-    nav_items = [  # Reuse the navigation structure for module detail pages
-        {"label": "Dashboard", "url": reverse("accounts:dashboard")},  # Link back to the dashboard
-        # {"label": "Tools", "url": "#"},   # Placeholder for potential future navigation item
-        {"label": "Inbox", "url": "https://outlook.office.com/mail/"},   # Link to external email inbox
-        {"label": "Website", "url": "https://www.tudublin.ie/"},  # Link to main institutional website
-    ]
     # Try to fetch the module by code
     try:
         module = (  # Attempt to fetch the module instance matching the provided code
@@ -280,14 +379,14 @@ def module_detail(request, code):  # View that shows detailed information for a 
         weeks = (  # Build queryset of weeks visible to students
             module.weeks
             .filter(files__isnull=False)  # Only include weeks that have at least one attached file
-            .prefetch_related("files")  # Prefetch the related files for efficiency
+            .prefetch_related("files__parsed_document")
             .order_by("week_number")  # Order weeks chronologically by week number
             .distinct()  # Remove duplicate rows caused by joins on files
         )
 
         context = {  # Context for the student module detail template
             "user": user,  # Current user object for per-user presentation
-            "nav_items": nav_items,  # Shared navigation links
+            "nav_items": _shared_nav_items(),  # Shared navigation links
             "module": module,  # The module being viewed
             "role": role,  # Role string so template can branch on permissions
             "assignments": assignments,  # List of assignments in this module
@@ -330,13 +429,13 @@ def module_detail(request, code):  # View that shows detailed information for a 
         weeks = (  # Queryset of all weeks for this module
             module.weeks
             .all()  # Include every week row regardless of whether it has files
-            .prefetch_related("files")  # Prefetch related files to minimize database queries
+            .prefetch_related("files__parsed_document")
             .order_by("week_number")  # Sort by week number to show a chronological view
         )
 
         context = {  # Context for the lecturer module detail template
             "user": user,  # Current user object
-            "nav_items": nav_items,  # Common navigation bar items
+            "nav_items": _shared_nav_items(),  # Common navigation bar items
             "module": module,  # The module being examined
             "role": role,  # Lecturer role for template branching
             "assignments": assignments,  # Assignments along with submission counts
@@ -367,14 +466,53 @@ def upload_week_file(request, code, week_number):  # View for lecturers to uploa
         defaults={"title": f"Week {week_number}"},  # If a new week is created, assign a default title with week number
     )
 
-    if request.method == "POST" and "file" in request.FILES:  # Only handle file uploads when request is POST and a file is provided
-        uploaded = request.FILES["file"]  # Retrieve the uploaded file object from form data
-        ModuleWeekFile.objects.create(  # Create a new ModuleWeekFile record representing the uploaded file
-            week=week,  # Associate the file with the relevant module week
-            file=uploaded,  # Store the uploaded file in the configured storage
-            original_name=uploaded.name,  # Preserve original filename for display
-            uploaded_by=user,  # Track which user uploaded the file
-        )
+    if request.method == "POST":
+        if "file" not in request.FILES:
+            messages.error(request, "Please choose a .docx or .pptx file to upload.")
+            return redirect("accounts:module_detail", code=module.code)
+
+        uploaded = request.FILES["file"]
+
+        try:
+            parsed_payload = parse_uploaded_office_file(uploaded)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("accounts:module_detail", code=module.code)
+        except Exception:
+            messages.error(
+                request,
+                "The file could not be translated into accessible HTML. "
+                "Please upload a readable .docx or .pptx containing text, tables, and images.",
+            )
+            return redirect("accounts:module_detail", code=module.code)
+
+        week_file = None
+
+        try:
+            with transaction.atomic():
+                week_file = ModuleWeekFile.objects.create(
+                    week=week,
+                    file=uploaded,
+                    original_name=uploaded.name,
+                    uploaded_by=user,
+                )
+
+                _persist_parsed_document(
+                    parsed_payload=parsed_payload,
+                    week_file=week_file,
+                )
+
+        except Exception:
+            if week_file and week_file.file:
+                week_file.file.delete(save=False)
+
+            messages.error(
+                request,
+                "The file was not published because parsing/storage failed.",
+            )
+            return redirect("accounts:module_detail", code=module.code)
+
+        messages.success(request, "Weekly file uploaded and parsed successfully.")
 
     return redirect("accounts:module_detail", code=module.code)  # After processing, redirect back to the module detail page
 
@@ -403,119 +541,139 @@ def edit_week_description(request, code, week_number):  # View allowing lecturer
     return redirect("accounts:module_detail", code=module.code)  # Redirect back to the module detail page afterward
 
 
-@login_required  # Require authentication for creating assignments
-@require_http_methods(["GET", "POST"])  # Limit this view to only handle GET and POST methods
-def create_assignment(request, code):  # View that lets a lecturer create a new assignment for a given module
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_assignment(request, code):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
 
-    user: User = request.user  # Get the current user from request
-    if not user.is_lecturer():  # Verify the user has lecturer privileges
-        raise Http404("Not found")  # Deny access to non-lecturers with a 404
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
 
-    lecturer = user.lecturer_profile  # Retrieve Lecturer profile from user
-    module = get_object_or_404(Module, code=code, lecturers=lecturer)  # Fetch the module that belongs to this lecturer or raise 404
+    errors = []
 
-    errors = []  # Initialize a list to accumulate validation error messages
-    if request.method == "POST":  # Handle form submission logic
-        title = request.POST.get("title", "").strip()  # Extract the assignment title from form POST data
-        description = request.POST.get("description", "").strip()  # Extract the assignment description text
-        due_date_str = request.POST.get("due_date", "").strip()  # Extract string representing the due date
-        due_time_str = request.POST.get("due_time", "").strip()  # Extract string representing the due time
-        max_mark_str = request.POST.get("max_mark", "").strip() or "100"  # Extract maximum mark, defaulting to "100" if missing
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        description = request.POST.get("description", "").strip()
+        due_date_str = request.POST.get("due_date", "").strip()
+        due_time_str = request.POST.get("due_time", "").strip()
+        max_mark_str = request.POST.get("max_mark", "").strip() or "100"
 
-        if not title:  # Check that a title was provided
-            errors.append("Title is required.")  # Add readable error message to the list
-        if not due_date_str:  # Ensure due date string is not empty
-            errors.append("Due date is required.")  # Add error if missing
-        if not due_time_str:  # Ensure due time string is not empty
-            errors.append("Due time is required.")  # Add error if missing
+        if not title:
+            errors.append("Title is required.")
+        if not due_date_str:
+            errors.append("Due date is required.")
+        if not due_time_str:
+            errors.append("Due time is required.")
 
-        due_dt = None  # Initialize due datetime variable to None before parsing
-        if due_date_str and due_time_str:  # Only attempt to parse when both date and time strings are present
+        due_dt = None
+        if due_date_str and due_time_str:
             try:
-                # Expecting HTML date + time-local format: YYYY-MM-DD and HH:MM
-                due_dt = datetime.fromisoformat(f"{due_date_str} {due_time_str}")  # Combine date and time strings into a single datetime object
-            except ValueError:  # Catch parsing issues if the input format is invalid
-                errors.append("Invalid due date/time format.")  # Record a validation error
+                due_dt = datetime.fromisoformat(f"{due_date_str} {due_time_str}")
+            except ValueError:
+                errors.append("Invalid due date/time format.")
 
         try:
-            max_mark_val = float(max_mark_str)  # Attempt to convert the maximum mark string into a floating-point number
-        except ValueError:  # Handle invalid numeric input for max mark
-            errors.append("Max mark must be a number.")  # Add an error message describing the issue
-            max_mark_val = 100.0  # Fallback default value if parsing fails
+            max_mark_val = float(max_mark_str)
+        except ValueError:
+            errors.append("Max mark must be a number.")
+            max_mark_val = 100.0
 
-        if not errors and due_dt is not None:  # Proceed only if there are no validation errors and due date/time is valid
-            assignment = Assignment.objects.create(  # Create a new Assignment record in the database
-                module=module,  # Attach the new assignment to the selected module
-                title=title,  # Store the assignment title
-                description=description,  # Store the assignment description
-                due_datetime=timezone.make_aware(due_dt)  # Convert naive datetime to timezone-aware if needed
-                if timezone.is_naive(due_dt)
-                else due_dt,  # Otherwise, use as-is if already timezone-aware
-                max_mark=max_mark_val,  # Set the maximum mark that can be awarded
-            )
+        uploaded_files = request.FILES.getlist("files")
+        parsed_file_payloads: list[tuple] = []
 
-            # Handle file uploads (multiple allowed)
-            for uploaded in request.FILES.getlist("files"):  # Iterate over all uploaded files from the file input named "files"
-                AssignmentFile.objects.create(  # Create an AssignmentFile entry for each uploaded file
-                    assignment=assignment,  # Link file to the newly created assignment
-                    file=uploaded,  # Save the file content to storage
-                    original_name=uploaded.name,  # Store original filename for reference
-                    uploaded_by=user,  # Indicate which lecturer uploaded the file
+        if not errors and uploaded_files:
+            for uploaded in uploaded_files:
+                try:
+                    parsed_payload = parse_uploaded_office_file(uploaded)
+                    parsed_file_payloads.append((uploaded, parsed_payload))
+                except ValueError as exc:
+                    errors.append(f"{uploaded.name}: {exc}")
+                except Exception:
+                    errors.append(
+                        f"{uploaded.name}: The file could not be translated into accessible HTML."
+                    )
+
+        if not errors and due_dt is not None:
+            assignment = None
+            created_assignment_files: list[AssignmentFile] = []
+
+            try:
+                with transaction.atomic():
+                    assignment = Assignment.objects.create(
+                        module=module,
+                        title=title,
+                        description=description,
+                        due_datetime=timezone.make_aware(due_dt)
+                        if timezone.is_naive(due_dt)
+                        else due_dt,
+                        max_mark=max_mark_val,
+                    )
+
+                    for uploaded, parsed_payload in parsed_file_payloads:
+                        assignment_file = AssignmentFile.objects.create(
+                            assignment=assignment,
+                            file=uploaded,
+                            original_name=uploaded.name,
+                            uploaded_by=user,
+                        )
+                        created_assignment_files.append(assignment_file)
+
+                        _persist_parsed_document(
+                            parsed_payload=parsed_payload,
+                            assignment_file=assignment_file,
+                        )
+
+            except Exception:
+                for assignment_file in created_assignment_files:
+                    if assignment_file.file:
+                        assignment_file.file.delete(save=False)
+
+                errors.append(
+                    "The assignment was not published because one or more uploaded files "
+                    "failed during parsing/storage."
+                )
+            else:
+                messages.success(request, "Assignment created successfully.")
+                return redirect(
+                    "accounts:assignment_detail",
+                    code=module.code,
+                    assignment_id=assignment.id,
                 )
 
-            return redirect("accounts:module_detail", code=module.code)  # Redirect to the module detail page after successful creation
-
     else:
-        # Defaults for GET
-        assignment = None  # Placeholder variable for template compatibility (no assignment yet on GET)
-        due_date_str = ""  # Empty default due date string for a blank form
-        due_time_str = ""  # Empty default due time string
-        max_mark_str = "100"  # Default maximum mark shown as 100
-        description = ""  # Default description field content
-        title = ""  # Default title field content
+        due_date_str = ""
+        due_time_str = ""
+        title = ""
+        description = ""
+        max_mark_str = "100"
 
-    # Render the form with any errors
-    context = {  # Context dictionary for the assignment creation template
-        "user": user,  # Current user for template use
-	# Shared nav items for header + footer
-        "nav_items": [  # Provide navigation links
-            {"label": "Dashboard", "url": reverse("accounts:dashboard")},  # Dashboard link
-            # {"label": "Tools", "url": "#"},   # Placeholder for extra nav item
-            {"label": "Inbox", "url": "https://outlook.office.com/mail/"},   # Link to external Outlook inbox
-            {"label": "Website", "url": "https://www.tudublin.ie/"},  # Instituitional website link
-        ],
-        "module": module,  # Module context for which assignment is being created
-        "errors": errors,  # Any validation errors to be displayed in the template
-        "initial": {  # Values used to refill the form fields in case of errors
-            "title": request.POST.get("title", "") if request.method == "POST" else "",  # Preserve or default the title field
-            "description": request.POST.get("description", "") if request.method == "POST" else "",  # Preserve or default description
-            "due_date": request.POST.get("due_date", "") if request.method == "POST" else "",  # Preserve or default due date
-            "due_time": request.POST.get("due_time", "") if request.method == "POST" else "",  # Preserve or default due time
-            "max_mark": request.POST.get("max_mark", "") if request.method == "POST" else "100",  # Preserve or default maximum mark
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "module": module,
+        "errors": errors,
+        "initial": {
+            "title": title,
+            "description": description,
+            "due_date": due_date_str,
+            "due_time": due_time_str,
+            "max_mark": max_mark_str,
         },
     }
-
-    return render(request, "accounts/create_assignment.html", context)  # Render the assignment creation form template with this context
-
+    return render(request, "accounts/create_assignment.html", context)
 
 @login_required  # Ensure only authenticated users can view assignment details
 def assignment_detail(request, code, assignment_id):  # View that displays details for a particular assignment within a module
 
     user: User = request.user  # Get the current authenticated user
 
-    # Shared nav items for header + footer
-    nav_items = [  # Navigation links used on assignment detail pages
-        {"label": "Dashboard", "url": reverse("accounts:dashboard")},  # Link to dashboard
-        # {"label": "Tools", "url": "#"},   # Placeholder for future nav elements
-        {"label": "Inbox", "url": "https://outlook.office.com/mail/"},   # Direct link to Outlook inbox
-        {"label": "Website", "url": "https://www.tudublin.ie/"},  # Direct link to website homepage
-    ]
-
     module = get_object_or_404(Module, code=code)  # Fetch module by code, or return 404 if not found
 
     # Fetch assignment from this module
     assignment = get_object_or_404(  # Fetch assignment ensuring that it belongs to the specified module
-        Assignment.objects.select_related("module"),  # Optimize query by selecting related module
+        Assignment.objects.select_related("module").prefetch_related("files__parsed_document"),
         pk=assignment_id,  # Filter by primary key of the assignment
         module=module,  # Ensure the assignment is tied to the current module
     )
@@ -537,7 +695,7 @@ def assignment_detail(request, code, assignment_id):  # View that displays detai
 
         context = {  # Context for rendering the student assignment detail template
             "user": user,  # Current user object
-            "nav_items": nav_items,  # Shared navigation links
+            "nav_items": _shared_nav_items(),  # Shared navigation links
             "module": module,  # Module that the assignment belongs to
             "assignment": assignment,  # The assignment being viewed
             "role": "student",  # Role string used by template to branch behavior
@@ -562,7 +720,7 @@ def assignment_detail(request, code, assignment_id):  # View that displays detai
 
         context = {  # Context for lecturer assignment detail template
             "user": user,  # Current user
-            "nav_items": nav_items,  # Navigation items
+            "nav_items": _shared_nav_items(),  # Navigation items
             "module": module,  # Module object
             "assignment": assignment,  # Assignment object
             "role": "lecturer",  # Role string used for template branching
@@ -683,12 +841,7 @@ def grade_submission(request, code, assignment_id, submission_id):  # View for l
     context = {  # Build context for the grade submission template
         "user": user,  # Current user
         # Shared nav items for header + footer
-        "nav_items": [  # Reusable navigation menu
-            {"label": "Dashboard", "url": reverse("accounts:dashboard")},  # Link to dashboard
-            # {"label": "Tools", "url": "#"},   # Placeholder route not yet active
-            {"label": "Inbox", "url": "https://outlook.office.com/mail/"},   # Link to Outlook inbox
-            {"label": "Website", "url": "https://www.tudublin.ie/"},  # Institutional website link
-        ],
+        "nav_items": _shared_nav_items(),
         "module": module,  # Current module context
         "assignment": assignment,  # Current assignment context
         "submission": submission,  # Submission being graded
@@ -700,6 +853,49 @@ def grade_submission(request, code, assignment_id, submission_id):  # View for l
     }
 
     return render(request, "accounts/grade_submission.html", context)  # Render the grade submission template with provided context
+
+@login_required
+@require_http_methods(["GET"])
+def parsed_document_modal(request, parsed_id):
+    user: User = request.user
+    parsed_document, module = _get_authorised_parsed_document(parsed_id, user)
+    source_file = parsed_document.get_source_file()
+
+    context = {
+        "parsed_document": parsed_document,
+        "module": module,
+        "source_file": source_file,
+        "document_title": parsed_document.get_source_name(),
+        "can_edit_images": user.is_lecturer(),
+    }
+    return render(request, "accounts/partials/parsed_document_modal.html", context)
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_parsed_document_images(request, parsed_id):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
+
+    parsed_document, module = _get_authorised_parsed_document(parsed_id, user)
+
+    if request.method == "POST":
+        for image in parsed_document.images.all():
+            image.alt_text = request.POST.get(f"alt_{image.id}", "").strip()
+            image.save(update_fields=["alt_text"])
+
+        _rebuild_parsed_document_html(parsed_document, save=True)
+        messages.success(request, "Image descriptions updated successfully.")
+
+        return redirect("accounts:edit_parsed_document_images", parsed_id=parsed_document.id)
+
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "module": module,
+        "parsed_document": parsed_document,
+    }
+    return render(request, "accounts/edit_parsed_document_images.html", context)
 
 def _validate_password_strength(password: str) -> list[str]:
     errors: list[str] = []

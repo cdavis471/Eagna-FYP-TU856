@@ -1,0 +1,46 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Edit Image Descriptions – {{ module.code }} | Eagna{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <h1 class="section-title">Edit Image Descriptions</h1>
+    <p class="muted">
+      File: {{ parsed_document.get_source_name }}
+    </p>
+
+    {% if parsed_document.images.all %}
+      <form method="post" class="dashboard-section">
+        {% csrf_token %}
+
+        {% for image in parsed_document.images.all %}
+          <div class="week-block">
+            <h3 class="week-title">
+              {% if image.page_number %}
+                Page / Slide {{ image.page_number }}
+              {% else %}
+                Embedded image
+              {% endif %}
+            </h3>
+
+            <img src="{{ image.image.url }}"
+                 alt=""
+                 class="parsed-image-preview">
+
+            <label class="week-label" for="alt_{{ image.id }}">Alternative text</label>
+            <textarea id="alt_{{ image.id }}"
+                      name="alt_{{ image.id }}"
+                      rows="3"
+                      class="week-description-input">{{ image.alt_text }}</textarea>
+          </div>
+        {% endfor %}
+
+        <button type="submit">Save image descriptions</button>
+      </form>
+    {% else %}
+      <p class="muted">No extracted images were found for this document.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

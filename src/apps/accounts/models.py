@@ -3,6 +3,8 @@ from django.db import models, transaction  # Import Django's ORM model base clas
 from django.utils import timezone # Import timezone utilities to work with date and time fields in a timezone-aware manner
 from django.conf import settings  # Import project settings to reference AUTH_USER_MODEL, etc.
 from datetime import date # Import date class for handling module cycle dates
+from django.core.exceptions import ValidationError  # Import exception for validating model data 
+import os  # Import os module for file path operations
 
 class User(AbstractUser):  # Custom user model extending Django's AbstractUser
     class Role(models.TextChoices):  # Inner class defining choices for the user's role
@@ -390,3 +392,95 @@ class ModuleWeekFile(models.Model):  # Represents a file resource attached to a 
     def __str__(self):  # String representation for a weekly module file
         return self.original_name or self.file.name  # Prefer original name, or fallback to stored filename
 
+def parsed_document_image_upload_path(instance, filename):
+    return f"parsed_documents/{instance.parsed_document_id}/{filename}"
+
+class ParsedDocument(models.Model):
+    class Status(models.TextChoices):
+        PROCESSING = "PROCESSING", "Processing"
+        READY = "READY", "Ready"
+        FAILED = "FAILED", "Failed"
+
+    week_file = models.OneToOneField(
+        "ModuleWeekFile",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="parsed_document",
+    )
+    assignment_file = models.OneToOneField(
+        "AssignmentFile",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="parsed_document",
+    )
+
+    source_extension = models.CharField(max_length=10)
+    parser_status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PROCESSING,
+    )
+    parsed_blocks = models.JSONField(default=list, blank=True)
+    rendered_html = models.TextField(blank=True)
+    parse_error = models.TextField(blank=True)
+    page_count = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def clean(self):
+        has_week_file = bool(self.week_file_id)
+        has_assignment_file = bool(self.assignment_file_id)
+        if has_week_file == has_assignment_file:
+            raise ValidationError(
+                "ParsedDocument must be linked to exactly one source file: "
+                "either week_file or assignment_file."
+            )
+
+    def get_source_module(self):
+        if self.week_file_id:
+            return self.week_file.week.module
+        if self.assignment_file_id:
+            return self.assignment_file.assignment.module
+        return None
+
+    def get_source_file(self):
+        if self.week_file_id:
+            return self.week_file
+        if self.assignment_file_id:
+            return self.assignment_file
+        return None
+
+    def get_source_name(self):
+        source = self.get_source_file()
+        if not source:
+            return "Unknown file"
+        return source.original_name or os.path.basename(source.file.name)
+
+    def __str__(self):
+        return f"Parsed: {self.get_source_name()}"
+
+
+class ParsedDocumentImage(models.Model):
+    parsed_document = models.ForeignKey(
+        ParsedDocument,
+        on_delete=models.CASCADE,
+        related_name="images",
+    )
+    token = models.CharField(max_length=50)
+    image = models.ImageField(upload_to=parsed_document_image_upload_path)
+    display_order = models.PositiveIntegerField(default=0)
+    page_number = models.PositiveIntegerField(null=True, blank=True)
+    original_name = models.CharField(max_length=255, blank=True)
+    alt_text = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+        unique_together = ("parsed_document", "token")
+
+    def __str__(self):
+        return self.original_name or self.token
