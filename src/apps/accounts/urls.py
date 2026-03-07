@@ -2,7 +2,7 @@ from django.urls import path  # Imports the path function for defining URL patte
 from django.contrib.auth.views import LogoutView  # Imports Django's built-in view for handling user logout
 from django.conf.urls.static import static  # Provides helper to serve static files in development (even if not used here directly)
 
-from .views import RoleBasedLoginView, dashboard, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images  # Imports all view functions/classes referenced in this URL config
+from .views import RoleBasedLoginView, dashboard, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt  # Imports all view functions/classes referenced in this URL config
 
 app_name = "accounts"  # Namespaces these URLs under "accounts" so they can be reversed with the 'accounts:' prefix
 
@@ -56,6 +56,31 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
         "parsed-documents/<int:parsed_id>/images/",
         edit_parsed_document_images,
         name="edit_parsed_document_images",
+    ),
+        path(
+        "modules/<str:code>/quizzes/new/",
+        create_quiz,
+        name="create_quiz",
+    ),
+    path(
+        "modules/<str:code>/quizzes/<int:quiz_id>/",
+        quiz_detail,
+        name="quiz_detail",
+    ),
+    path(
+        "modules/<str:code>/quizzes/<int:quiz_id>/start/",
+        start_quiz_attempt,
+        name="start_quiz_attempt",
+    ),
+    path(
+        "modules/<str:code>/quizzes/<int:quiz_id>/save-progress/",
+        save_quiz_progress,
+        name="save_quiz_progress",
+    ),
+    path(
+        "modules/<str:code>/quizzes/<int:quiz_id>/submit/",
+        submit_quiz_attempt,
+        name="submit_quiz_attempt",
     ),
 ]
 

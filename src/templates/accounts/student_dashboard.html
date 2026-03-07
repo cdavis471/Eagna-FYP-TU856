@@ -8,51 +8,90 @@
 {% block content %}
 <!-- Top-level container that wraps all dashboard content for the student -->
 <div class="dashboard-container">
-  <!-- Section that highlights the student's upcoming assignments -->
-  <!-- Upcoming Assignments -->
-  <!-- Semantic section element for the upcoming assignments list -->
+  <!-- Section that highlights the student's upcoming assessments -->
   <section class="dashboard-section">
-    <!-- Heading for the upcoming assignments section -->
-    <h2 class="section-title">Upcoming Assignments</h2>
-    <!-- Check if there are any upcoming assignments to display -->
-    {% if upcoming_assignments %}
-      <!-- Grid layout container for individual assignment cards -->
+    <h2 class="section-title">Upcoming Assessments</h2>
+
+    {% if upcoming_items %}
       <div class="card-grid">
-        <!-- Loop through each upcoming assignment object -->
-        {% for a in upcoming_assignments %}
-          <!-- Clickable wrapper that links to the assignment detail page -->
-          <a href="{% url 'accounts:assignment_detail' a.module.code a.id %}" class="card-link-wrapper">
-            <!-- Card representing a single upcoming assignment -->
-            <article class="card card-clickable">
-              <!-- Display the title of the assignment -->
-              <h3 class="card-title">{{ a.title }}</h3>
-              <!-- Row of metadata showing module title and code -->
-              <p class="card-meta">
-                <!-- Show the full name of the module this assignment belongs to -->
-                <span>{{ a.module.title }}</span> ·
-                <!-- Show the short module code (e.g. TU856) -->
-                <span>{{ a.module.code }}</span>
-              </p>
-              <!-- Row that shows the due date and time for the assignment -->
-              <p class="card-meta">
-                <!-- Render the due date using a specific date-time format -->
-                Due: {{ a.due_datetime|date:"Y-m-d H:i" }}
-              </p>
-              <!-- Only show a short description if the assignment actually has one -->
-              {% if a.description %}
-                <!-- Short preview of the assignment description text -->
+        {% for item in upcoming_items %}
+          {% if item.is_clickable %}
+            <a href="{{ item.url }}" class="card-link-wrapper">
+              <article class="card card-clickable">
+                <div class="assessment-card-topline">
+                  <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  {% if item.status_label %}
+                    <span class="assessment-status">{{ item.status_label }}</span>
+                  {% endif %}
+                </div>
+
+                <h3 class="card-title">{{ item.title }}</h3>
+
                 <p class="card-meta">
-                  <!-- Truncate the description so the card stays compact -->
-                  {{ a.description|truncatechars:120 }}
+                  <span>{{ item.module_title }}</span> ·
+                  <span>{{ item.module_code }}</span>
                 </p>
-              {% endif %}
-            </article>
-          </a>
+
+                <p class="card-meta">
+                  {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
+                </p>
+
+                <p class="card-meta">
+                  Max mark: {{ item.max_mark }}
+                </p>
+
+                {% if item.detail_line %}
+                  <p class="card-meta">{{ item.detail_line }}</p>
+                {% endif %}
+
+                {% if item.description %}
+                  <p class="card-meta">
+                    {{ item.description|truncatechars:120 }}
+                  </p>
+                {% endif %}
+              </article>
+            </a>
+          {% else %}
+            <div class="card-link-wrapper card-link-wrapper-disabled">
+              <article class="card card-disabled">
+                <div class="assessment-card-topline">
+                  <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  {% if item.status_label %}
+                    <span class="assessment-status">{{ item.status_label }}</span>
+                  {% endif %}
+                </div>
+
+                <h3 class="card-title">{{ item.title }}</h3>
+
+                <p class="card-meta">
+                  <span>{{ item.module_title }}</span> ·
+                  <span>{{ item.module_code }}</span>
+                </p>
+
+                <p class="card-meta">
+                  {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
+                </p>
+
+                <p class="card-meta">
+                  Max mark: {{ item.max_mark }}
+                </p>
+
+                {% if item.detail_line %}
+                  <p class="card-meta">{{ item.detail_line }}</p>
+                {% endif %}
+
+                {% if item.description %}
+                  <p class="card-meta">
+                    {{ item.description|truncatechars:120 }}
+                  </p>
+                {% endif %}
+              </article>
+            </div>
+          {% endif %}
         {% endfor %}
       </div>
     {% else %}
-      <!-- Message shown when there are no upcoming assignments -->
-      <p class="muted">No upcoming assignments.</p>
+      <p class="muted">No upcoming assessments.</p>
     {% endif %}
   </section>
 

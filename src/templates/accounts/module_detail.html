@@ -26,116 +26,144 @@
   </section>
   <!-- Branch into the student-specific view if the role is "student" -->
   {% if role == "student" %}
-  <!-- Student view: list of assignments for this module -->
+  <!-- Student view: list of assignments and quizzes for this module -->
   <section class="dashboard-section">
-    <!-- Heading for the assignments list visible to students -->
-    <h2 class="section-title">Assignments in this Module</h2>
-    <!-- Only render assignment cards if at least one assignment exists -->
-    {% if assignments %}
-      <!-- Grid container that arranges assignment cards in a responsive layout -->
+    <h2 class="section-title">Assignments &amp; Quizzes</h2>
+
+    {% if assessment_items %}
       <div class="card-grid">
-        <!-- Loop through each assignment belonging to this module -->
-        {% for a in assignments %}
-          <!-- Clickable card linking to the detailed page for this assignment -->
-          <a href="{% url 'accounts:assignment_detail' module.code a.id %}" class="card-link-wrapper">
-            <!-- Individual card showing summary information for an assignment -->
-            <article class="card card-clickable">
-              <!-- Assignment title displayed prominently on the card -->
-              <h3 class="card-title">{{ a.title }}</h3>
-              <!-- Line displaying the assignment due date and time -->
-              <p class="card-meta">
-                <!-- Format the due datetime for easy reading -->
-                Due: {{ a.due_datetime|date:"Y-m-d H:i" }}
-              </p>
-              <!-- Line showing the maximum possible mark for this assignment -->
-              <p class="card-meta">
-                Max mark: {{ a.max_mark }}
-              </p>
+        {% for item in assessment_items %}
+          {% if item.is_clickable %}
+            <a href="{{ item.url }}" class="card-link-wrapper">
+              <article class="card card-clickable">
+                <div class="assessment-card-topline">
+                  <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  {% if item.status_label %}
+                    <span class="assessment-status">{{ item.status_label }}</span>
+                  {% endif %}
+                </div>
 
-              <!-- Only show a truncated description if one exists for this assignment -->
-              {% if a.description %}
-                <!-- Short preview of the assignment description to give context -->
+                <h3 class="card-title">{{ item.title }}</h3>
+
                 <p class="card-meta">
-                  {{ a.description|truncatechars:140 }}
+                  {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
                 </p>
-              {% endif %}
 
-              <!-- If there are any lecturer files attached to this assignment, list them -->
-              {% if a.files.all %}
-                <!-- Unordered list of attached assignment files -->
-                <ul class="week-files">
-                  <!-- Loop through each file attached to this assignment -->
-                  {% for f in a.files.all %}
-                    <!-- Single list item representing one attached file -->
-                    <li>
-                      <!-- Show the original uploaded name if set, otherwise the stored filename -->
-                      {{ f.original_name|default:f.file.name }}
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% endif %}
-            </article>
-          </a>
+                <p class="card-meta">
+                  Max mark: {{ item.max_mark }}
+                </p>
+
+                {% if item.detail_line %}
+                  <p class="card-meta">{{ item.detail_line }}</p>
+                {% endif %}
+
+                {% if item.description %}
+                  <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                {% endif %}
+
+                {% if item.file_names %}
+                  <ul class="week-files">
+                    {% for file_name in item.file_names %}
+                      <li>{{ file_name }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </article>
+            </a>
+          {% else %}
+            <div class="card-link-wrapper card-link-wrapper-disabled">
+              <article class="card card-disabled">
+                <div class="assessment-card-topline">
+                  <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  {% if item.status_label %}
+                    <span class="assessment-status">{{ item.status_label }}</span>
+                  {% endif %}
+                </div>
+
+                <h3 class="card-title">{{ item.title }}</h3>
+
+                <p class="card-meta">
+                  {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
+                </p>
+
+                <p class="card-meta">
+                  Max mark: {{ item.max_mark }}
+                </p>
+
+                {% if item.detail_line %}
+                  <p class="card-meta">{{ item.detail_line }}</p>
+                {% endif %}
+
+                {% if item.description %}
+                  <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                {% endif %}
+
+                {% if item.file_names %}
+                  <ul class="week-files">
+                    {% for file_name in item.file_names %}
+                      <li>{{ file_name }}</li>
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+              </article>
+            </div>
+          {% endif %}
         {% endfor %}
       </div>
     {% else %}
-      <!-- Message displayed when no assignments have been created for this module -->
-      <p class="muted">No assignments are currently defined for this module.</p>
+      <p class="muted">No assignments or quizzes are currently defined for this module.</p>
     {% endif %}
   </section>
   <!-- Branch into the lecturer-specific view if the role is "lecturer" instead -->
   {% elif role == "lecturer" %}
-  <!-- Lecturer view: assignments with submission summary and create button -->
+  <!-- Lecturer view: assignments and quizzes with creation controls -->
   <section class="dashboard-section">
-    <!-- Flex container that aligns the section heading and create button on one row -->
-    <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-      <!-- Heading for the lecturer assignments and submissions section -->
-      <h2 class="section-title">Assignments &amp; Submissions</h2>
-      <!-- Button-style link that takes the lecturer to the assignment creation form -->
-      <a href="{% url 'accounts:create_assignment' module.code %}" class="small-button">
-        + Create assignment
-      </a>
+    <div style="display:flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+      <h2 class="section-title">Assignments &amp; Quizzes</h2>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <a href="{% url 'accounts:create_assignment' module.code %}" class="small-button">
+          + Create assignment
+        </a>
+        <a href="{% url 'accounts:create_quiz' module.code %}" class="small-button">
+          + Create quiz
+        </a>
+      </div>
     </div>
-    <!-- Only render assignment cards if there are assignments defined -->
-    {% if assignments %}
-      <!-- Grid container showing all assignments for this module -->
+
+    {% if assessment_items %}
       <div class="card-grid">
-        <!-- Loop over each assignment, now annotated with submission counts -->
-        {% for a in assignments %}
-          <!-- Clickable card linking to the assignment detail view for this assignment -->
-          <a href="{% url 'accounts:assignment_detail' module.code a.id %}" class="card-link-wrapper">
-            <!-- Card summarising assignment metadata for lecturers -->
+        {% for item in assessment_items %}
+          <a href="{{ item.url }}" class="card-link-wrapper">
             <article class="card card-clickable">
-              <!-- Assignment title text -->
-              <h3 class="card-title">{{ a.title }}</h3>
-              <!-- Line showing the assignment due date and time -->
+              <div class="assessment-card-topline">
+                <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                {% if item.status_label %}
+                  <span class="assessment-status">{{ item.status_label }}</span>
+                {% endif %}
+              </div>
+
+              <h3 class="card-title">{{ item.title }}</h3>
+
               <p class="card-meta">
-                Due: {{ a.due_datetime|date:"Y-m-d H:i" }}
-              </p>
-              <!-- Line showing total and ungraded submission counts for this assignment -->
-              <p class="card-meta">
-                Submissions: {{ a.total_submissions }} ({{ a.ungraded_submissions }} ungraded)
+                {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
               </p>
 
-              <!-- Optional description preview visible if the assignment has descriptive text -->
-              {% if a.description %}
-                <!-- Shortened assignment description for quick overview -->
-                <p class="card-meta">
-                  {{ a.description|truncatechars:140 }}
-                </p>
+              <p class="card-meta">
+                Max mark: {{ item.max_mark }}
+              </p>
+
+              {% if item.detail_line %}
+                <p class="card-meta">{{ item.detail_line }}</p>
               {% endif %}
 
-              <!-- If there are any files attached to the assignment, list their names -->
-              {% if a.files.all %}
-                <!-- Unordered list of assignment resource files -->
+              {% if item.description %}
+                <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+              {% endif %}
+
+              {% if item.file_names %}
                 <ul class="week-files">
-                  <!-- Loop over each attached assignment file -->
-                  {% for f in a.files.all %}
-                    <!-- List item for a single attached file -->
-                    <li>
-                      <!-- Show the original uploaded filename or fall back to stored filename -->
-                      {{ f.original_name|default:f.file.name }}
-                    </li>
+                  {% for file_name in item.file_names %}
+                    <li>{{ file_name }}</li>
                   {% endfor %}
                 </ul>
               {% endif %}
@@ -144,8 +172,7 @@
         {% endfor %}
       </div>
     {% else %}
-      <!-- Lecturer-facing message when there are currently no assignments defined -->
-      <p class="muted">No assignments are currently defined for this module.</p>
+      <p class="muted">No assignments or quizzes are currently defined for this module.</p>
     {% endif %}
   </section>
   {% endif %}

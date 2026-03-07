@@ -76,9 +76,18 @@
   {% endif %}
   <!-- Main page content area where child templates inject their specific content -->
   <main class="page-content">
-    <!-- Content block to be overridden by individual page templates -->
-    {% block content %}{% endblock %}
-  </main>
+  {% if messages %}
+    <div class="dashboard-section">
+      <ul class="error-list">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {% block content %}{% endblock %}
+</main>
 
   <!-- Site-wide footer shown at the bottom of every page -->
   <footer class="site-footer">

@@ -3,16 +3,18 @@ from django.contrib.auth.views import LoginView  # Imports Django’s built-in c
 from django.shortcuts import redirect, render, get_object_or_404  # Common shortcuts for redirects, rendering templates, and fetching objects or returning 404
 from django.urls import reverse  # Used to dynamically resolve URL patterns by their name
 from django.utils import timezone  # Provides timezone-aware datetime utilities compatible with Django settings
-from django.http import Http404  # Exception used to immediately return a 404 Not Found response
+from django.http import Http404, JsonResponse  # Exception used to immediately return a 404 Not Found response / Class for returning JSON responses in views
 from django.db.models import Count, Q  # ORM helpers: Count for aggregation and Q for complex query filters
 from django.views.decorators.http import require_http_methods  # Decorator to restrict allowed HTTP methods per view
-from datetime import datetime  # Standard library datetime class used for parsing date and time input
+from datetime import datetime, timedelta  # Standard library datetime class used for parsing date and time input / timedelta for date arithmetic
+from decimal import Decimal, InvalidOperation  # Standard library Decimal class for precise decimal arithmetic / InvalidOperation for handling invalid decimal operations
 from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
 from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
 from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
 from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
-from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage  # Imports all custom models referenced by these views
+from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer  # Imports all custom models referenced by these views
 import re  # Regular expressions module, used for validating input
+import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
 
 # Temporary
 import traceback
@@ -137,6 +139,604 @@ def _rollover_modules_if_due():
     for m in qs:
         if m.needs_rollover(today=today):
             m.rollover(today=today)
+
+def _parse_form_datetime(date_str, time_str, label, errors):
+    if not date_str:
+        errors.append(f"{label} date is required.")
+        return None
+    if not time_str:
+        errors.append(f"{label} time is required.")
+        return None
+
+    try:
+        dt = datetime.fromisoformat(f"{date_str} {time_str}")
+    except ValueError:
+        errors.append(f"Invalid {label.lower()} date/time format.")
+        return None
+
+    return timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+
+
+def _parse_decimal_value(raw_value, label, errors, minimum=None):
+    try:
+        value = Decimal(str(raw_value).strip())
+    except (InvalidOperation, TypeError, ValueError):
+        errors.append(f"{label} must be a valid number.")
+        return None
+
+    if minimum is not None and value < Decimal(str(minimum)):
+        errors.append(f"{label} must be at least {minimum}.")
+        return None
+
+    return value.quantize(Decimal("0.01"))
+
+
+def _parse_positive_int(raw_value, label, errors, minimum=1):
+    try:
+        value = int(str(raw_value).strip())
+    except (TypeError, ValueError):
+        errors.append(f"{label} must be a whole number.")
+        return None
+
+    if value < minimum:
+        errors.append(f"{label} must be at least {minimum}.")
+        return None
+
+    return value
+
+
+def _parse_questions_payload(raw_payload, errors):
+    try:
+        payload = json.loads(raw_payload or "[]")
+    except json.JSONDecodeError:
+        errors.append("Question data could not be read. Please rebuild the quiz form and try again.")
+        return []
+
+    if not isinstance(payload, list) or not payload:
+        errors.append("At least one question is required.")
+        return []
+
+    valid_types = {choice[0] for choice in QuizQuestion.Type.choices}
+    parsed_questions = []
+
+    for index, item in enumerate(payload, start=1):
+        prompt = (item.get("prompt") or "").strip()
+        question_type = (item.get("question_type") or "").strip()
+        marks = _parse_decimal_value(item.get("marks", "1"), f"Question {index} marks", errors, minimum=Decimal("0.25"))
+
+        if not prompt:
+            errors.append(f"Question {index} prompt is required.")
+
+        if question_type not in valid_types:
+            errors.append(f"Question {index} has an invalid question type.")
+
+        normalized = {
+            "prompt": prompt,
+            "question_type": question_type,
+            "marks": marks or Decimal("1.00"),
+            "options": [],
+        }
+
+        if question_type in {
+            QuizQuestion.Type.MULTIPLE_CHOICE,
+            QuizQuestion.Type.MULTIPLE_SELECT,
+            QuizQuestion.Type.FILL_BLANK,
+        }:
+            options = [
+                line.strip()
+                for line in (item.get("options_text") or "").splitlines()
+                if line.strip()
+            ]
+
+            if len(options) < 2:
+                errors.append(f"Question {index} must have at least two options.")
+
+            if question_type in {
+                QuizQuestion.Type.MULTIPLE_CHOICE,
+                QuizQuestion.Type.FILL_BLANK,
+            }:
+                try:
+                    correct_number = int(str(item.get("correct_option") or "").strip())
+                except ValueError:
+                    correct_number = None
+                    errors.append(f"Question {index} must have one correct option number.")
+
+                if correct_number is not None and not (1 <= correct_number <= len(options)):
+                    errors.append(f"Question {index} correct option number is out of range.")
+
+                normalized["options"] = [
+                    {
+                        "text": option_text,
+                        "is_correct": (position == (correct_number - 1)) if correct_number is not None else False,
+                    }
+                    for position, option_text in enumerate(options)
+                ]
+
+            elif question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+                raw_correct_numbers = str(item.get("correct_options") or "")
+                parsed_numbers = []
+
+                for part in raw_correct_numbers.split(","):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    try:
+                        parsed_numbers.append(int(part))
+                    except ValueError:
+                        errors.append(f"Question {index} multiple-select correct answers must be comma-separated numbers.")
+                        parsed_numbers = []
+                        break
+
+                parsed_numbers = sorted(set(parsed_numbers))
+
+                if not parsed_numbers:
+                    errors.append(f"Question {index} must have at least one correct option number.")
+
+                if any(number < 1 or number > len(options) for number in parsed_numbers):
+                    errors.append(f"Question {index} has a correct option number outside the available options.")
+
+                normalized["options"] = [
+                    {
+                        "text": option_text,
+                        "is_correct": ((position + 1) in parsed_numbers),
+                    }
+                    for position, option_text in enumerate(options)
+                ]
+
+        elif question_type == QuizQuestion.Type.TRUE_FALSE:
+            correct_true_false = (item.get("correct_true_false") or "").strip().lower()
+            if correct_true_false not in {"true", "false"}:
+                errors.append(f"Question {index} must choose either True or False as the correct answer.")
+
+            normalized["options"] = [
+                {"text": "True", "is_correct": correct_true_false == "true"},
+                {"text": "False", "is_correct": correct_true_false == "false"},
+            ]
+
+        parsed_questions.append(normalized)
+
+    return parsed_questions
+
+
+def _create_quiz_questions(quiz, question_payloads):
+    for question_index, question_data in enumerate(question_payloads, start=1):
+        question = QuizQuestion.objects.create(
+            quiz=quiz,
+            prompt=question_data["prompt"],
+            question_type=question_data["question_type"],
+            marks=question_data["marks"],
+            display_order=question_index,
+        )
+
+        for option_index, option_data in enumerate(question_data["options"], start=1):
+            QuizOption.objects.create(
+                question=question,
+                text=option_data["text"],
+                is_correct=option_data["is_correct"],
+                display_order=option_index,
+            )
+
+
+def _get_student_quiz_state(quiz, student, now=None):
+    now = now or timezone.now()
+
+    attempts = list(
+        quiz.attempts.filter(student=student).order_by("-attempt_number", "-started_at")
+    )
+    active_attempt = next((attempt for attempt in attempts if attempt.is_active()), None)
+    latest_submitted_attempt = next((attempt for attempt in attempts if attempt.submitted_at), None)
+
+    attempts_used = len(attempts)
+    remaining_attempts = max(quiz.max_attempts - attempts_used, 0)
+
+    if active_attempt:
+        status_label = "Attempt in progress"
+        is_clickable = True
+    elif not quiz.is_published:
+        status_label = "Draft"
+        is_clickable = False
+    elif now < quiz.open_datetime:
+        status_label = "Not open yet"
+        is_clickable = False
+    elif now > quiz.close_datetime:
+        status_label = "Closed"
+        is_clickable = bool(latest_submitted_attempt)
+    elif remaining_attempts > 0:
+        status_label = "Open"
+        is_clickable = True
+    else:
+        status_label = "Attempts used"
+        is_clickable = bool(latest_submitted_attempt)
+
+    return {
+        "active_attempt": active_attempt,
+        "latest_submitted_attempt": latest_submitted_attempt,
+        "attempts_used": attempts_used,
+        "remaining_attempts": remaining_attempts,
+        "status_label": status_label,
+        "is_clickable": is_clickable,
+    }
+
+
+def _build_question_rows(quiz, attempt=None):
+    answer_lookup = {}
+    if attempt is not None:
+        answer_lookup = {
+            answer.question_id: answer
+            for answer in attempt.answers.all()
+        }
+
+    rows = []
+    for question_number, question in enumerate(
+        quiz.questions.prefetch_related("options").all(),
+        start=1,
+    ):
+        answer = answer_lookup.get(question.id)
+        selected_option_id = answer.selected_option_id if answer else None
+        selected_option_ids = set(answer.selected_option_ids or []) if answer else set()
+
+        options = []
+        for option in question.options.all():
+            option_is_selected = (
+                option.id == selected_option_id
+                or option.id in selected_option_ids
+            )
+            options.append(
+                {
+                    "id": option.id,
+                    "text": option.text,
+                    "is_correct": option.is_correct,
+                    "selected": option_is_selected,
+                }
+            )
+
+        selected_texts = [option["text"] for option in options if option["selected"]]
+        correct_texts = [option["text"] for option in options if option["is_correct"]]
+
+        rows.append(
+            {
+                "id": question.id,
+                "number": question_number,
+                "prompt": question.prompt,
+                "question_type": question.question_type,
+                "marks": question.marks,
+                "awarded_marks": answer.awarded_marks if answer else Decimal("0.00"),
+                "options": options,
+                "selected_answer_text": ", ".join(selected_texts) if selected_texts else "No answer selected",
+                "correct_answer_text": ", ".join(correct_texts) if correct_texts else "",
+            }
+        )
+
+    return rows
+
+
+def _upsert_attempt_answers(attempt, post_data):
+    quiz = attempt.quiz
+    questions = quiz.questions.prefetch_related("options").all()
+
+    for question in questions:
+        answer, _ = QuizAnswer.objects.get_or_create(
+            attempt=attempt,
+            question=question,
+        )
+
+        valid_option_ids = {option.id for option in question.options.all()}
+
+        if question.question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+            raw_ids = post_data.getlist(f"question_{question.id}")
+            cleaned_ids = []
+            for raw_id in raw_ids:
+                try:
+                    option_id = int(raw_id)
+                except (TypeError, ValueError):
+                    continue
+                if option_id in valid_option_ids and option_id not in cleaned_ids:
+                    cleaned_ids.append(option_id)
+
+            answer.selected_option = None
+            answer.selected_option_ids = cleaned_ids
+            answer.save(update_fields=["selected_option", "selected_option_ids"])
+
+        else:
+            raw_id = (post_data.get(f"question_{question.id}") or "").strip()
+            selected_option = None
+            if raw_id:
+                try:
+                    option_id = int(raw_id)
+                except ValueError:
+                    option_id = None
+                if option_id in valid_option_ids:
+                    selected_option = question.options.get(pk=option_id)
+
+            answer.selected_option = selected_option
+            answer.selected_option_ids = []
+            answer.save(update_fields=["selected_option", "selected_option_ids"])
+
+
+def _grade_attempt(attempt, auto_submitted=False):
+    quiz = attempt.quiz
+    questions = quiz.questions.prefetch_related("options").all()
+    answer_lookup = {
+        answer.question_id: answer
+        for answer in attempt.answers.all()
+    }
+
+    total_raw = Decimal("0.00")
+    total_possible = Decimal("0.00")
+
+    for question in questions:
+        total_possible += question.marks
+
+        answer, _ = QuizAnswer.objects.get_or_create(
+            attempt=attempt,
+            question=question,
+        )
+
+        awarded = Decimal("0.00")
+        is_correct = False
+        correct_options = [option for option in question.options.all() if option.is_correct]
+
+        if question.question_type in {
+            QuizQuestion.Type.MULTIPLE_CHOICE,
+            QuizQuestion.Type.TRUE_FALSE,
+            QuizQuestion.Type.FILL_BLANK,
+        }:
+            correct_option = correct_options[0] if correct_options else None
+            if correct_option and answer.selected_option_id == correct_option.id:
+                awarded = question.marks
+                is_correct = True
+
+        elif question.question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+            correct_ids = {option.id for option in correct_options}
+            selected_ids = set(answer.selected_option_ids or [])
+
+            if correct_ids:
+                unit_value = question.marks / Decimal(len(correct_ids))
+                positives = unit_value * Decimal(len(selected_ids & correct_ids))
+                negatives = unit_value * Decimal(len(selected_ids - correct_ids))
+                awarded = positives - negatives
+
+                if awarded < Decimal("0.00"):
+                    awarded = Decimal("0.00")
+                if awarded > question.marks:
+                    awarded = question.marks
+
+                is_correct = selected_ids == correct_ids
+
+        awarded = awarded.quantize(Decimal("0.01"))
+        answer.awarded_marks = awarded
+        answer.is_correct = is_correct
+        answer.save(update_fields=["awarded_marks", "is_correct"])
+
+        total_raw += awarded
+
+    if total_possible > Decimal("0.00"):
+        weighted_score = (total_raw / total_possible) * quiz.max_mark
+    else:
+        weighted_score = Decimal("0.00")
+
+    attempt.raw_score = total_raw.quantize(Decimal("0.01"))
+    attempt.weighted_score = weighted_score.quantize(Decimal("0.01"))
+    attempt.submitted_at = timezone.now()
+    attempt.status = (
+        QuizAttempt.Status.AUTO_SUBMITTED
+        if auto_submitted
+        else QuizAttempt.Status.SUBMITTED
+    )
+    attempt.save(update_fields=["raw_score", "weighted_score", "submitted_at", "status"])
+
+    return attempt
+
+
+def _auto_submit_expired_attempt_if_needed(quiz, student):
+    active_attempt = (
+        quiz.attempts
+        .filter(student=student, status=QuizAttempt.Status.IN_PROGRESS)
+        .order_by("-attempt_number")
+        .first()
+    )
+
+    if active_attempt and active_attempt.is_expired():
+        _grade_attempt(active_attempt, auto_submitted=True)
+
+    return (
+        quiz.attempts
+        .filter(student=student, status=QuizAttempt.Status.IN_PROGRESS)
+        .order_by("-attempt_number")
+        .first()
+    )
+
+def _build_student_module_assessment_items(module, student, now):
+    submitted_assignment_ids = set(
+        AssignmentSubmission.objects.filter(
+            assignment__module=module,
+            student=student,
+        ).values_list("assignment_id", flat=True)
+    )
+
+    items = []
+
+    for assignment in module.assignments.prefetch_related("files__parsed_document").all():
+        items.append(
+            {
+                "kind": "assignment",
+                "label": "Assignment",
+                "title": assignment.title,
+                "description": assignment.description,
+                "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                "is_clickable": True,
+                "date_label": "Due",
+                "date_value": assignment.due_datetime,
+                "max_mark": assignment.max_mark,
+                "status_label": "Submitted" if assignment.id in submitted_assignment_ids else "",
+                "detail_line": "",
+                "file_names": [f.original_name or f.file.name for f in assignment.files.all()],
+                "sort_at": assignment.due_datetime,
+            }
+        )
+
+    for quiz in module.quizzes.filter(is_published=True).all():
+        state = _get_student_quiz_state(quiz, student, now=now)
+        items.append(
+            {
+                "kind": "quiz",
+                "label": "Quiz",
+                "title": quiz.title,
+                "description": quiz.description,
+                "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                "is_clickable": state["is_clickable"],
+                "date_label": "Closes",
+                "date_value": quiz.close_datetime,
+                "max_mark": quiz.max_mark,
+                "status_label": state["status_label"],
+                "detail_line": f"Time limit: {quiz.time_limit_minutes} mins · Attempts: {state['attempts_used']}/{quiz.max_attempts}",
+                "file_names": [],
+                "sort_at": quiz.close_datetime,
+            }
+        )
+
+    return sorted(items, key=lambda item: item["sort_at"])
+
+
+def _build_lecturer_module_assessment_items(module):
+    items = []
+
+    assignments = (
+        module.assignments
+        .all()
+        .annotate(
+            total_submissions=Count("submissions", distinct=True),
+            ungraded_submissions=Count(
+                "submissions",
+                filter=Q(submissions__grade__isnull=True),
+                distinct=True,
+            ),
+        )
+        .prefetch_related("files__parsed_document")
+    )
+
+    for assignment in assignments:
+        items.append(
+            {
+                "kind": "assignment",
+                "label": "Assignment",
+                "title": assignment.title,
+                "description": assignment.description,
+                "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                "is_clickable": True,
+                "date_label": "Due",
+                "date_value": assignment.due_datetime,
+                "max_mark": assignment.max_mark,
+                "status_label": "",
+                "detail_line": f"Submissions: {assignment.total_submissions} ({assignment.ungraded_submissions} ungraded)",
+                "file_names": [f.original_name or f.file.name for f in assignment.files.all()],
+                "sort_at": assignment.due_datetime,
+            }
+        )
+
+    quizzes = (
+        module.quizzes
+        .all()
+        .annotate(
+            total_attempts=Count("attempts", distinct=True),
+            submitted_attempts=Count(
+                "attempts",
+                filter=Q(attempts__submitted_at__isnull=False),
+                distinct=True,
+            ),
+        )
+    )
+
+    for quiz in quizzes:
+        items.append(
+            {
+                "kind": "quiz",
+                "label": "Quiz",
+                "title": quiz.title,
+                "description": quiz.description,
+                "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                "is_clickable": True,
+                "date_label": "Closes",
+                "date_value": quiz.close_datetime,
+                "max_mark": quiz.max_mark,
+                "status_label": "Published" if quiz.is_published else "Draft",
+                "detail_line": f"Attempts started: {quiz.total_attempts} · Submitted: {quiz.submitted_attempts}",
+                "file_names": [],
+                "sort_at": quiz.close_datetime,
+            }
+        )
+
+    return sorted(items, key=lambda item: item["sort_at"])
+
+def _build_student_dashboard_items(student, modules_qs, now):
+    items = []
+
+    upcoming_assignments = (
+        Assignment.objects.filter(
+            module__in=modules_qs,
+            due_datetime__gte=now,
+        )
+        .exclude(submissions__student=student)
+        .select_related("module")
+        .order_by("due_datetime")
+    )
+
+    for assignment in upcoming_assignments:
+        items.append(
+            {
+                "kind": "assignment",
+                "label": "Assignment",
+                "title": assignment.title,
+                "description": assignment.description,
+                "module_title": assignment.module.title,
+                "module_code": assignment.module.code,
+                "url": reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                "is_clickable": True,
+                "date_label": "Due",
+                "date_value": assignment.due_datetime,
+                "max_mark": assignment.max_mark,
+                "status_label": "",
+                "detail_line": "",
+                "sort_at": assignment.due_datetime,
+            }
+        )
+
+    candidate_quizzes = (
+        Quiz.objects.filter(
+            module__in=modules_qs,
+            is_published=True,
+            close_datetime__gte=now,
+        )
+        .select_related("module")
+        .order_by("close_datetime")
+    )
+
+    for quiz in candidate_quizzes:
+        state = _get_student_quiz_state(quiz, student, now=now)
+
+        if state["remaining_attempts"] <= 0 and not state["active_attempt"]:
+            continue
+
+        items.append(
+            {
+                "kind": "quiz",
+                "label": "Quiz",
+                "title": quiz.title,
+                "description": quiz.description,
+                "module_title": quiz.module.title,
+                "module_code": quiz.module.code,
+                "url": reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                "is_clickable": state["is_clickable"],
+                "date_label": "Closes",
+                "date_value": quiz.close_datetime,
+                "max_mark": quiz.max_mark,
+                "status_label": state["status_label"],
+                "detail_line": f"Time limit: {quiz.time_limit_minutes} mins · Attempts: {state['attempts_used']}/{quiz.max_attempts}",
+                "sort_at": quiz.close_datetime,
+            }
+        )
+
+    return sorted(items, key=lambda item: item["sort_at"])[:8]
 
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
@@ -283,176 +883,150 @@ def register_student(request):
     }
     return render(request, "accounts/registration.html", context)
 
+@login_required
+def dashboard(request):
+    _rollover_modules_if_due()
+    user: User = request.user
 
-@login_required  # Ensures only authenticated users can view the dashboard
-def dashboard(request):  # Main dashboard view for both students and lecturers
-    _rollover_modules_if_due() # Check For Rollover
-    user: User = request.user  # Retrieve the currently logged-in user from the request
+    nav_items = _shared_nav_items()
+    now = timezone.now()
 
-    now = timezone.now()  # Capture the current timezone-aware datetime for use in date comparisons
+    if user.is_student():
+        template = "accounts/student_dashboard.html"
+        student = user.student_profile
 
-    if user.is_student():  # Branch logic if the logged-in user is a student
-        template = "accounts/student_dashboard.html"  # Use the student-specific dashboard template
-
-        student = user.student_profile  # Get the related Student profile associated with this User
-
-        # All active modules this student is enrolled in
-        modules_qs = student.modules.filter(is_active=True).select_related()  # Query active modules related to the student, using select_related for efficiency
-
-        # Upcoming assignments (due in the future) for those modules
-        upcoming_assignments_qs = (  # Build queryset of upcoming assignments relevant to this student
-            Assignment.objects.filter(
-                module__in=modules_qs,  # Only include assignments from the modules the student is enrolled in
-                due_datetime__gte=now,  # Restrict to assignments whose due date/time has not yet passed
-            )
-            .exclude(submissions__student=student)  # Exclude assignments that the student has already submitted
-            .distinct()  # Ensure no duplicate assignments in case of multiple module relationships
-            .select_related("module")  # Optimize queries by joining module table in the same database hit
-            .order_by("due_datetime")[:6]  # Sort soonest first and limit the number of upcoming assignments shown
+        modules_qs = (
+            student.modules
+            .filter(is_active=True)
+            .prefetch_related("lecturers__user")
+            .order_by("code")
         )
 
-        context = {  # Context passed into the student dashboard template
-            "user": user,  # Provide the current user object so the template can show user-related information
-            "nav_items": _shared_nav_items(),  # Provide navigation items for the header and footer
-            "modules": modules_qs,  # Provide the queryset of modules that the student is taking
-            "upcoming_assignments": upcoming_assignments_qs,  # Provide the list of upcoming assignments for display
+        upcoming_items = _build_student_dashboard_items(student, modules_qs, now)
+
+        context = {
+            "user": user,
+            "nav_items": nav_items,
+            "modules": modules_qs,
+            "upcoming_items": upcoming_items,
         }
 
-    elif user.is_lecturer():  # Branch logic when the logged-in user is a lecturer
-        template = "accounts/lecturer_dashboard.html"  # Use the lecturer-specific dashboard template
+    elif user.is_lecturer():
+        template = "accounts/lecturer_dashboard.html"
+        lecturer = user.lecturer_profile
 
-        lecturer = user.lecturer_profile  # Get the related Lecturer profile associated with this User
+        modules_qs = lecturer.modules.filter(is_active=True).order_by("code")
 
-        # All active modules this lecturer teaches
-        modules_qs = lecturer.modules.filter(is_active=True).select_related()  # Query all active modules connected to this lecturer
-
-        # Ungraded submissions for those modules (no AssignmentGrade attached)
-        ungraded_submissions_qs = (  # Prepare a queryset of assignment submissions that still need grading
+        ungraded_submissions_qs = (
             AssignmentSubmission.objects.filter(
-                assignment__module__in=modules_qs,  # Only submissions for assignments within the lecturer’s modules
-                grade__isnull=True,  # Filter to only submissions where no grade object is linked yet
+                assignment__module__in=modules_qs,
+                grade__isnull=True,
             )
             .select_related(
-                "assignment",  # Include referenced assignment in the same query for efficiency
-                "assignment__module",  # Also prefetch the module related to the assignment
-                "student",  # Include the student profile object on the submission
-                "student__user",  # Include the underlying User object connected to the student profile
+                "assignment",
+                "assignment__module",
+                "student",
+                "student__user",
             )
-            .order_by("-submitted_at")[:10]  # Show the most recently submitted ungraded submissions first, limited to 10
+            .order_by("-submitted_at")[:10]
         )
 
-        context = {  # Context passed into the lecturer dashboard template
-            "user": user,  # Current logged-in user
-            "nav_items": _shared_nav_items(),  # Navigation links shown in the template
-            "modules": modules_qs,  # List of modules taught by the lecturer
-            "ungraded_submissions": ungraded_submissions_qs,  # List of submissions needing grading
+        context = {
+            "user": user,
+            "nav_items": nav_items,
+            "modules": modules_qs,
+            "ungraded_submissions": ungraded_submissions_qs,
         }
 
-    else:  # If user has neither recognized role, treat as invalid for this dashboard
-        return redirect("accounts:login")  # Redirect non-student/non-lecturer users back to the login page
+    else:
+        return redirect("accounts:login")
 
-    return render(request, template, context)  # Render the appropriate dashboard template with the assembled context
+    return render(request, template, context)
 
 
-@login_required  # Only authenticated users can view module details
-def module_detail(request, code):  # View that shows detailed information for a specific module by its code
+@login_required
+def module_detail(request, code):
+    user: User = request.user
+    nav_items = _shared_nav_items()
 
-    user: User = request.user  # Get the currently authenticated user from the request
-
-    # Try to fetch the module by code
     try:
-        module = (  # Attempt to fetch the module instance matching the provided code
+        module = (
             Module.objects
-            .prefetch_related("assignments")  # Prefetch related assignments to reduce later queries
-            .get(code=code)  # Filter the Module table by the given module code
+            .prefetch_related("assignments__files", "quizzes")
+            .get(code=code)
         )
-    except Module.DoesNotExist:  # If the module code is invalid or not found
-        raise Http404("Module not found")  # Immediately return a 404 response indicating missing module
-    
-    run_start, run_end = module.current_cycle_window()  # Get the current run's start and end dates for display in the template
+    except Module.DoesNotExist:
+        raise Http404("Module not found")
 
-    if user.is_student():  # Branch for student view of module details
-        student = user.student_profile  # Retrieve Student profile linked to current user
-        if not student.modules.filter(pk=module.pk).exists():  # Ensure the student is actually enrolled in this module
-            raise Http404("Module not found")  # If not enrolled, treat as nonexistent to the student
+    run_start, run_end = module.current_cycle_window()
+    now = timezone.now()
 
-        role = "student"  # Track current role for template logic
+    if user.is_student():
+        student = user.student_profile
+        if not student.modules.filter(pk=module.pk).exists():
+            raise Http404("Module not found")
 
-        assignments = module.assignments.order_by("due_datetime")  # Get module’s assignments ordered by due date
+        role = "student"
 
-        # Only weeks that actually have files (so students only see populated weeks)
-        weeks = (  # Build queryset of weeks visible to students
+        assessment_items = _build_student_module_assessment_items(module, student, now)
+
+        weeks = (
             module.weeks
-            .filter(files__isnull=False)  # Only include weeks that have at least one attached file
+            .filter(files__isnull=False)
             .prefetch_related("files__parsed_document")
-            .order_by("week_number")  # Order weeks chronologically by week number
-            .distinct()  # Remove duplicate rows caused by joins on files
+            .order_by("week_number")
+            .distinct()
         )
 
-        context = {  # Context for the student module detail template
-            "user": user,  # Current user object for per-user presentation
-            "nav_items": _shared_nav_items(),  # Shared navigation links
-            "module": module,  # The module being viewed
-            "role": role,  # Role string so template can branch on permissions
-            "assignments": assignments,  # List of assignments in this module
-            "weeks": weeks,  # Only weeks that have attached learning files
-            "run_start": run_start, # Pass the module's run_start date for display in the template
-            "run_end": run_end, # Pass the module's run_end date for display in the template
+        context = {
+            "user": user,
+            "nav_items": nav_items,
+            "module": module,
+            "role": role,
+            "assessment_items": assessment_items,
+            "weeks": weeks,
+            "run_start": run_start,
+            "run_end": run_end,
         }
 
-    elif user.is_lecturer():  # Branch for lecturer view of module details
-        lecturer = user.lecturer_profile  # Retrieve Lecturer profile for this user
-        if not lecturer.modules.filter(pk=module.pk).exists():  # Ensure this lecturer actually teaches the module
-            raise Http404("Module not found")  # If not, return a 404 to avoid leaking module existence
+    elif user.is_lecturer():
+        lecturer = user.lecturer_profile
+        if not lecturer.modules.filter(pk=module.pk).exists():
+            raise Http404("Module not found")
 
-        role = "lecturer"  # Track role for use in the template logic
+        role = "lecturer"
 
-        # Assignments + submissions summary
-        assignments = (  # Generate a queryset of assignments with summary fields
-            module.assignments
-            .all()  # Start from all assignments linked to this module
-            .annotate(
-                total_submissions=Count("submissions", distinct=True),  # Count how many submissions each assignment has
-                ungraded_submissions=Count(
-                    "submissions",
-                    filter=Q(submissions__grade__isnull=True),  # Count only submissions that have no grade yet
-                    distinct=True,
-                ),
-            )
-            .order_by("due_datetime")  # Sort assignments by due date for logical display
-        )
-
-        # Ensure weeks 1–30 exist for this module
-        for wn in range(1, 31):  # Loop through week numbers 1 to 30 inclusive
+        for wn in range(1, 31):
             ModuleWeek.objects.get_or_create(
-                module=module,  # Attach the week to the current module
-                week_number=wn,  # Set the numeric week identifier
-                defaults={"title": f"Week {wn}"},  # If created, give the week a default title based on its number
+                module=module,
+                week_number=wn,
+                defaults={"title": f"Week {wn}"},
             )
 
-        # Lecturers see all weeks 1–30 (even if empty)
-        weeks = (  # Queryset of all weeks for this module
+        assessment_items = _build_lecturer_module_assessment_items(module)
+
+        weeks = (
             module.weeks
-            .all()  # Include every week row regardless of whether it has files
+            .all()
             .prefetch_related("files__parsed_document")
-            .order_by("week_number")  # Sort by week number to show a chronological view
+            .order_by("week_number")
         )
 
-        context = {  # Context for the lecturer module detail template
-            "user": user,  # Current user object
-            "nav_items": _shared_nav_items(),  # Common navigation bar items
-            "module": module,  # The module being examined
-            "role": role,  # Lecturer role for template branching
-            "assignments": assignments,  # Assignments along with submission counts
-            "weeks": weeks,  # All weeks for this module, even without content
-            "run_start": run_start, # Pass the module's run_start date for display in the template
-            "run_end": run_end, # Pass the module's run_end date for display in the template
+        context = {
+            "user": user,
+            "nav_items": nav_items,
+            "module": module,
+            "role": role,
+            "assessment_items": assessment_items,
+            "weeks": weeks,
+            "run_start": run_start,
+            "run_end": run_end,
         }
 
-    else:  # If user is neither student nor lecturer
-        return redirect("accounts:login")  # Redirect back to login as a fallback
+    else:
+        return redirect("accounts:login")
 
-    return render(request, "accounts/module_detail.html", context)  # Render module detail template with the prepared context
+    return render(request, "accounts/module_detail.html", context)
 
 
 @login_required  # Restrict file uploads to authenticated users
@@ -668,6 +1242,303 @@ def create_assignment(request, code):
         },
     }
     return render(request, "accounts/create_assignment.html", context)
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_quiz(request, code):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
+
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+
+    errors = []
+    initial_questions = []
+
+    if request.method == "POST":
+        title = request.POST.get("title", "").strip()
+        description = request.POST.get("description", "").strip()
+        open_date_str = request.POST.get("open_date", "").strip()
+        open_time_str = request.POST.get("open_time", "").strip()
+        close_date_str = request.POST.get("close_date", "").strip()
+        close_time_str = request.POST.get("close_time", "").strip()
+        time_limit_minutes = _parse_positive_int(
+            request.POST.get("time_limit_minutes", "20"),
+            "Time limit",
+            errors,
+            minimum=1,
+        )
+        max_attempts = _parse_positive_int(
+            request.POST.get("max_attempts", "1"),
+            "Attempt count",
+            errors,
+            minimum=1,
+        )
+        max_mark = _parse_decimal_value(
+            request.POST.get("max_mark", "100"),
+            "Max mark",
+            errors,
+            minimum=Decimal("1.00"),
+        )
+        is_published = request.POST.get("is_published") == "on"
+
+        if not title:
+            errors.append("Title is required.")
+
+        open_dt = _parse_form_datetime(open_date_str, open_time_str, "Open", errors)
+        close_dt = _parse_form_datetime(close_date_str, close_time_str, "Close", errors)
+
+        if open_dt and close_dt and close_dt <= open_dt:
+            errors.append("Close date/time must be later than the open date/time.")
+
+        raw_questions_payload = request.POST.get("questions_payload", "")
+        try:
+            initial_questions = json.loads(raw_questions_payload or "[]")
+        except json.JSONDecodeError:
+            initial_questions = []
+
+        question_payloads = _parse_questions_payload(raw_questions_payload, errors)
+
+        if not errors:
+            with transaction.atomic():
+                quiz = Quiz.objects.create(
+                    module=module,
+                    title=title,
+                    description=description,
+                    open_datetime=open_dt,
+                    close_datetime=close_dt,
+                    time_limit_minutes=time_limit_minutes,
+                    max_attempts=max_attempts,
+                    max_mark=max_mark,
+                    is_published=is_published,
+                )
+
+                _create_quiz_questions(quiz, question_payloads)
+
+            messages.success(request, "Quiz created successfully.")
+            return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
+
+    else:
+        initial_questions = []
+
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "module": module,
+        "errors": errors,
+        "initial": {
+            "title": request.POST.get("title", "") if request.method == "POST" else "",
+            "description": request.POST.get("description", "") if request.method == "POST" else "",
+            "open_date": request.POST.get("open_date", "") if request.method == "POST" else "",
+            "open_time": request.POST.get("open_time", "") if request.method == "POST" else "",
+            "close_date": request.POST.get("close_date", "") if request.method == "POST" else "",
+            "close_time": request.POST.get("close_time", "") if request.method == "POST" else "",
+            "time_limit_minutes": request.POST.get("time_limit_minutes", "20") if request.method == "POST" else "20",
+            "max_attempts": request.POST.get("max_attempts", "1") if request.method == "POST" else "1",
+            "max_mark": request.POST.get("max_mark", "100") if request.method == "POST" else "100",
+            "is_published": (request.POST.get("is_published") == "on") if request.method == "POST" else True,
+        },
+        "initial_questions": initial_questions,
+    }
+    return render(request, "accounts/create_quiz.html", context)
+
+
+@login_required
+def quiz_detail(request, code, quiz_id):
+    user: User = request.user
+    nav_items = _shared_nav_items()
+    now = timezone.now()
+
+    module = get_object_or_404(Module, code=code)
+    quiz = get_object_or_404(
+        Quiz.objects.select_related("module").prefetch_related("questions__options"),
+        pk=quiz_id,
+        module=module,
+    )
+
+    if user.is_lecturer():
+        lecturer = user.lecturer_profile
+        if not lecturer.modules.filter(pk=module.pk).exists():
+            raise Http404("Quiz not found")
+
+        question_rows = _build_question_rows(quiz)
+        attempts = (
+            quiz.attempts
+            .select_related("student__user")
+            .order_by("-started_at")
+        )
+
+        context = {
+            "user": user,
+            "nav_items": nav_items,
+            "module": module,
+            "quiz": quiz,
+            "role": "lecturer",
+            "question_rows": question_rows,
+            "attempts": attempts,
+        }
+        return render(request, "accounts/quiz_detail.html", context)
+
+    if user.is_student():
+        student = user.student_profile
+        if not student.modules.filter(pk=module.pk).exists():
+            raise Http404("Quiz not found")
+
+        if not quiz.is_published:
+            raise Http404("Quiz not found")
+
+        _auto_submit_expired_attempt_if_needed(quiz, student)
+
+        state = _get_student_quiz_state(quiz, student, now=timezone.now())
+        active_attempt = state["active_attempt"]
+        latest_submitted_attempt = state["latest_submitted_attempt"]
+
+        can_start_attempt = (
+            quiz.is_published
+            and timezone.now() >= quiz.open_datetime
+            and timezone.now() <= quiz.close_datetime
+            and active_attempt is None
+            and state["attempts_used"] < quiz.max_attempts
+        )
+
+        question_rows = []
+        remaining_seconds = 0
+
+        if active_attempt:
+            question_rows = _build_question_rows(quiz, attempt=active_attempt)
+            remaining_seconds = max(
+                0,
+                int((active_attempt.expires_at - timezone.now()).total_seconds())
+            )
+        elif latest_submitted_attempt:
+            question_rows = _build_question_rows(quiz, attempt=latest_submitted_attempt)
+
+        context = {
+            "user": user,
+            "nav_items": nav_items,
+            "module": module,
+            "quiz": quiz,
+            "role": "student",
+            "state": state,
+            "active_attempt": active_attempt,
+            "submitted_attempt": latest_submitted_attempt,
+            "can_start_attempt": can_start_attempt,
+            "question_rows": question_rows,
+            "remaining_seconds": remaining_seconds,
+        }
+        return render(request, "accounts/quiz_detail.html", context)
+
+    return redirect("accounts:login")
+
+
+@login_required
+@require_http_methods(["POST"])
+def start_quiz_attempt(request, code, quiz_id):
+    user: User = request.user
+    if not user.is_student():
+        raise Http404("Not found")
+
+    student = user.student_profile
+    module = get_object_or_404(Module, code=code)
+    if not student.modules.filter(pk=module.pk).exists():
+        raise Http404("Not found")
+
+    quiz = get_object_or_404(Quiz, pk=quiz_id, module=module, is_published=True)
+
+    now = timezone.now()
+    if now < quiz.open_datetime or now > quiz.close_datetime:
+        messages.error(request, "This quiz is not currently open.")
+        return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
+
+    existing_active_attempt = (
+        quiz.attempts
+        .filter(student=student, status=QuizAttempt.Status.IN_PROGRESS)
+        .order_by("-attempt_number")
+        .first()
+    )
+    if existing_active_attempt:
+        return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
+
+    attempts_used = quiz.attempts.filter(student=student).count()
+    if attempts_used >= quiz.max_attempts:
+        messages.error(request, "You have used all available attempts for this quiz.")
+        return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
+
+    requested_expiry = now + timedelta(minutes=quiz.time_limit_minutes)
+    expires_at = min(requested_expiry, quiz.close_datetime)
+
+    QuizAttempt.objects.create(
+        quiz=quiz,
+        student=student,
+        attempt_number=attempts_used + 1,
+        expires_at=expires_at,
+        status=QuizAttempt.Status.IN_PROGRESS,
+    )
+
+    return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
+
+
+@login_required
+@require_http_methods(["POST"])
+def save_quiz_progress(request, code, quiz_id):
+    user: User = request.user
+    if not user.is_student():
+        return JsonResponse({"ok": False}, status=403)
+
+    student = user.student_profile
+    module = get_object_or_404(Module, code=code)
+    if not student.modules.filter(pk=module.pk).exists():
+        return JsonResponse({"ok": False}, status=404)
+
+    quiz = get_object_or_404(Quiz, pk=quiz_id, module=module)
+
+    attempt = (
+        quiz.attempts
+        .filter(student=student, status=QuizAttempt.Status.IN_PROGRESS)
+        .order_by("-attempt_number")
+        .first()
+    )
+    if attempt is None:
+        return JsonResponse({"ok": False, "message": "No active attempt found."}, status=404)
+
+    if attempt.is_expired():
+        _grade_attempt(attempt, auto_submitted=True)
+        return JsonResponse({"ok": False, "expired": True}, status=409)
+
+    _upsert_attempt_answers(attempt, request.POST)
+    return JsonResponse({"ok": True})
+
+
+@login_required
+@require_http_methods(["POST"])
+def submit_quiz_attempt(request, code, quiz_id):
+    user: User = request.user
+    if not user.is_student():
+        raise Http404("Not found")
+
+    student = user.student_profile
+    module = get_object_or_404(Module, code=code)
+    if not student.modules.filter(pk=module.pk).exists():
+        raise Http404("Not found")
+
+    quiz = get_object_or_404(Quiz, pk=quiz_id, module=module)
+
+    attempt = (
+        quiz.attempts
+        .filter(student=student, status=QuizAttempt.Status.IN_PROGRESS)
+        .order_by("-attempt_number")
+        .first()
+    )
+    if attempt is None:
+        messages.error(request, "No active quiz attempt was found.")
+        return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
+
+    _upsert_attempt_answers(attempt, request.POST)
+    _grade_attempt(attempt, auto_submitted=attempt.is_expired())
+
+    messages.success(request, "Quiz submitted successfully.")
+    return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
 
 @login_required  # Ensure only authenticated users can view assignment details
 def assignment_detail(request, code, assignment_id):  # View that displays details for a particular assignment within a module

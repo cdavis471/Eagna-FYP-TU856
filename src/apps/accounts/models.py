@@ -3,6 +3,7 @@ from django.db import models, transaction  # Import Django's ORM model base clas
 from django.utils import timezone # Import timezone utilities to work with date and time fields in a timezone-aware manner
 from django.conf import settings  # Import project settings to reference AUTH_USER_MODEL, etc.
 from datetime import date # Import date class for handling module cycle dates
+from django.db.models import Sum # Import aggregation function for summing marks, etc.
 from django.core.exceptions import ValidationError  # Import exception for validating model data 
 import os  # Import os module for file path operations
 
@@ -174,6 +175,8 @@ class Module(models.Model):
         AssignmentFile.objects.filter(assignment__module=self).delete()
 
         Assignment.objects.filter(module=self).delete()
+
+        Quiz.objects.filter(module=self).delete()
 
         ModuleEnrollmentStudent.objects.filter(module=self).delete()
 
@@ -349,6 +352,191 @@ class AssignmentFile(models.Model):  # Represents files attached by lecturers to
 
     def __str__(self):  # String representation of assignment file
         return self.original_name or self.file.name  # Prefer original file name or fallback to stored name
+
+class Quiz(models.Model):
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        related_name="quizzes",
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+    open_datetime = models.DateTimeField()
+    close_datetime = models.DateTimeField()
+
+    time_limit_minutes = models.PositiveIntegerField(default=20)
+    max_attempts = models.PositiveSmallIntegerField(default=1)
+
+    max_mark = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=100.00,
+        help_text="Weighted mark shown to students, similar to assignment max mark.",
+    )
+
+    is_published = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["close_datetime", "title"]
+
+    def __str__(self):
+        return f"{self.module.code} - Quiz - {self.title}"
+
+    def has_started(self, now=None):
+        now = now or timezone.now()
+        return now >= self.open_datetime
+
+    def has_closed(self, now=None):
+        now = now or timezone.now()
+        return now > self.close_datetime
+
+    def is_open(self, now=None):
+        now = now or timezone.now()
+        return self.is_published and self.has_started(now=now) and not self.has_closed(now=now)
+
+    def total_question_marks(self):
+        return self.questions.aggregate(total=Sum("marks"))["total"] or 0
+
+
+class QuizQuestion(models.Model):
+    class Type(models.TextChoices):
+        MULTIPLE_CHOICE = "MULTIPLE_CHOICE", "Multiple choice"
+        MULTIPLE_SELECT = "MULTIPLE_SELECT", "Multiple select"
+        TRUE_FALSE = "TRUE_FALSE", "True / False"
+        FILL_BLANK = "FILL_BLANK", "Fill in the blank"
+
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name="questions",
+    )
+    prompt = models.TextField()
+    question_type = models.CharField(
+        max_length=32,
+        choices=Type.choices,
+    )
+    marks = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=1.00,
+    )
+    display_order = models.PositiveIntegerField(default=1)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.quiz.title} - Q{self.display_order}"
+
+
+class QuizOption(models.Model):
+    question = models.ForeignKey(
+        QuizQuestion,
+        on_delete=models.CASCADE,
+        related_name="options",
+    )
+    text = models.CharField(max_length=255)
+    display_order = models.PositiveIntegerField(default=1)
+    is_correct = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return self.text
+
+
+class QuizAttempt(models.Model):
+    class Status(models.TextChoices):
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"
+        SUBMITTED = "SUBMITTED", "Submitted"
+        AUTO_SUBMITTED = "AUTO_SUBMITTED", "Auto Submitted"
+
+    quiz = models.ForeignKey(
+        Quiz,
+        on_delete=models.CASCADE,
+        related_name="attempts",
+    )
+    student = models.ForeignKey(
+        StudentProfile,
+        on_delete=models.CASCADE,
+        related_name="quiz_attempts",
+    )
+    attempt_number = models.PositiveSmallIntegerField()
+
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.IN_PROGRESS,
+    )
+
+    started_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    submitted_at = models.DateTimeField(null=True, blank=True)
+
+    raw_score = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0.00,
+    )
+    weighted_score = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0.00,
+    )
+
+    class Meta:
+        ordering = ["-started_at"]
+        unique_together = ("quiz", "student", "attempt_number")
+
+    def __str__(self):
+        return f"{self.quiz.title} - {self.student} - Attempt {self.attempt_number}"
+
+    def is_active(self):
+        return self.status == self.Status.IN_PROGRESS and self.submitted_at is None
+
+    def is_expired(self, now=None):
+        now = now or timezone.now()
+        return now >= self.expires_at
+
+
+class QuizAnswer(models.Model):
+    attempt = models.ForeignKey(
+        QuizAttempt,
+        on_delete=models.CASCADE,
+        related_name="answers",
+    )
+    question = models.ForeignKey(
+        QuizQuestion,
+        on_delete=models.CASCADE,
+        related_name="answers",
+    )
+
+    selected_option = models.ForeignKey(
+        QuizOption,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    selected_option_ids = models.JSONField(default=list, blank=True)
+
+    is_correct = models.BooleanField(default=False)
+    awarded_marks = models.DecimalField(
+        max_digits=7,
+        decimal_places=2,
+        default=0.00,
+    )
+
+    class Meta:
+        unique_together = ("attempt", "question")
+
+    def __str__(self):
+        return f"{self.attempt} - {self.question}"
 
 class ModuleWeek(models.Model):  # Represents a single teaching week within a module
     module = models.ForeignKey(  # Link to the module this week belongs to
