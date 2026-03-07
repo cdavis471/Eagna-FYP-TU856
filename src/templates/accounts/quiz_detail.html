@@ -1,0 +1,321 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}{{ quiz.title }} – {{ module.code }} | Eagna{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <div class="assessment-card-topline">
+      <div>
+        <h1 class="section-title">{{ quiz.title }}</h1>
+        <p class="muted">{{ module.code }} – {{ module.title }}</p>
+      </div>
+      <span class="assessment-badge quiz">Quiz</span>
+    </div>
+
+    {% if quiz.description %}
+      <p class="week-description-text">{{ quiz.description }}</p>
+    {% endif %}
+
+    <div class="quiz-meta-grid">
+      <div class="quiz-meta-card">
+        <strong>Opens</strong>
+        <span>{{ quiz.open_datetime|date:"Y-m-d H:i" }}</span>
+      </div>
+      <div class="quiz-meta-card">
+        <strong>Closes</strong>
+        <span>{{ quiz.close_datetime|date:"Y-m-d H:i" }}</span>
+      </div>
+      <div class="quiz-meta-card">
+        <strong>Time limit</strong>
+        <span>{{ quiz.time_limit_minutes }} minutes</span>
+      </div>
+      <div class="quiz-meta-card">
+        <strong>Attempts allowed</strong>
+        <span>{{ quiz.max_attempts }}</span>
+      </div>
+      <div class="quiz-meta-card">
+        <strong>Max mark</strong>
+        <span>{{ quiz.max_mark }}</span>
+      </div>
+    </div>
+  </section>
+
+  {% if role == "lecturer" %}
+    <section class="dashboard-section">
+      <h2 class="section-title">Questions</h2>
+
+      {% for row in question_rows %}
+        <div class="quiz-question-editor">
+          <h3 class="card-title">Question {{ row.number }}</h3>
+          <p class="card-meta">{{ row.prompt }}</p>
+          <p class="card-meta">Type: {{ row.question_type }}</p>
+          <p class="card-meta">Marks: {{ row.marks }}</p>
+
+          <ul class="week-files">
+            {% for option in row.options %}
+              <li>
+                {{ option.text }}
+                {% if option.is_correct %}
+                  <strong>(correct)</strong>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    </section>
+
+    <section class="dashboard-section">
+      <h2 class="section-title">Student Attempts</h2>
+
+      {% if attempts %}
+        <div class="week-block">
+          <ul class="week-files">
+            {% for attempt in attempts %}
+              <li>
+                {{ attempt.student.user.get_full_name|default:attempt.student.user.username }}
+                —
+                Attempt {{ attempt.attempt_number }}
+                —
+                {{ attempt.status }}
+                —
+                {{ attempt.weighted_score }}/{{ quiz.max_mark }}
+                {% if attempt.submitted_at %}
+                  — submitted {{ attempt.submitted_at|date:"Y-m-d H:i" }}
+                {% else %}
+                  — in progress
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% else %}
+        <p class="muted">No student attempts yet.</p>
+      {% endif %}
+    </section>
+
+  {% elif role == "student" %}
+    {% if active_attempt %}
+      <section class="dashboard-section">
+        <div class="quiz-timer-banner">
+          Time remaining:
+          <strong id="quiz-timer-display"></strong>
+        </div>
+
+        <p class="muted">
+          Attempt {{ active_attempt.attempt_number }} of {{ quiz.max_attempts }}.
+          Questions only appear once the attempt has started.
+        </p>
+
+        <form method="post"
+              action="{% url 'accounts:submit_quiz_attempt' module.code quiz.id %}"
+              id="quiz-attempt-form"
+              data-save-url="{% url 'accounts:save_quiz_progress' module.code quiz.id %}"
+              data-remaining-seconds="{{ remaining_seconds }}">
+          {% csrf_token %}
+
+          {% for row in question_rows %}
+            <fieldset class="quiz-question-editor">
+              <legend class="card-title">Question {{ row.number }}</legend>
+              <p class="card-meta">{{ row.prompt }}</p>
+              <p class="card-meta">Marks: {{ row.marks }}</p>
+
+              {% if row.question_type == "FILL_BLANK" %}
+                <p class="quiz-fill-preview">
+                  Selected answer:
+                  <span class="quiz-blank-selected" data-question-id="{{ row.id }}">
+                    {% if row.selected_answer_text != "No answer selected" %}
+                      {{ row.selected_answer_text }}
+                    {% else %}
+                      _____
+                    {% endif %}
+                  </span>
+                </p>
+              {% endif %}
+
+              <div class="quiz-options-list">
+                {% for option in row.options %}
+                  <label class="quiz-option-row">
+                    {% if row.question_type == "MULTIPLE_SELECT" %}
+                      <input type="checkbox"
+                             name="question_{{ row.id }}"
+                             value="{{ option.id }}"
+                             {% if option.selected %}checked{% endif %}>
+                    {% else %}
+                      <input type="radio"
+                             name="question_{{ row.id }}"
+                             value="{{ option.id }}"
+                             {% if option.selected %}checked{% endif %}>
+                    {% endif %}
+                    <span>{{ option.text }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </fieldset>
+          {% endfor %}
+
+          <button type="submit">Submit quiz</button>
+        </form>
+      </section>
+
+      <script>
+        const attemptForm = document.getElementById("quiz-attempt-form");
+        const timerDisplay = document.getElementById("quiz-timer-display");
+
+        let remainingSeconds = parseInt(attemptForm.dataset.remainingSeconds || "0", 10);
+        let saveInFlight = false;
+
+        function formatSeconds(totalSeconds) {
+          const minutes = Math.floor(totalSeconds / 60);
+          const seconds = totalSeconds % 60;
+          return `${minutes}:${String(seconds).padStart(2, "0")}`;
+        }
+
+        function updateTimerDisplay() {
+          timerDisplay.textContent = formatSeconds(Math.max(remainingSeconds, 0));
+        }
+
+        function saveProgress() {
+          if (saveInFlight) return;
+          saveInFlight = true;
+
+          const data = new FormData(attemptForm);
+
+          fetch(attemptForm.dataset.saveUrl, {
+            method: "POST",
+            body: data,
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+            },
+          })
+          .finally(() => {
+            saveInFlight = false;
+          });
+        }
+
+        attemptForm.addEventListener("change", function () {
+          saveProgress();
+
+          document.querySelectorAll(".quiz-blank-selected").forEach((span) => {
+            const questionId = span.dataset.questionId;
+            const checked = attemptForm.querySelector(`input[name="question_${questionId}"]:checked`);
+            span.textContent = checked ? checked.parentElement.querySelector("span").textContent : "_____";
+          });
+        });
+
+        updateTimerDisplay();
+
+        const timerInterval = window.setInterval(function () {
+          remainingSeconds -= 1;
+          updateTimerDisplay();
+
+          if (remainingSeconds > 0 && remainingSeconds % 15 === 0) {
+            saveProgress();
+          }
+
+          if (remainingSeconds <= 0) {
+            clearInterval(timerInterval);
+            saveProgress();
+            attemptForm.submit();
+          }
+        }, 1000);
+
+        document.addEventListener("visibilitychange", function () {
+          if (document.visibilityState === "hidden") {
+            saveProgress();
+          }
+        });
+      </script>
+
+    {% elif submitted_attempt %}
+      <section class="dashboard-section">
+        <h2 class="section-title">Attempt Summary</h2>
+
+        <div class="quiz-meta-grid">
+          <div class="quiz-meta-card">
+            <strong>Attempt</strong>
+            <span>{{ submitted_attempt.attempt_number }}</span>
+          </div>
+          <div class="quiz-meta-card">
+            <strong>Status</strong>
+            <span>{{ submitted_attempt.status }}</span>
+          </div>
+          <div class="quiz-meta-card">
+            <strong>Raw score</strong>
+            <span>{{ submitted_attempt.raw_score }}</span>
+          </div>
+          <div class="quiz-meta-card">
+            <strong>Weighted score</strong>
+            <span>{{ submitted_attempt.weighted_score }}/{{ quiz.max_mark }}</span>
+          </div>
+          <div class="quiz-meta-card">
+            <strong>Submitted</strong>
+            <span>{{ submitted_attempt.submitted_at|date:"Y-m-d H:i" }}</span>
+          </div>
+        </div>
+
+        {% if can_start_attempt %}
+          <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+            {% csrf_token %}
+            <button type="submit">Start another attempt</button>
+          </form>
+        {% endif %}
+      </section>
+
+      <section class="dashboard-section">
+        <h2 class="section-title">Question Review</h2>
+
+        {% for row in question_rows %}
+          <div class="quiz-question-editor">
+            <h3 class="card-title">Question {{ row.number }}</h3>
+            <p class="card-meta">{{ row.prompt }}</p>
+            <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
+            <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
+            <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
+
+            <ul class="week-files">
+              {% for option in row.options %}
+                <li>
+                  {{ option.text }}
+                  {% if option.selected %}
+                    <strong>(your choice)</strong>
+                  {% endif %}
+                  {% if option.is_correct %}
+                    <strong>(correct)</strong>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </section>
+
+    {% else %}
+      <section class="dashboard-section">
+        <h2 class="section-title">Quiz Availability</h2>
+        <p class="muted">
+          Questions will only become visible after you begin an attempt.
+        </p>
+
+        <p class="card-meta">
+          Attempts used: {{ state.attempts_used }} / {{ quiz.max_attempts }}
+        </p>
+
+        <p class="card-meta">
+          Status: {{ state.status_label }}
+        </p>
+
+        {% if can_start_attempt %}
+          <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+            {% csrf_token %}
+            <button type="submit">Start quiz</button>
+          </form>
+        {% else %}
+          <p class="muted">This quiz is not currently available to start.</p>
+        {% endif %}
+      </section>
+    {% endif %}
+  {% endif %}
+</div>
+{% endblock %}

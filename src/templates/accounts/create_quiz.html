@@ -1,0 +1,255 @@
+{% extends "accounts/base.html" %}
+
+{% block title %}Create Quiz – {{ module.code }} | Eagna{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <h1 class="section-title">Create Quiz – {{ module.code }} {{ module.title }}</h1>
+
+    {% if errors %}
+      <ul class="error-list">
+        {% for e in errors %}
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="post" id="create-quiz-form" class="auth-container">
+      {% csrf_token %}
+      <input type="hidden" name="questions_payload" id="id_questions_payload">
+
+      <div class="form-group">
+        <label for="id_title">Title</label>
+        <input type="text" id="id_title" name="title" value="{{ initial.title }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_description">Description / Instructions</label>
+        <textarea id="id_description" name="description" rows="4" class="week-description-input">{{ initial.description }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="id_open_date">Open date</label>
+        <input type="date" id="id_open_date" name="open_date" value="{{ initial.open_date }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_open_time">Open time</label>
+        <input type="time" id="id_open_time" name="open_time" value="{{ initial.open_time }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_close_date">Close date</label>
+        <input type="date" id="id_close_date" name="close_date" value="{{ initial.close_date }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_close_time">Close time</label>
+        <input type="time" id="id_close_time" name="close_time" value="{{ initial.close_time }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_time_limit_minutes">Time limit (minutes)</label>
+        <input type="number" id="id_time_limit_minutes" name="time_limit_minutes" min="1" value="{{ initial.time_limit_minutes }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_max_attempts">Attempts allowed</label>
+        <input type="number" id="id_max_attempts" name="max_attempts" min="1" value="{{ initial.max_attempts }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_max_mark">Max mark / weighting</label>
+        <input type="number" step="0.01" id="id_max_mark" name="max_mark" value="{{ initial.max_mark }}">
+      </div>
+
+      <div class="form-group">
+        <label class="quiz-checkbox-row">
+          <input type="checkbox" name="is_published" {% if initial.is_published %}checked{% endif %}>
+          <span>Publish immediately</span>
+        </label>
+      </div>
+
+      <hr class="quiz-divider">
+
+      <div class="assessment-card-topline">
+        <h2 class="section-title" style="margin-bottom:0;">Questions</h2>
+        <button type="button" id="add-question-button" class="small-button">+ Add question</button>
+      </div>
+
+      <div id="question-builder" class="quiz-builder"></div>
+
+      <button type="submit">Create quiz</button>
+    </form>
+  </section>
+</div>
+
+{{ initial_questions|json_script:"initial-quiz-questions" }}
+
+<script>
+  const questionBuilder = document.getElementById("question-builder");
+  const addQuestionButton = document.getElementById("add-question-button");
+  const createQuizForm = document.getElementById("create-quiz-form");
+  const questionsPayloadInput = document.getElementById("id_questions_payload");
+  const initialQuestions = JSON.parse(document.getElementById("initial-quiz-questions").textContent || "[]");
+
+  let questionCounter = 0;
+
+  function questionTypeOptions(selectedValue) {
+    const types = [
+      ["MULTIPLE_CHOICE", "Multiple choice"],
+      ["MULTIPLE_SELECT", "Multiple select"],
+      ["TRUE_FALSE", "True / False"],
+      ["FILL_BLANK", "Fill in the blank"],
+    ];
+
+    return types.map(([value, label]) => {
+      const selected = selectedValue === value ? "selected" : "";
+      return `<option value="${value}" ${selected}>${label}</option>`;
+    }).join("");
+  }
+
+  function buildSettingsMarkup(type, data = {}) {
+    if (type === "TRUE_FALSE") {
+      const selectedValue = (data.correct_true_false || "true").toLowerCase();
+      return `
+        <div class="form-group">
+          <label>Correct answer</label>
+          <select class="question-correct-true-false">
+            <option value="true" ${selectedValue === "true" ? "selected" : ""}>True</option>
+            <option value="false" ${selectedValue === "false" ? "selected" : ""}>False</option>
+          </select>
+        </div>
+      `;
+    }
+
+    const optionsText = data.options_text || "";
+    const singleCorrectTypes = ["MULTIPLE_CHOICE", "FILL_BLANK"];
+
+    return `
+      <div class="form-group">
+        <label>Options / word bank (one option per line)</label>
+        <textarea rows="5" class="week-description-input question-options-text">${optionsText}</textarea>
+      </div>
+
+      ${singleCorrectTypes.includes(type) ? `
+        <div class="form-group">
+          <label>Correct option number (starting at 1)</label>
+          <input type="number" min="1" class="question-correct-option" value="${data.correct_option || ""}">
+        </div>
+      ` : ""}
+
+      ${type === "MULTIPLE_SELECT" ? `
+        <div class="form-group">
+          <label>Correct option numbers (comma-separated, starting at 1)</label>
+          <input type="text" class="question-correct-options" value="${data.correct_options || ""}" placeholder="e.g. 1,3">
+        </div>
+      ` : ""}
+    `;
+  }
+
+  function addQuestionCard(data = {}) {
+    questionCounter += 1;
+
+    const card = document.createElement("div");
+    card.className = "quiz-question-editor";
+    card.dataset.questionIndex = String(questionCounter);
+
+    const selectedType = data.question_type || "MULTIPLE_CHOICE";
+
+    card.innerHTML = `
+      <div class="assessment-card-topline">
+        <h3 class="card-title">Question <span class="question-number">${questionCounter}</span></h3>
+        <button type="button" class="small-button remove-question-button">Remove</button>
+      </div>
+
+      <div class="form-group">
+        <label>Prompt</label>
+        <textarea rows="3" class="week-description-input question-prompt">${data.prompt || ""}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>Question type</label>
+        <select class="question-type">
+          ${questionTypeOptions(selectedType)}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Marks</label>
+        <input type="number" step="0.25" min="0.25" class="question-marks" value="${data.marks || "1.00"}">
+      </div>
+
+      <div class="question-settings"></div>
+    `;
+
+    questionBuilder.appendChild(card);
+
+    const settingsContainer = card.querySelector(".question-settings");
+    settingsContainer.innerHTML = buildSettingsMarkup(selectedType, data);
+
+    card.querySelector(".question-type").addEventListener("change", function () {
+      settingsContainer.innerHTML = buildSettingsMarkup(this.value, {});
+    });
+
+    card.querySelector(".remove-question-button").addEventListener("click", function () {
+      card.remove();
+      updateQuestionNumbers();
+    });
+
+    updateQuestionNumbers();
+  }
+
+  function updateQuestionNumbers() {
+    const cards = [...document.querySelectorAll(".quiz-question-editor")];
+    cards.forEach((card, index) => {
+      const numberElement = card.querySelector(".question-number");
+      if (numberElement) {
+        numberElement.textContent = String(index + 1);
+      }
+    });
+  }
+
+  function serializeQuestions() {
+    const cards = [...document.querySelectorAll(".quiz-question-editor")];
+
+    return cards.map((card) => {
+      const questionType = card.querySelector(".question-type").value;
+      const payload = {
+        prompt: card.querySelector(".question-prompt").value,
+        question_type: questionType,
+        marks: card.querySelector(".question-marks").value,
+      };
+
+      if (questionType === "TRUE_FALSE") {
+        payload.correct_true_false = card.querySelector(".question-correct-true-false").value;
+      } else {
+        payload.options_text = card.querySelector(".question-options-text").value;
+
+        if (questionType === "MULTIPLE_SELECT") {
+          payload.correct_options = card.querySelector(".question-correct-options").value;
+        } else {
+          payload.correct_option = card.querySelector(".question-correct-option").value;
+        }
+      }
+
+      return payload;
+    });
+  }
+
+  addQuestionButton.addEventListener("click", function () {
+    addQuestionCard({});
+  });
+
+  createQuizForm.addEventListener("submit", function () {
+    questionsPayloadInput.value = JSON.stringify(serializeQuestions());
+  });
+
+  if (initialQuestions.length) {
+    initialQuestions.forEach((question) => addQuestionCard(question));
+  } else {
+    addQuestionCard({});
+  }
+</script>
+{% endblock %}
