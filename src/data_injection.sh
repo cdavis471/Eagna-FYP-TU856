@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bash
+#!/usr/bin/env bash
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -23,7 +23,9 @@ from apps.accounts.models import (
     ModuleEnrollmentStudent,
     ModuleEnrollmentLecturer,
 )
-
+from datetime import date
+from django.db import transaction
+from django.core.exceptions import FieldDoesNotExist
 # -----------------------------
 # CONFIG (edit these)
 # -----------------------------
