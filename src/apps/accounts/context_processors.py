@@ -1,6 +1,5 @@
 from .models import Notification
 
-
 def notifications_context(request):
     user = getattr(request, "user", None)
 

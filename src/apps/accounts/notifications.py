@@ -4,7 +4,6 @@ from .models import Notification
 
 User = get_user_model()
 
-
 def create_notification(
     *,
     recipient,

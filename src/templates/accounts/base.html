@@ -47,10 +47,9 @@
 
     <!-- Right side of the header containing user info and logout control -->
     <div class="header-right">
-      <!-- Example placeholder for a notifications button (currently commented out) -->
-      {% include "accounts/partials/notifications_dropdown.html" %}
       <!-- Only show user information and logout button if a user is logged in -->
       {% if user.is_authenticated %}
+        {% include "accounts/partials/notifications_dropdown.html" %}
         <!-- Text label showing the logged-in user's name or username -->
         <a href="{% url 'accounts:profile' %}" class="user-label user-link">
           {{ user.get_full_name|default:user.username }}
