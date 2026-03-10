@@ -650,7 +650,6 @@ class ParsedDocument(models.Model):
     def __str__(self):
         return f"Parsed: {self.get_source_name()}"
 
-
 class ParsedDocumentImage(models.Model):
     parsed_document = models.ForeignKey(
         ParsedDocument,
@@ -672,3 +671,68 @@ class ParsedDocumentImage(models.Model):
 
     def __str__(self):
         return self.original_name or self.token
+
+class Notification(models.Model):
+    class Type(models.TextChoices):
+        GENERAL = "GENERAL", "General"
+
+        ASSIGNMENT_NEW = "ASSIGNMENT_NEW", "New assignment"
+        ASSIGNMENT_DUE_3D = "ASSIGNMENT_DUE_3D", "Assignment due in 3 days"
+        ASSIGNMENT_DUE_24H = "ASSIGNMENT_DUE_24H", "Assignment due in 24 hours"
+        ASSIGNMENT_SUBMITTED = "ASSIGNMENT_SUBMITTED", "Assignment submitted"
+        ASSIGNMENT_GRADED = "ASSIGNMENT_GRADED", "Assignment graded"
+        ASSIGNMENT_CLOSED_SUMMARY = "ASSIGNMENT_CLOSED_SUMMARY", "Assignment closed summary"
+        ASSIGNMENT_GRADING_REMINDER = "ASSIGNMENT_GRADING_REMINDER", "Assignment grading reminder"
+
+        QUIZ_NEW = "QUIZ_NEW", "New quiz"
+        QUIZ_OPENED = "QUIZ_OPENED", "Quiz opened"
+        QUIZ_CLOSED = "QUIZ_CLOSED", "Quiz closed"
+        QUIZ_SUBMITTED = "QUIZ_SUBMITTED", "Quiz submitted"
+        QUIZ_CLOSED_SUMMARY = "QUIZ_CLOSED_SUMMARY", "Quiz closed summary"
+
+        WEEK_AVAILABLE = "WEEK_AVAILABLE", "New week available"
+
+        PARSER_SUCCESS = "PARSER_SUCCESS", "Parser success"
+        PARSER_FAILURE = "PARSER_FAILURE", "Parser failure"
+
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+    )
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="notifications",
+    )
+    notification_type = models.CharField(
+        max_length=40,
+        choices=Type.choices,
+        default=Type.GENERAL,
+    )
+    title = models.CharField(max_length=255)
+    redirect_url = models.CharField(max_length=500, blank=True)
+    event_key = models.CharField(max_length=255, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["recipient", "event_key"],
+                name="unique_notification_event_per_user",
+            )
+        ]
+
+    def mark_as_read(self):
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=["is_read", "read_at"])
+
+    def __str__(self):
+        return f"{self.recipient} - {self.title}"

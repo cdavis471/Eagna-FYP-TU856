@@ -48,7 +48,7 @@
     <!-- Right side of the header containing user info and logout control -->
     <div class="header-right">
       <!-- Example placeholder for a notifications button (currently commented out) -->
-      <!-- <button class="icon-button" type="button" title="Notifications">🔔</button> -->
+      {% include "accounts/partials/notifications_dropdown.html" %}
       <!-- Only show user information and logout button if a user is logged in -->
       {% if user.is_authenticated %}
         <!-- Text label showing the logged-in user's name or username -->
@@ -125,7 +125,70 @@
       <div id="parsed-modal-body"></div>
     </div>
   </div>
+  <script>
+    (function () {
+      const shell = document.getElementById("notificationShell");
+      if (!shell) return;
 
+      const toggle = document.getElementById("notificationToggle");
+      const dropdown = document.getElementById("notificationDropdown");
+      const moreButton = document.getElementById("notificationMoreButton");
+
+      function closeDropdown() {
+        if (!dropdown) return;
+        dropdown.hidden = true;
+        toggle.setAttribute("aria-expanded", "false");
+
+        if (moreButton) {
+          dropdown.classList.remove("notification-dropdown--expanded");
+          moreButton.textContent = "View more";
+          moreButton.setAttribute("aria-expanded", "false");
+        }
+      }
+
+      function openDropdown() {
+        if (!dropdown) return;
+        dropdown.hidden = false;
+        toggle.setAttribute("aria-expanded", "true");
+      }
+
+      toggle.addEventListener("click", function (event) {
+        event.stopPropagation();
+
+        if (dropdown.hidden) {
+          openDropdown();
+        } else {
+          closeDropdown();
+        }
+      });
+
+      if (dropdown) {
+        dropdown.addEventListener("click", function (event) {
+          event.stopPropagation();
+        });
+      }
+
+      if (moreButton) {
+        moreButton.addEventListener("click", function (event) {
+          event.stopPropagation();
+
+          const expanded = dropdown.classList.toggle("notification-dropdown--expanded");
+          moreButton.textContent = expanded ? "View less" : "View more";
+          moreButton.setAttribute("aria-expanded", expanded ? "true" : "false");
+        });
+      }
+
+      document.addEventListener("click", function () {
+        closeDropdown();
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          closeDropdown();
+        }
+      });
+    })();
+  </script>
   <script>
     function openParsedModal() {
       const modal = document.getElementById("parsed-modal");

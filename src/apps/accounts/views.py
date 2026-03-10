@@ -12,7 +12,8 @@ from django.contrib import messages  # Django's messaging framework for passing 
 from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
 from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
 from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
-from .models import User, StudentProfile, LecturerProfile, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer  # Imports all custom models referenced by these views
+from .models import User, StudentProfile, LecturerProfile, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Notification  # Imports all custom models referenced by these views
+from .notifications import create_notification, notify_module_students, notify_module_lecturers
 import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
 
@@ -28,6 +29,101 @@ def _shared_nav_items():
         {"label": "Inbox", "url": "https://outlook.office.com/mail/"},
         {"label": "Website", "url": "https://www.tudublin.ie/"},
     ]
+
+def _week_is_viewable(week):
+    return bool((week.description or "").strip()) or week.files.exists()
+
+
+def _notify_students_new_assignment(assignment):
+    notify_module_students(
+        assignment.module,
+        title=f"New assignment: {assignment.title}",
+        redirect_url=reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+        notification_type=Notification.Type.ASSIGNMENT_NEW,
+        event_key=f"assignment-new:{assignment.id}",
+    )
+
+
+def _notify_student_assignment_submitted(submission):
+    create_notification(
+        recipient=submission.student.user,
+        module=submission.assignment.module,
+        title=f"Assignment submitted: {submission.assignment.title}",
+        redirect_url=reverse(
+            "accounts:assignment_detail",
+            args=[submission.assignment.module.code, submission.assignment.id],
+        ),
+        notification_type=Notification.Type.ASSIGNMENT_SUBMITTED,
+        event_key=f"assignment-submitted:{submission.id}",
+    )
+
+
+def _notify_student_assignment_graded(grade_obj):
+    create_notification(
+        recipient=grade_obj.submission.student.user,
+        module=grade_obj.submission.assignment.module,
+        title=f"Assignment graded: {grade_obj.submission.assignment.title}",
+        redirect_url=reverse(
+            "accounts:assignment_detail",
+            args=[grade_obj.submission.assignment.module.code, grade_obj.submission.assignment.id],
+        ),
+        notification_type=Notification.Type.ASSIGNMENT_GRADED,
+    )
+
+
+def _notify_students_new_quiz(quiz):
+    if not quiz.is_published:
+        return
+
+    notify_module_students(
+        quiz.module,
+        title=f"New quiz: {quiz.title}",
+        redirect_url=reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+        notification_type=Notification.Type.QUIZ_NEW,
+        event_key=f"quiz-new:{quiz.id}",
+    )
+
+
+def _notify_student_quiz_submitted(attempt):
+    create_notification(
+        recipient=attempt.student.user,
+        module=attempt.quiz.module,
+        title=f"Quiz submitted: {attempt.quiz.title}",
+        redirect_url=reverse("accounts:quiz_detail", args=[attempt.quiz.module.code, attempt.quiz.id]),
+        notification_type=Notification.Type.QUIZ_SUBMITTED,
+        event_key=f"quiz-submitted:{attempt.id}",
+    )
+
+
+def _notify_students_if_week_now_viewable(week):
+    if not _week_is_viewable(week):
+        return
+
+    notify_module_students(
+        week.module,
+        title=f"New week available: Week {week.week_number}",
+        redirect_url=reverse("accounts:module_detail", args=[week.module.code]),
+        notification_type=Notification.Type.WEEK_AVAILABLE,
+        event_key=f"week-available:{week.module_id}:{week.week_number}",
+    )
+
+
+def _notify_lecturers_parser_success(module, document_name, redirect_url):
+    notify_module_lecturers(
+        module,
+        title=f"Document parsed successfully: {document_name}",
+        redirect_url=redirect_url,
+        notification_type=Notification.Type.PARSER_SUCCESS,
+    )
+
+
+def _notify_lecturers_parser_failure(module, document_name, redirect_url):
+    notify_module_lecturers(
+        module,
+        title=f"Document parse failed: {document_name}",
+        redirect_url=redirect_url,
+        notification_type=Notification.Type.PARSER_FAILURE,
+    )
 
 # Parsed Document Handling
 # Rebuild the rendered HTML for a parsed document based on its blocks and associated images, and optionally save the updated document. 
@@ -456,11 +552,8 @@ def _upsert_attempt_answers(attempt, post_data):
 def _grade_attempt(attempt, auto_submitted=False):
     quiz = attempt.quiz
     questions = quiz.questions.prefetch_related("options").all()
-    answer_lookup = {
-        answer.question_id: answer
-        for answer in attempt.answers.all()
-    }
 
+    was_unsubmitted = attempt.submitted_at is None
     total_raw = Decimal("0.00")
     total_possible = Decimal("0.00")
 
@@ -525,8 +618,10 @@ def _grade_attempt(attempt, auto_submitted=False):
     )
     attempt.save(update_fields=["raw_score", "weighted_score", "submitted_at", "status"])
 
-    return attempt
+    if was_unsubmitted:
+        _notify_student_quiz_submitted(attempt)
 
+    return attempt
 
 def _auto_submit_expired_attempt_if_needed(quiz, student):
     active_attempt = (
@@ -1199,6 +1294,21 @@ def user_profile(request):
     return render(request, "accounts/profile.html", context)
 
 @login_required
+def open_notification(request, notification_id):
+    notification = get_object_or_404(
+        Notification,
+        pk=notification_id,
+        recipient=request.user,
+    )
+
+    notification.mark_as_read()
+
+    if notification.redirect_url:
+        return redirect(notification.redirect_url)
+
+    return redirect("accounts:dashboard")
+
+@login_required
 def module_detail(request, code):
     user: User = request.user
     nav_items = _shared_nav_items()
@@ -1283,23 +1393,26 @@ def module_detail(request, code):
     return render(request, "accounts/module_detail.html", context)
 
 
-@login_required  # Restrict file uploads to authenticated users
-def upload_week_file(request, code, week_number):  # View for lecturers to upload a file to a specific module week
+@login_required
+def upload_week_file(request, code, week_number):
 
-    user: User = request.user  # Get the logged-in user
-    if not user.is_lecturer():  # Check that the user is a lecturer before proceeding
-        raise Http404("Not found")  # Return 404 to hide this functionality from non-lecturers
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
 
-    lecturer = user.lecturer_profile  # Retrieve Lecturer profile tied to this user
-    module = get_object_or_404(Module, code=code, lecturers=lecturer)  # Fetch module by code that is taught by this lecturer or 404
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
 
-    week, _ = ModuleWeek.objects.get_or_create(  # Fetch the ModuleWeek instance for this module and week number, creating if missing
-        module=module,  # Attach the week to the fetched module
-        week_number=week_number,  # Use supplied week number from the URL
-        defaults={"title": f"Week {week_number}"},  # If a new week is created, assign a default title with week number
+    week, _ = ModuleWeek.objects.get_or_create(
+        module=module,
+        week_number=week_number,
+        defaults={"title": f"Week {week_number}"},
     )
 
     if request.method == "POST":
+        was_visible = _week_is_viewable(week)
+        module_detail_url = reverse("accounts:module_detail", args=[module.code])
+
         if "file" not in request.FILES:
             messages.error(request, "Please choose a .docx or .pptx file to upload.")
             return redirect("accounts:module_detail", code=module.code)
@@ -1309,14 +1422,16 @@ def upload_week_file(request, code, week_number):  # View for lecturers to uploa
         try:
             parsed_payload = parse_uploaded_office_file(uploaded)
         except ValueError as exc:
+            _notify_lecturers_parser_failure(module, uploaded.name, module_detail_url)
             messages.error(request, str(exc))
             return redirect("accounts:module_detail", code=module.code)
-        
+
         except Exception:
+            _notify_lecturers_parser_failure(module, uploaded.name, module_detail_url)
             messages.error(
-               request,
-               "The file could not be translated into accessible HTML. "
-               "Please upload a readable .docx or .pptx containing text, tables, and images.",
+                request,
+                "The file could not be translated into accessible HTML. "
+                "Please upload a readable .docx or .pptx containing text, tables, and images.",
             )
             return redirect("accounts:module_detail", code=module.code)
 
@@ -1340,39 +1455,49 @@ def upload_week_file(request, code, week_number):  # View for lecturers to uploa
             if week_file and week_file.file:
                 week_file.file.delete(save=False)
 
+            _notify_lecturers_parser_failure(module, uploaded.name, module_detail_url)
             messages.error(
                 request,
                 "The file was not published because parsing/storage failed.",
             )
             return redirect("accounts:module_detail", code=module.code)
 
+        _notify_lecturers_parser_success(module, uploaded.name, module_detail_url)
+
+        if not was_visible:
+            _notify_students_if_week_now_viewable(week)
+
         messages.success(request, "Weekly file uploaded and parsed successfully.")
 
-    return redirect("accounts:module_detail", code=module.code)  # After processing, redirect back to the module detail page
+    return redirect("accounts:module_detail", code=module.code)
 
 
-@login_required  # Only authenticated users can access week description editing
-def edit_week_description(request, code, week_number):  # View allowing lecturers to edit text description for a week
+@login_required
+def edit_week_description(request, code, week_number):
 
-    user: User = request.user  # Retrieve the current user
-    if not user.is_lecturer():  # Confirm the user has lecturer role
-        raise Http404("Not found")  # Return 404 to disallow non-lecturer access
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
 
-    lecturer = user.lecturer_profile  # Get Lecturer profile for authorization
-    module = get_object_or_404(Module, code=code, lecturers=lecturer)  # Ensure module exists and is taught by this lecturer
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
 
-    week, _ = ModuleWeek.objects.get_or_create(  # Get or create corresponding ModuleWeek for the provided week number
-        module=module,  # Tie the week to the selected module
-        week_number=week_number,  # Identify which week is being edited
-        defaults={"title": f"Week {week_number}"},  # Assign default title if the week is newly created
+    week, _ = ModuleWeek.objects.get_or_create(
+        module=module,
+        week_number=week_number,
+        defaults={"title": f"Week {week_number}"},
     )
 
-    if request.method == "POST":  # Only update when submitted via POST
-        description = request.POST.get("description", "").strip()  # Extract and clean the new description text from the form
-        week.description = description  # Assign the description to the week object
-        week.save()  # Persist the changes to the database
+    if request.method == "POST":
+        was_visible = _week_is_viewable(week)
+        description = request.POST.get("description", "").strip()
+        week.description = description
+        week.save()
 
-    return redirect("accounts:module_detail", code=module.code)  # Redirect back to the module detail page afterward
+        if not was_visible:
+            _notify_students_if_week_now_viewable(week)
+
+    return redirect("accounts:module_detail", code=module.code)
 
 
 @login_required
@@ -1416,6 +1541,7 @@ def create_assignment(request, code):
 
         uploaded_files = request.FILES.getlist("files")
         parsed_file_payloads: list[tuple] = []
+        create_assignment_url = reverse("accounts:create_assignment", args=[module.code])
 
         if not errors and uploaded_files:
             for uploaded in uploaded_files:
@@ -1423,8 +1549,10 @@ def create_assignment(request, code):
                     parsed_payload = parse_uploaded_office_file(uploaded)
                     parsed_file_payloads.append((uploaded, parsed_payload))
                 except ValueError as exc:
+                    _notify_lecturers_parser_failure(module, uploaded.name, create_assignment_url)
                     errors.append(f"{uploaded.name}: {exc}")
                 except Exception:
+                    _notify_lecturers_parser_failure(module, uploaded.name, create_assignment_url)
                     errors.append(
                         f"{uploaded.name}: The file could not be translated into accessible HTML."
                     )
@@ -1463,11 +1591,27 @@ def create_assignment(request, code):
                 for assignment_file in created_assignment_files:
                     if assignment_file.file:
                         assignment_file.file.delete(save=False)
+
+                _notify_lecturers_parser_failure(module, "assignment materials", create_assignment_url)
                 errors.append(
                     "The assignment was not published because one or more uploaded files "
                     "failed during parsing/storage."
                 )
             else:
+                assignment_detail_url = reverse(
+                    "accounts:assignment_detail",
+                    args=[module.code, assignment.id],
+                )
+
+                for assignment_file in created_assignment_files:
+                    _notify_lecturers_parser_success(
+                        module,
+                        assignment_file.original_name or assignment_file.file.name,
+                        assignment_detail_url,
+                    )
+
+                _notify_students_new_assignment(assignment)
+
                 messages.success(request, "Assignment created successfully.")
                 return redirect(
                     "accounts:assignment_detail",
@@ -1570,6 +1714,8 @@ def create_quiz(request, code):
 
                 _create_quiz_questions(quiz, question_payloads)
 
+            _notify_students_new_quiz(quiz)
+
             messages.success(request, "Quiz created successfully.")
             return redirect("accounts:quiz_detail", code=module.code, quiz_id=quiz.id)
 
@@ -1596,7 +1742,6 @@ def create_quiz(request, code):
         "initial_questions": initial_questions,
     }
     return render(request, "accounts/create_quiz.html", context)
-
 
 @login_required
 def quiz_detail(request, code, quiz_id):
@@ -1864,125 +2009,123 @@ def assignment_detail(request, code, assignment_id):  # View that displays detai
     return render(request, template, context)  # Render the chosen template with the computed context
 
 
-@login_required  # Require authentication to submit assignments
-@require_http_methods(["POST"])  # This view only accepts POST requests (submissions)
-def submit_assignment(request, code, assignment_id):  # View that handles submission of assignment files by a student
+@login_required
+@require_http_methods(["POST"])
+def submit_assignment(request, code, assignment_id):
 
-    user: User = request.user  # Get the authenticated user
-    if not user.is_student():  # Ensure that only students can submit assignments
-        raise Http404("Not found")  # Return 404 if a non-student tries this endpoint
+    user: User = request.user
+    if not user.is_student():
+        raise Http404("Not found")
 
-    student = user.student_profile  # Retrieve Student profile linked to this user
-    module = get_object_or_404(Module, code=code)  # Fetch the module by its code or raise 404 if missing
+    student = user.student_profile
+    module = get_object_or_404(Module, code=code)
 
-    # must be enrolled
-    if not student.modules.filter(pk=module.pk).exists():  # Confirm that the student is enrolled in this module
-        raise Http404("Not found")  # If not enrolled, hide the endpoint with a 404
+    if not student.modules.filter(pk=module.pk).exists():
+        raise Http404("Not found")
 
-    assignment = get_object_or_404(  # Fetch assignment linked to module and given ID or 404 if not found
+    assignment = get_object_or_404(
         Assignment,
-        pk=assignment_id,  # Primary key of the assignment
-        module=module,  # Enforce that the assignment belongs to this module
+        pk=assignment_id,
+        module=module,
     )
 
-    # create or get submission
-    submission, created = AssignmentSubmission.objects.get_or_create(  # Retrieve existing submission or create a new one for student+assignment
-        assignment=assignment,  # Link submission to the chosen assignment
-        student=student,  # Link submission to the current student
-        defaults={"status": AssignmentSubmission.Status.SUBMITTED},  # Initial default status if a new submission is created
+    submission, created = AssignmentSubmission.objects.get_or_create(
+        assignment=assignment,
+        student=student,
+        defaults={"status": AssignmentSubmission.Status.SUBMITTED},
     )
 
-    # update status (handle late)
-    now = timezone.now()  # Capture the current time for comparison with due datetime
-    if assignment.due_datetime and now > assignment.due_datetime:  # Check if the current time is later than assignment due time
-        submission.status = AssignmentSubmission.Status.LATE  # Mark submission as late if submitted after due date
+    now = timezone.now()
+    if assignment.due_datetime and now > assignment.due_datetime:
+        submission.status = AssignmentSubmission.Status.LATE
     else:
-        submission.status = AssignmentSubmission.Status.SUBMITTED  # Otherwise mark as a normal submitted status
-    submission.submitted_at = now  # Record the timestamp at which the submission was made or updated
-    submission.save()  # Persist submission changes to the database
+        submission.status = AssignmentSubmission.Status.SUBMITTED
+    submission.submitted_at = now
+    submission.save()
 
-    # attach uploaded files
-    for uploaded in request.FILES.getlist("files"):  # Iterate over each uploaded file from the submission form
-        SubmissionFile.objects.create(  # Create a new SubmissionFile record for each uploaded file
-            submission=submission,  # Attach the file to the existing submission object
-            file=uploaded,  # Save file binary data through Django’s file storage
-            original_name=uploaded.name,  # Keep original filename for display to user
-            uploaded_by=user,  # Track which user uploaded the file (the student)
+    for uploaded in request.FILES.getlist("files"):
+        SubmissionFile.objects.create(
+            submission=submission,
+            file=uploaded,
+            original_name=uploaded.name,
+            uploaded_by=user,
         )
 
-    return redirect("accounts:assignment_detail", code=module.code, assignment_id=assignment.id)  # Redirect back to the assignment detail page after submission
+    _notify_student_assignment_submitted(submission)
 
+    return redirect("accounts:assignment_detail", code=module.code, assignment_id=assignment.id)
 
-@login_required  # Ensure user is logged in to grade submissions
-@require_http_methods(["GET", "POST"])  # Allow both GET (display form) and POST (submit form) on this view
-def grade_submission(request, code, assignment_id, submission_id):  # View for lecturers to create or update a grade for a submission
+@login_required
+@require_http_methods(["GET", "POST"])
+def grade_submission(request, code, assignment_id, submission_id):
 
-    user: User = request.user  # Get the current authenticated user
-    if not user.is_lecturer():  # Make sure only lecturers can access grading functionality
-        raise Http404("Not found")  # Return 404 for unauthorized roles to conceal endpoint
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
 
-    lecturer = user.lecturer_profile  # Retrieve Lecturer profile instance
-    module = get_object_or_404(Module, code=code, lecturers=lecturer)  # Confirm module exists and is taught by this lecturer
-    assignment = get_object_or_404(Assignment, pk=assignment_id, module=module)  # Fetch assignment belonging to this module or 404
-    submission = get_object_or_404(  # Fetch the specific submission to be graded
-        AssignmentSubmission.objects.select_related("student__user"),  # Prefetch related student and user for display
-        pk=submission_id,  # Primary key of submission
-        assignment=assignment,  # Ensure submission belongs to this assignment
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+    assignment = get_object_or_404(Assignment, pk=assignment_id, module=module)
+    submission = get_object_or_404(
+        AssignmentSubmission.objects.select_related("student__user"),
+        pk=submission_id,
+        assignment=assignment,
     )
 
-    errors = []  # Initialize list to hold validation error messages
-    grade_obj = getattr(submission, "grade", None)  # Retrieve the associated grade object if it exists, else None
-    initial_value = ""  # Default initial value for mark input
-    initial_feedback = ""  # Default initial feedback text
+    errors = []
+    grade_obj = getattr(submission, "grade", None)
+    initial_value = ""
+    initial_feedback = ""
 
-    if grade_obj:  # If a grade already exists
-        initial_value = grade_obj.value  # Use existing grade value as initial form value
-        initial_feedback = grade_obj.feedback_text or ""  # Use existing feedback text or empty string if None
+    if grade_obj:
+        initial_value = grade_obj.value
+        initial_feedback = grade_obj.feedback_text or ""
 
-    if request.method == "POST":  # When form is submitted to create or update a grade
-        value_str = request.POST.get("value", "").strip()  # Extract mark (as string) from POST data
-        feedback = request.POST.get("feedback", "").strip()  # Extract feedback text from POST data
+    if request.method == "POST":
+        value_str = request.POST.get("value", "").strip()
+        feedback = request.POST.get("feedback", "").strip()
 
-        if not value_str:  # Ensure that a mark value has been provided
-            errors.append("A mark is required.")  # Add validation error for missing mark
+        if not value_str:
+            errors.append("A mark is required.")
         else:
             try:
-                value_float = float(value_str)  # Attempt to convert mark to float
-            except ValueError:  # If conversion fails, mark input is invalid
-                errors.append("Mark must be a number.")  # Notify user of invalid mark
-                value_float = None  # Reset parsed value
+                value_float = float(value_str)
+            except ValueError:
+                errors.append("Mark must be a number.")
+                value_float = None
 
-        if not errors and value_float is not None:  # Only proceed when there are no validation errors and mark is numeric
-            if grade_obj is None:  # If no grade record exists yet, create a new one
+        if not errors and value_float is not None:
+            if grade_obj is None:
                 grade_obj = AssignmentGrade.objects.create(
-                    submission=submission,  # Link grade to this submission
-                    marker=lecturer,  # Set the marker as the current lecturer
-                    value=value_float,  # Store the numeric grade value
-                    feedback_text=feedback,  # Store textual feedback
+                    submission=submission,
+                    marker=lecturer,
+                    value=value_float,
+                    feedback_text=feedback,
                 )
-            else:  # If a grade already exists, update it in place
-                grade_obj.value = value_float  # Update the numeric grade
-                grade_obj.feedback_text = feedback  # Update the feedback text
-                grade_obj.marker = lecturer  # Update marker to reflect who last updated the grade
-                grade_obj.save()  # Save updated grade information to the database
+            else:
+                grade_obj.value = value_float
+                grade_obj.feedback_text = feedback
+                grade_obj.marker = lecturer
+                grade_obj.save()
 
-            return redirect("accounts:assignment_detail", code=module.code, assignment_id=assignment.id)  # After saving, redirect back to the assignment detail page
+            _notify_student_assignment_graded(grade_obj)
 
-    context = {  # Build context for the grade submission template
-        "user": user,  # Current user
-        # Shared nav items for header + footer
+            return redirect("accounts:assignment_detail", code=module.code, assignment_id=assignment.id)
+
+    context = {
+        "user": user,
         "nav_items": _shared_nav_items(),
-        "module": module,  # Current module context
-        "assignment": assignment,  # Current assignment context
-        "submission": submission,  # Submission being graded
-        "errors": errors,  # List of any validation error messages
-        "initial": {  # Initial values to pre-populate the grading form
-            "value": request.POST.get("value", initial_value) if request.method == "POST" else initial_value,  # Mark value
-            "feedback": request.POST.get("feedback", initial_feedback) if request.method == "POST" else initial_feedback,  # Feedback text
+        "module": module,
+        "assignment": assignment,
+        "submission": submission,
+        "errors": errors,
+        "initial": {
+            "value": request.POST.get("value", initial_value) if request.method == "POST" else initial_value,
+            "feedback": request.POST.get("feedback", initial_feedback) if request.method == "POST" else initial_feedback,
         },
     }
 
-    return render(request, "accounts/grade_submission.html", context)  # Render the grade submission template with provided context
+    return render(request, "accounts/grade_submission.html", context)
 
 @login_required
 @require_http_methods(["GET"])

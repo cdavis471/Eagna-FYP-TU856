@@ -1,0 +1,83 @@
+{% if user.is_authenticated %}
+  <div class="notification-shell" id="notificationShell">
+    <button
+      type="button"
+      class="icon-button notification-button"
+      id="notificationToggle"
+      aria-expanded="false"
+      aria-controls="notificationDropdown"
+      title="Notifications">
+      <span class="notification-bell" aria-hidden="true">🔔</span>
+
+      {% if header_notification_unread_count %}
+        <span class="notification-badge">{{ header_notification_unread_display }}</span>
+      {% endif %}
+
+      <span class="sr-only">Notifications</span>
+    </button>
+
+    <div class="notification-dropdown" id="notificationDropdown" hidden>
+      <div class="notification-dropdown-header">
+        <strong>Notifications</strong>
+
+        {% if header_notification_unread_count %}
+          <span class="notification-unread-label">
+            {{ header_notification_unread_count }} unread
+          </span>
+        {% endif %}
+      </div>
+
+      {% if header_notifications_initial or header_notifications_extra %}
+        <div class="notification-list" id="notificationList">
+          {% for notification in header_notifications_initial %}
+            <a
+              href="{% url 'accounts:open_notification' notification.id %}"
+              class="notification-item {% if notification.is_read %}notification-item--read{% else %}notification-item--unread{% endif %}">
+              <span class="notification-title">{{ notification.title }}</span>
+
+              <span class="notification-meta">
+                {% if notification.module %}
+                  <span>{{ notification.module.code }} – {{ notification.module.title }}</span>
+                {% else %}
+                  <span>General</span>
+                {% endif %}
+                <span>{{ notification.created_at|date:"Y-m-d H:i" }}</span>
+              </span>
+            </a>
+          {% endfor %}
+
+          {% for notification in header_notifications_extra %}
+            <a
+              href="{% url 'accounts:open_notification' notification.id %}"
+              class="notification-item notification-item-extra {% if notification.is_read %}notification-item--read{% else %}notification-item--unread{% endif %}">
+              <span class="notification-title">{{ notification.title }}</span>
+
+              <span class="notification-meta">
+                {% if notification.module %}
+                  <span>{{ notification.module.code }} – {{ notification.module.title }}</span>
+                {% else %}
+                  <span>General</span>
+                {% endif %}
+                <span>{{ notification.created_at|date:"Y-m-d H:i" }}</span>
+              </span>
+            </a>
+          {% endfor %}
+        </div>
+
+        {% if header_notification_has_more %}
+          <button
+            type="button"
+            class="notification-more-button"
+            id="notificationMoreButton"
+            aria-expanded="false">
+            View more
+          </button>
+        {% endif %}
+      {% else %}
+        <div class="notification-empty">
+          No notifications yet.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+{% endif %}
