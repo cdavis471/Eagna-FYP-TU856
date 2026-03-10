@@ -2,7 +2,7 @@ from django.urls import path  # Imports the path function for defining URL patte
 from django.contrib.auth.views import LogoutView  # Imports Django's built-in view for handling user logout
 from django.conf.urls.static import static  # Provides helper to serve static files in development (even if not used here directly)
 
-from .views import RoleBasedLoginView, dashboard, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt  # Imports all view functions/classes referenced in this URL config
+from .views import RoleBasedLoginView, dashboard, user_profile, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt  # Imports all view functions/classes referenced in this URL config
 
 app_name = "accounts"  # Namespaces these URLs under "accounts" so they can be reversed with the 'accounts:' prefix
 
@@ -14,6 +14,7 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
     path("student-dashboard/", dashboard, name="student_dashboard"),  # URL alias for student dashboard; uses same dashboard view
     path("lecturer-dashboard/", dashboard, name="lecturer_dashboard"),  # URL alias for lecturer dashboard; also uses shared dashboard view
 
+    path("profile/", user_profile, name="profile"),  # URL for viewing user profile; handled by user_profile view
     path("modules/<str:code>/", module_detail, name="module_detail"),  # URL for viewing a specific module; 'code' dynamic segment identifies module
 
     path(  # URL pattern to upload a file for a specific week of a module

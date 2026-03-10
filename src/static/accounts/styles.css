@@ -1026,6 +1026,118 @@ Quizzes Functionality
   color: #fecaca;
 }
 
+/*
+============
+User Profile
+============
+*/
+
+.user-link {
+  color: var(--text-on-dark);
+  text-decoration: none;
+}
+
+.user-link:hover {
+  text-decoration: underline;
+}
+
+.profile-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.profile-summary-card {
+  background: var(--bg-card);
+  color: var(--text-on-light);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.profile-summary-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-dark);
+}
+
+.profile-summary-value {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+}
+
+.profile-assessment-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.profile-assessment-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border-top: 1px solid rgba(209, 213, 219, 0.7);
+}
+
+.profile-assessment-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.profile-assessment-main {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+}
+
+.profile-assessment-link {
+  color: var(--text-on-light);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.profile-assessment-link:hover {
+  text-decoration: underline;
+}
+
+.profile-metric {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.profile-metric--complete {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.profile-metric--pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.profile-metric--empty {
+  background: #e5e7eb;
+  color: #374151;
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished

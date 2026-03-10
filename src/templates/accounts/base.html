@@ -52,9 +52,9 @@
       <!-- Only show user information and logout button if a user is logged in -->
       {% if user.is_authenticated %}
         <!-- Text label showing the logged-in user's name or username -->
-        <span class="user-label">
-  		{{ user.get_full_name|default:user.username }}
-	</span>
+        <a href="{% url 'accounts:profile' %}" class="user-label user-link">
+          {{ user.get_full_name|default:user.username }}
+        </a>
         <!-- Logout form that posts to the accounts:logout URL -->
         <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
           <!-- CSRF token required for secure POST requests in Django -->

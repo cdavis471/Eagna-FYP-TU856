@@ -12,7 +12,7 @@ from django.contrib import messages  # Django's messaging framework for passing 
 from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
 from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
 from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
-from .models import User, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer  # Imports all custom models referenced by these views
+from .models import User, StudentProfile, LecturerProfile, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer  # Imports all custom models referenced by these views
 import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
 
@@ -738,6 +738,217 @@ def _build_student_dashboard_items(student, modules_qs, now):
 
     return sorted(items, key=lambda item: item["sort_at"])[:8]
 
+def _format_mark_display(value):
+    decimal_value = Decimal(str(value or 0))
+    rendered = f"{decimal_value:.2f}"
+    return rendered.rstrip("0").rstrip(".") or "0"
+
+
+def _build_student_profile_modules(student):
+    modules = list(
+        student.modules
+        .filter(is_active=True)
+        .prefetch_related("assignments", "quizzes")
+        .order_by("code")
+    )
+
+    if not modules:
+        return []
+
+    submitted_assignment_ids = set(
+        AssignmentSubmission.objects.filter(
+            student=student,
+            assignment__module__in=modules,
+        ).values_list("assignment_id", flat=True)
+    )
+
+    graded_assignment_marks = dict(
+        AssignmentGrade.objects.filter(
+            submission__student=student,
+            submission__assignment__module__in=modules,
+        ).values_list("submission__assignment_id", "value")
+    )
+
+    best_quiz_attempt_by_quiz = {}
+    submitted_quiz_attempts = (
+        QuizAttempt.objects.filter(
+            student=student,
+            quiz__module__in=modules,
+            quiz__is_published=True,
+            submitted_at__isnull=False,
+        )
+        .select_related("quiz", "quiz__module")
+        .order_by("quiz_id", "-weighted_score", "-submitted_at", "-id")
+    )
+
+    for attempt in submitted_quiz_attempts:
+        best_quiz_attempt_by_quiz.setdefault(attempt.quiz_id, attempt)
+
+    module_rows = []
+
+    for module in modules:
+        items = []
+
+        for assignment in module.assignments.all().order_by("due_datetime", "title"):
+            if assignment.id in graded_assignment_marks:
+                metric = (
+                    f"{_format_mark_display(graded_assignment_marks[assignment.id])}"
+                    f"/{_format_mark_display(assignment.max_mark)}"
+                )
+                metric_class = "profile-metric--complete"
+            elif assignment.id in submitted_assignment_ids:
+                metric = "Pending"
+                metric_class = "profile-metric--pending"
+            else:
+                metric = "Not submitted"
+                metric_class = "profile-metric--empty"
+
+            items.append(
+                {
+                    "kind_label": "Assignment",
+                    "kind_class": "assignment",
+                    "title": assignment.title,
+                    "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                    "metric": metric,
+                    "metric_class": metric_class,
+                    "sort_at": assignment.due_datetime,
+                }
+            )
+
+        for quiz in module.quizzes.filter(is_published=True).order_by("close_datetime", "title"):
+            best_attempt = best_quiz_attempt_by_quiz.get(quiz.id)
+
+            if best_attempt:
+                metric = (
+                    f"{_format_mark_display(best_attempt.weighted_score)}"
+                    f"/{_format_mark_display(quiz.max_mark)}"
+                )
+                metric_class = "profile-metric--complete"
+            else:
+                metric = "Not attempted"
+                metric_class = "profile-metric--empty"
+
+            items.append(
+                {
+                    "kind_label": "Quiz",
+                    "kind_class": "quiz",
+                    "title": quiz.title,
+                    "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                    "metric": metric,
+                    "metric_class": metric_class,
+                    "sort_at": quiz.close_datetime,
+                }
+            )
+
+        items.sort(key=lambda item: (item["sort_at"], item["title"]))
+
+        module_rows.append(
+            {
+                "code": module.code,
+                "title": module.title,
+                "items": items,
+            }
+        )
+
+    return module_rows
+
+
+def _build_lecturer_profile_modules(lecturer):
+    modules = list(
+        lecturer.modules
+        .filter(is_active=True)
+        .annotate(total_students=Count("students", distinct=True))
+        .prefetch_related("assignments", "quizzes")
+        .order_by("code")
+    )
+
+    if not modules:
+        return []
+
+    assignment_marked_counts = dict(
+        AssignmentGrade.objects.filter(
+            submission__assignment__module__in=modules,
+        )
+        .values("submission__assignment_id")
+        .annotate(marked_count=Count("submission__student", distinct=True))
+        .values_list("submission__assignment_id", "marked_count")
+    )
+
+    quiz_marked_counts = dict(
+        QuizAttempt.objects.filter(
+            quiz__module__in=modules,
+            submitted_at__isnull=False,
+        )
+        .values("quiz_id")
+        .annotate(marked_count=Count("student", distinct=True))
+        .values_list("quiz_id", "marked_count")
+    )
+
+    module_rows = []
+
+    for module in modules:
+        total_students = getattr(module, "total_students", 0) or 0
+        items = []
+
+        for assignment in module.assignments.all().order_by("due_datetime", "title"):
+            marked = assignment_marked_counts.get(assignment.id, 0)
+            unmarked = max(total_students - marked, 0)
+
+            if total_students > 0 and marked == total_students:
+                metric_class = "profile-metric--complete"
+            elif marked > 0:
+                metric_class = "profile-metric--pending"
+            else:
+                metric_class = "profile-metric--empty"
+
+            items.append(
+                {
+                    "kind_label": "Assignment",
+                    "kind_class": "assignment",
+                    "title": assignment.title,
+                    "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                    "metric": f"{marked} marked / {unmarked} unmarked",
+                    "metric_class": metric_class,
+                    "sort_at": assignment.due_datetime,
+                }
+            )
+
+        for quiz in module.quizzes.all().order_by("close_datetime", "title"):
+            marked = quiz_marked_counts.get(quiz.id, 0)
+            unmarked = max(total_students - marked, 0)
+
+            if total_students > 0 and marked == total_students:
+                metric_class = "profile-metric--complete"
+            elif marked > 0:
+                metric_class = "profile-metric--pending"
+            else:
+                metric_class = "profile-metric--empty"
+
+            items.append(
+                {
+                    "kind_label": "Quiz",
+                    "kind_class": "quiz",
+                    "title": quiz.title,
+                    "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                    "metric": f"{marked} marked / {unmarked} unmarked",
+                    "metric_class": metric_class,
+                    "sort_at": quiz.close_datetime,
+                }
+            )
+
+        items.sort(key=lambda item: (item["sort_at"], item["title"]))
+
+        module_rows.append(
+            {
+                "code": module.code,
+                "title": module.title,
+                "student_count": total_students,
+                "items": items,
+            }
+        )
+
+    return module_rows
+
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
 
@@ -943,6 +1154,49 @@ def dashboard(request):
 
     return render(request, template, context)
 
+@login_required
+def user_profile(request):
+    _rollover_modules_if_due()
+    user: User = request.user
+
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "display_name": user.get_full_name() or user.username,
+        "profile_email": user.username,
+    }
+
+    if user.is_student():
+        student = get_object_or_404(
+            StudentProfile.objects.select_related("user"),
+            user=user,
+        )
+
+        context.update(
+            {
+                "profile_role": "student",
+                "course": student.course or "N/A",
+                "module_rows": _build_student_profile_modules(student),
+            }
+        )
+
+    elif user.is_lecturer():
+        lecturer = get_object_or_404(
+            LecturerProfile.objects.select_related("user"),
+            user=user,
+        )
+
+        context.update(
+            {
+                "profile_role": "lecturer",
+                "module_rows": _build_lecturer_profile_modules(lecturer),
+            }
+        )
+
+    else:
+        raise Http404("Profile not found")
+
+    return render(request, "accounts/profile.html", context)
 
 @login_required
 def module_detail(request, code):
