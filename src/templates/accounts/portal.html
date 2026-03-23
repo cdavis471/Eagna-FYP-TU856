@@ -1,0 +1,133 @@
+﻿{% extends "accounts/base.html" %}
+{% load static %}
+
+{% block title %}Portal | Eagna{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <h1 class="section-title">Portal</h1>
+    <p class="muted">
+      Quick access to Microsoft 365 apps, your assessment calendar, and the TU Dublin timetable.
+    </p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="assessment-card-topline">
+      <h2 class="section-title">Office365</h2>
+      <a href="https://www.microsoft365.com/" target="_blank" rel="noopener noreferrer" class="small-button">
+        Open Microsoft 365
+      </a>
+    </div>
+
+    <div class="portal-app-grid">
+      {% for tile in office_tiles %}
+        <a
+          href="{{ tile.url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="portal-app-card">
+          <img
+            src="{% static tile.image %}"
+            alt="{{ tile.label }}"
+            class="portal-app-image">
+          <span class="portal-app-label">{{ tile.label }}</span>
+        </a>
+      {% endfor %}
+    </div>
+
+    <p class="muted">
+      Add your final Office365 icon images to <code>src/static/accounts/images/</code> using the filenames defined in the view.
+    </p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="assessment-card-topline portal-calendar-header">
+      <h2 class="section-title">Assessment Calendar</h2>
+
+      <div class="portal-calendar-nav">
+        <a href="?year={{ prev_year }}&month={{ prev_month }}" class="small-button">
+          ← Previous
+        </a>
+        <span class="portal-calendar-month">{{ calendar_month_label }}</span>
+        <a href="?year={{ next_year }}&month={{ next_month }}" class="small-button">
+          Next →
+        </a>
+      </div>
+    </div>
+
+    <div class="portal-calendar-grid" role="table" aria-label="Assessment calendar">
+      {% for weekday in calendar_weekdays %}
+        <div class="portal-calendar-weekday" role="columnheader">{{ weekday }}</div>
+      {% endfor %}
+
+      {% for week in calendar_weeks %}
+        {% for day in week %}
+          <div class="portal-calendar-cell {% if not day.in_month %}portal-calendar-cell--muted{% endif %} {% if day.is_today %}portal-calendar-cell--today{% endif %}" role="cell">
+            <div class="portal-calendar-date">{{ day.day_number }}</div>
+
+            {% for item in day.items %}
+              <a href="{{ item.url }}" class="portal-calendar-item {{ item.kind_class }}">
+                <span class="portal-calendar-item-type">{{ item.kind_label }}</span>
+                <span class="portal-calendar-item-title">{{ item.module_code }} · {{ item.title }}</span>
+              </a>
+            {% endfor %}
+
+            {% if day.extra_count %}
+              <div class="portal-calendar-more">+{{ day.extra_count }} more</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endfor %}
+    </div>
+
+    <div class="week-block">
+      <h3 class="week-title">Assessments This Month</h3>
+
+      {% if calendar_items %}
+        <ul class="profile-assessment-list">
+          {% for item in calendar_items %}
+            <li class="profile-assessment-row">
+              <div class="profile-assessment-main">
+                <span class="assessment-badge {{ item.kind_class }}">{{ item.kind_label }}</span>
+                <a href="{{ item.url }}" class="profile-assessment-link">
+                  {{ item.module_code }} – {{ item.title }}
+                </a>
+              </div>
+
+              <span class="profile-metric">
+                {{ item.date_text }} {{ item.timestamp|date:"Y-m-d H:i" }}
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted">No assignments or quizzes fall in this month.</p>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="assessment-card-topline">
+      <h2 class="section-title">Timetable</h2>
+      <a href="{{ timetable_url }}" target="_blank" rel="noopener noreferrer" class="small-button">
+        Open in new tab
+      </a>
+    </div>
+
+    <p class="muted">
+      If the embedded timetable does not load in your browser, use the button above to open it directly.
+    </p>
+
+    <div class="portal-embed-frame-wrap">
+      <iframe
+        src="{{ timetable_url }}"
+        title="TU Dublin Timetable"
+        class="portal-embed-frame"
+        loading="lazy"
+        referrerpolicy="strict-origin-when-cross-origin">
+      </iframe>
+    </div>
+  </section>
+</div>
+{% endblock %}

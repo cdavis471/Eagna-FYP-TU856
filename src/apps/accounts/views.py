@@ -6,7 +6,8 @@ from django.utils import timezone  # Provides timezone-aware datetime utilities 
 from django.http import Http404, JsonResponse  # Exception used to immediately return a 404 Not Found response / Class for returning JSON responses in views
 from django.db.models import Count, Q  # ORM helpers: Count for aggregation and Q for complex query filters
 from django.views.decorators.http import require_http_methods  # Decorator to restrict allowed HTTP methods per view
-from datetime import datetime, timedelta  # Standard library datetime class used for parsing date and time input / timedelta for date arithmetic
+from datetime import datetime, timedelta, date  # Standard library datetime class used for parsing date and time input / timedelta for date arithmetic
+from collections import defaultdict  # Standard library class for creating dictionaries with default value types, used in some views for grouping data
 from decimal import Decimal, InvalidOperation  # Standard library Decimal class for precise decimal arithmetic / InvalidOperation for handling invalid decimal operations
 from django.contrib import messages  # Django's messaging framework for passing one-time messages to templates
 from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
@@ -16,7 +17,7 @@ from .models import User, StudentProfile, LecturerProfile, Module, Assignment, A
 from .notifications import create_notification, notify_module_students, notify_module_lecturers
 import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
-
+import calendar as pycalendar  # Standard library for calendar-related functions, used in some views for date calculations
 # Temporary
 import traceback
 from django.http import HttpResponse
@@ -26,9 +27,188 @@ from django.utils.html import escape
 def _shared_nav_items():
     return [
         {"label": "Dashboard", "url": reverse("accounts:dashboard")},
+        {"label": "Portal", "url": reverse("accounts:portal")},
         {"label": "Inbox", "url": "https://outlook.office.com/mail/"},
         {"label": "Website", "url": "https://www.tudublin.ie/"},
     ]
+
+def _portal_office_tiles():
+    """
+    Starter launch URLs for Office365 links.
+    Replace any of these later if TU Dublin uses tenant-specific entry points.
+    """
+    return [
+        {
+            "label": "Teams",
+            "url": "https://teams.microsoft.com/",
+            "image": "accounts/images/teams.png",
+        },
+        {
+            "label": "OneDrive",
+            "url": "https://www.microsoft365.com/launch/onedrive",
+            "image": "accounts/images/onedrive.png",
+        },
+        {
+            "label": "SharePoint",
+            "url": "https://www.microsoft365.com/launch/sharepoint",
+            "image": "accounts/images/sharepoint.png",
+        },
+        {
+            "label": "OneNote",
+            "url": "https://www.microsoft365.com/launch/onenote",
+            "image": "accounts/images/onenote.png",
+        },
+        {
+            "label": "Word",
+            "url": "https://www.microsoft365.com/launch/word",
+            "image": "accounts/images/word.png",
+        },
+        {
+            "label": "Excel",
+            "url": "https://www.microsoft365.com/launch/excel",
+            "image": "accounts/images/excel.png",
+        },
+        {
+            "label": "PowerPoint",
+            "url": "https://www.microsoft365.com/launch/powerpoint",
+            "image": "accounts/images/powerpoint.png",
+        },
+        {
+            "label": "More",
+            "url": "https://www.microsoft365.com/apps",
+            "image": "accounts/images/more.png",
+        },
+    ]
+
+
+def _portal_module_queryset_for_user(user):
+    if user.is_student():
+        return (
+            user.student_profile.modules
+            .filter(is_active=True)
+            .order_by("code")
+        )
+
+    if user.is_lecturer():
+        return (
+            user.lecturer_profile.modules
+            .filter(is_active=True)
+            .order_by("code")
+        )
+
+    return Module.objects.none()
+
+
+def _build_portal_calendar_context(user, year, month):
+    today = timezone.localdate()
+
+    first_of_month = date(year, month, 1)
+    _, last_day = pycalendar.monthrange(year, month)
+    last_of_month = date(year, month, last_day)
+
+    current_modules = _portal_module_queryset_for_user(user)
+
+    assignment_qs = (
+        Assignment.objects
+        .filter(
+            module__in=current_modules,
+            due_datetime__date__gte=first_of_month,
+            due_datetime__date__lte=last_of_month,
+        )
+        .select_related("module")
+        .order_by("due_datetime", "title")
+    )
+
+    quiz_qs = (
+        Quiz.objects
+        .filter(
+            module__in=current_modules,
+            close_datetime__date__gte=first_of_month,
+            close_datetime__date__lte=last_of_month,
+        )
+        .select_related("module")
+        .order_by("close_datetime", "title")
+    )
+
+    if user.is_student():
+        quiz_qs = quiz_qs.filter(is_published=True)
+
+    month_items = []
+
+    for assignment in assignment_qs:
+        month_items.append(
+            {
+                "kind_label": "Assignment",
+                "kind_class": "assignment",
+                "title": assignment.title,
+                "module_code": assignment.module.code,
+                "module_title": assignment.module.title,
+                "timestamp": assignment.due_datetime,
+                "date_value": assignment.due_datetime.date(),
+                "url": reverse(
+                    "accounts:assignment_detail",
+                    args=[assignment.module.code, assignment.id],
+                ),
+                "date_text": "Due",
+            }
+        )
+
+    for quiz in quiz_qs:
+        month_items.append(
+            {
+                "kind_label": "Quiz",
+                "kind_class": "quiz",
+                "title": quiz.title,
+                "module_code": quiz.module.code,
+                "module_title": quiz.module.title,
+                "timestamp": quiz.close_datetime,
+                "date_value": quiz.close_datetime.date(),
+                "url": reverse(
+                    "accounts:quiz_detail",
+                    args=[quiz.module.code, quiz.id],
+                ),
+                "date_text": "Closes",
+            }
+        )
+
+    month_items.sort(key=lambda item: (item["timestamp"], item["kind_label"], item["title"]))
+
+    items_by_day = defaultdict(list)
+    for item in month_items:
+        items_by_day[item["date_value"]].append(item)
+
+    calendar_weeks = []
+    calendar_builder = pycalendar.Calendar(firstweekday=0)
+
+    for week in calendar_builder.monthdatescalendar(year, month):
+        week_cells = []
+        for day in week:
+            day_items = items_by_day.get(day, [])
+            week_cells.append(
+                {
+                    "date": day,
+                    "day_number": day.day,
+                    "in_month": day.month == month,
+                    "is_today": day == today,
+                    "items": day_items[:3],
+                    "extra_count": max(len(day_items) - 3, 0),
+                }
+            )
+        calendar_weeks.append(week_cells)
+
+    prev_month_anchor = first_of_month - timedelta(days=1)
+    next_month_anchor = (first_of_month.replace(day=28) + timedelta(days=4)).replace(day=1)
+
+    return {
+        "calendar_weekdays": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        "calendar_weeks": calendar_weeks,
+        "calendar_items": month_items,
+        "calendar_month_label": first_of_month.strftime("%B %Y"),
+        "prev_year": prev_month_anchor.year,
+        "prev_month": prev_month_anchor.month,
+        "next_year": next_month_anchor.year,
+        "next_month": next_month_anchor.month,
+    }
 
 def _week_is_viewable(week):
     return bool((week.description or "").strip()) or week.files.exists()
@@ -1307,6 +1487,39 @@ def open_notification(request, notification_id):
         return redirect(notification.redirect_url)
 
     return redirect("accounts:dashboard")
+
+@login_required
+def portal(request):
+    _rollover_modules_if_due()
+    user: User = request.user
+
+    today = timezone.localdate()
+
+    try:
+        selected_year = int(request.GET.get("year", today.year))
+        selected_month = int(request.GET.get("month", today.month))
+        if selected_month < 1 or selected_month > 12:
+            raise ValueError
+    except (TypeError, ValueError):
+        selected_year = today.year
+        selected_month = today.month
+
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "office_tiles": _portal_office_tiles(),
+        "timetable_url": "https://timetables.tudublin.ie/",
+    }
+
+    context.update(
+        _build_portal_calendar_context(
+            user=user,
+            year=selected_year,
+            month=selected_month,
+        )
+    )
+
+    return render(request, "accounts/portal.html", context)
 
 @login_required
 def module_detail(request, code):

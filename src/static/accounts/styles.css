@@ -1305,6 +1305,187 @@ Notifications
   font-size: 0.9rem;
 }
 
+/*
+===========
+Portal Page
+===========
+*/
+
+.portal-app-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+.portal-app-card {
+  background: var(--bg-card);
+  color: var(--text-on-light);
+  border: 1px solid var(--border-soft);
+  border-radius: 1rem;
+  padding: 1rem;
+  text-decoration: none;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, border-color 0.08s ease;
+}
+
+.portal-app-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+  border-color: var(--primary);
+}
+
+.portal-app-image {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: block;
+}
+
+.portal-app-label {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-on-light);
+  text-align: center;
+}
+
+.portal-calendar-header {
+  align-items: center;
+}
+
+.portal-calendar-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.portal-calendar-month {
+  font-weight: 700;
+  color: var(--text-on-dark);
+}
+
+.portal-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.portal-calendar-weekday {
+  text-align: center;
+  font-weight: 700;
+  color: var(--text-on-dark);
+  padding: 0.4rem 0;
+}
+
+.portal-calendar-cell {
+  min-height: 150px;
+  background: #ffffff;
+  color: var(--text-on-light);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.9rem;
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.portal-calendar-cell--muted {
+  opacity: 0.5;
+}
+
+.portal-calendar-cell--today {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
+}
+
+.portal-calendar-date {
+  font-weight: 700;
+  color: var(--text-on-light);
+  margin-bottom: 0.15rem;
+}
+
+.portal-calendar-item {
+  display: block;
+  text-decoration: none;
+  border-radius: 0.7rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid transparent;
+}
+
+.portal-calendar-item.assignment {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.portal-calendar-item.quiz {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+}
+
+.portal-calendar-item:hover {
+  opacity: 0.92;
+}
+
+.portal-calendar-item-type {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+  color: var(--text-on-light);
+}
+
+.portal-calendar-item-title {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--text-on-light);
+  line-height: 1.35;
+}
+
+.portal-calendar-more {
+  font-size: 0.78rem;
+  color: var(--muted-dark);
+  font-weight: 600;
+}
+
+.portal-embed-frame-wrap {
+  background: #ffffff;
+  border: 1px solid var(--border-soft);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+}
+
+.portal-embed-frame {
+  display: block;
+  width: 100%;
+  min-height: 720px;
+  border: 0;
+  background: #ffffff;
+}
+
+@media (max-width: 900px) {
+  .portal-calendar-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .portal-calendar-weekday {
+    display: none;
+  }
+
+  .portal-calendar-cell {
+    min-height: 0;
+  }
+
+  .portal-embed-frame {
+    min-height: 560px;
+  }
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished
