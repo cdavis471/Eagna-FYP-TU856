@@ -1,0 +1,151 @@
+﻿{% extends "accounts/base_admin.html" %}
+
+{% block title %}Edit Enrollment | Eagna{% endblock %}
+{% block admin_header_title %}Edit Enrollment{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section admin-back-row">
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+  </section>
+
+  <section class="dashboard-section">
+    <h1 class="section-title">Edit Enrollment</h1>
+    <p class="muted">Add or remove students and lecturers from active modules.</p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="admin-two-column">
+      <div class="week-block">
+        <h2 class="week-title">Student Module Enrollment</h2>
+        <form method="post" class="admin-stacked-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_student">
+
+          <div class="form-group">
+            <label for="id_student_module_id">Module</label>
+            <select id="id_student_module_id" name="student_module_id">
+              {% for module in modules %}
+                <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="id_student_id">Student</label>
+            <select id="id_student_id" name="student_id">
+              {% for student in students %}
+                <option value="{{ student.id }}">
+                  {{ student.user.get_full_name|default:student.user.username }} — {{ student.student_number }}{% if student.course %} — {{ student.course }}{% endif %}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit">Add Student to Module</button>
+        </form>
+      </div>
+
+      <div class="week-block">
+        <h2 class="week-title">Lecturer Module Enrollment</h2>
+        <form method="post" class="admin-stacked-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_lecturer">
+
+          <div class="form-group">
+            <label for="id_lecturer_module_id">Module</label>
+            <select id="id_lecturer_module_id" name="lecturer_module_id">
+              {% for module in modules %}
+                <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="id_lecturer_id">Lecturer</label>
+            <select id="id_lecturer_id" name="lecturer_id">
+              {% for lecturer in lecturers %}
+                <option value="{{ lecturer.id }}">
+                  {{ lecturer.user.get_full_name|default:lecturer.user.username }} — {{ lecturer.staff_id }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button type="submit">Add Lecturer to Module</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard-section">
+    <h2 class="section-title">Current Student Enrollments</h2>
+
+    {% for row in enrollment_rows %}
+      <div class="week-block">
+        <h3 class="week-title">{{ row.module.code }} – {{ row.module.title }}</h3>
+
+        {% if row.students %}
+          <ul class="profile-assessment-list">
+            {% for student in row.students %}
+              <li class="profile-assessment-row">
+                <div class="profile-assessment-main">
+                  <span class="admin-chip admin-chip--student">Student</span>
+                  <span class="profile-assessment-link">
+                    {{ student.name }} — {{ student.student_number }}{% if student.course %} — {{ student.course }}{% endif %}
+                  </span>
+                </div>
+
+                <form method="post" class="admin-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove_student">
+                  <input type="hidden" name="module_id" value="{{ row.module.id }}">
+                  <input type="hidden" name="student_id" value="{{ student.id }}">
+                  <button type="submit" class="small-button admin-remove-button">Remove</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">No students are currently enrolled in this module.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+
+  <section class="dashboard-section">
+    <h2 class="section-title">Current Lecturer Enrollments</h2>
+
+    {% for row in enrollment_rows %}
+      <div class="week-block">
+        <h3 class="week-title">{{ row.module.code }} – {{ row.module.title }}</h3>
+
+        {% if row.lecturers %}
+          <ul class="profile-assessment-list">
+            {% for lecturer in row.lecturers %}
+              <li class="profile-assessment-row">
+                <div class="profile-assessment-main">
+                  <span class="admin-chip admin-chip--lecturer">Lecturer</span>
+                  <span class="profile-assessment-link">
+                    {{ lecturer.name }} — {{ lecturer.staff_id }}{% if lecturer.is_primary %} — Primary{% endif %}
+                  </span>
+                </div>
+
+                <form method="post" class="admin-inline-form">
+                  {% csrf_token %}
+                  <input type="hidden" name="action" value="remove_lecturer">
+                  <input type="hidden" name="module_id" value="{{ row.module.id }}">
+                  <input type="hidden" name="lecturer_id" value="{{ lecturer.id }}">
+                  <button type="submit" class="small-button admin-remove-button">Remove</button>
+                </form>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="muted">No lecturers are currently enrolled in this module.</p>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

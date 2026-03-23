@@ -13,7 +13,7 @@ from django.contrib import messages  # Django's messaging framework for passing 
 from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
 from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
 from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
-from .models import User, StudentProfile, LecturerProfile, Module, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Notification  # Imports all custom models referenced by these views
+from .models import User, StudentProfile, LecturerProfile, Module, ModuleEnrollmentStudent, ModuleEnrollmentLecturer, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Notification  # Imports all custom models referenced by these views
 from .notifications import create_notification, notify_module_students, notify_module_lecturers
 import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
@@ -31,6 +31,91 @@ def _shared_nav_items():
         {"label": "Inbox", "url": "https://outlook.office.com/mail/"},
         {"label": "Website", "url": "https://www.tudublin.ie/"},
     ]
+
+def _require_admin_user(user):
+    if not user.is_admin():
+        raise Http404("Not found")
+
+
+def _admin_page_context(user, page_title):
+    return {
+        "user": user,
+        "page_title": page_title,
+        "dashboard_url": reverse("accounts:admin_dashboard"),
+    }
+
+
+def _ensure_primary_lecturer(module):
+    if module.lecturer_enrolments.filter(is_primary=True).exists():
+        return
+
+    first_enrolment = module.lecturer_enrolments.order_by("id").first()
+    if first_enrolment:
+        first_enrolment.is_primary = True
+        first_enrolment.save(update_fields=["is_primary"])
+
+
+def _build_admin_enrollment_rows():
+    modules = (
+        Module.objects
+        .filter(is_active=True)
+        .prefetch_related(
+            "student_enrolments__student__user",
+            "lecturer_enrolments__lecturer__user",
+        )
+        .order_by("code", "title")
+    )
+
+    rows = []
+
+    for module in modules:
+        student_rows = []
+        for enrolment in sorted(
+            module.student_enrolments.all(),
+            key=lambda e: (
+                (e.student.user.get_full_name() or e.student.user.username).lower(),
+                e.student.student_number.lower(),
+            ),
+        ):
+            student = enrolment.student
+            student_rows.append(
+                {
+                    "id": student.id,
+                    "name": student.user.get_full_name() or student.user.username,
+                    "email": student.user.username,
+                    "student_number": student.student_number,
+                    "course": student.course or "",
+                }
+            )
+
+        lecturer_rows = []
+        for enrolment in sorted(
+            module.lecturer_enrolments.all(),
+            key=lambda e: (
+                (e.lecturer.user.get_full_name() or e.lecturer.user.username).lower(),
+                e.lecturer.staff_id.lower(),
+            ),
+        ):
+            lecturer = enrolment.lecturer
+            lecturer_rows.append(
+                {
+                    "id": lecturer.id,
+                    "name": lecturer.user.get_full_name() or lecturer.user.username,
+                    "email": lecturer.user.username,
+                    "staff_id": lecturer.staff_id,
+                    "is_primary": enrolment.is_primary,
+                }
+            )
+
+        rows.append(
+            {
+                "module": module,
+                "students": student_rows,
+                "lecturers": lecturer_rows,
+            }
+        )
+
+    return rows
 
 def _portal_office_tiles():
     """
@@ -1234,6 +1319,8 @@ class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’
             return "/student-dashboard/"
         if user.is_lecturer():  # If the user has the lecturer role, send them to the lecturer dashboard
             return "/lecturer-dashboard/"
+        if user.is_admin():  # If the user has the admin role, send them to the admin dashboard
+            return "/admin-dashboard/"
         return "/"  # fallback  # If neither role matches, fall back to redirecting to the site root
     
 def register_student(request):
@@ -1371,8 +1458,12 @@ def register_student(request):
 
 @login_required
 def dashboard(request):
+
     _rollover_modules_if_due()
     user: User = request.user
+
+    if user.is_admin():
+        return redirect("accounts:admin_dashboard")
 
     nav_items = _shared_nav_items()
     now = timezone.now()
@@ -1430,9 +1521,289 @@ def dashboard(request):
     return render(request, template, context)
 
 @login_required
+def admin_dashboard(request):
+    user: User = request.user
+    _require_admin_user(user)
+
+    context = _admin_page_context(user, "Admin Dashboard")
+    context.update(
+        {
+            "total_students": StudentProfile.objects.count(),
+            "total_lecturers": LecturerProfile.objects.count(),
+            "total_modules": Module.objects.count(),
+            "total_student_enrolments": ModuleEnrollmentStudent.objects.count(),
+            "total_lecturer_enrolments": ModuleEnrollmentLecturer.objects.count(),
+        }
+    )
+    return render(request, "accounts/admin_dashboard.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def admin_add_lecturer(request):
+    user: User = request.user
+    _require_admin_user(user)
+
+    errors = []
+
+    if request.method == "POST":
+        first_name = (request.POST.get("first_name") or "").strip()
+        last_name = (request.POST.get("last_name") or "").strip()
+        email = (request.POST.get("email") or "").strip()
+        staff_id = (request.POST.get("staff_id") or "").strip()
+        password1 = request.POST.get("password1") or ""
+        password2 = request.POST.get("password2") or ""
+
+        if not first_name:
+            errors.append("First name is required.")
+        if not last_name:
+            errors.append("Surname is required.")
+        if not email or "@" not in email:
+            errors.append("A valid email is required.")
+        if not staff_id:
+            errors.append("Staff ID is required.")
+        if not password1 or not password2:
+            errors.append("Both password fields are required.")
+        if password1 and password2 and password1 != password2:
+            errors.append("Passwords do not match.")
+
+        password_errors = _validate_password_strength(password1)
+        if password_errors:
+            errors.extend(password_errors)
+
+        if email and User.objects.filter(username__iexact=email).exists():
+            errors.append("A user already exists with this email address.")
+
+        if staff_id and LecturerProfile.objects.filter(staff_id__iexact=staff_id).exists():
+            errors.append("A lecturer already exists with this staff ID.")
+
+        if not errors:
+            lecturer_user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=password1,
+                first_name=first_name,
+                last_name=last_name,
+                role=User.Role.LECTURER,
+            )
+
+            LecturerProfile.objects.create(
+                user=lecturer_user,
+                staff_id=staff_id,
+            )
+
+            messages.success(request, "Lecturer account created successfully.")
+            return redirect("accounts:admin_dashboard")
+
+    context = _admin_page_context(user, "Add Lecturer")
+    context.update(
+        {
+            "errors": errors,
+            "initial": {
+                "first_name": request.POST.get("first_name", ""),
+                "last_name": request.POST.get("last_name", ""),
+                "email": request.POST.get("email", ""),
+                "staff_id": request.POST.get("staff_id", ""),
+            },
+        }
+    )
+    return render(request, "accounts/admin_add_lecturer.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def admin_add_module(request):
+    user: User = request.user
+    _require_admin_user(user)
+
+    errors = []
+
+    if request.method == "POST":
+        code = _normalize_course_code(request.POST.get("code", ""))
+        title = (request.POST.get("title") or "").strip()
+        start_date_str = (request.POST.get("start_date") or "").strip()
+        end_date_str = (request.POST.get("end_date") or "").strip()
+        allowed_courses_raw = request.POST.get("allowed_courses", "")
+        is_active = request.POST.get("is_active") == "on"
+
+        start_date_value = None
+        end_date_value = None
+
+        if not code:
+            errors.append("Module code is required.")
+        elif Module.objects.filter(code__iexact=code).exists():
+            errors.append("A module with this code already exists.")
+
+        if not title:
+            errors.append("Module title is required.")
+
+        if start_date_str:
+            try:
+                start_date_value = date.fromisoformat(start_date_str)
+            except ValueError:
+                errors.append("Start date is invalid.")
+
+        if end_date_str:
+            try:
+                end_date_value = date.fromisoformat(end_date_str)
+            except ValueError:
+                errors.append("End date is invalid.")
+
+        parsed_allowed_courses = []
+        if allowed_courses_raw.strip():
+            raw_tokens = re.split(r"[\n,]+", allowed_courses_raw)
+            invalid_codes = []
+
+            for token in raw_tokens:
+                normalized = _normalize_course_code(token)
+                if not normalized:
+                    continue
+                if not COURSE_CODE_RE.match(normalized):
+                    invalid_codes.append(normalized)
+                else:
+                    parsed_allowed_courses.append(normalized)
+
+            parsed_allowed_courses = sorted(set(parsed_allowed_courses))
+
+            if invalid_codes:
+                errors.append(
+                    "Allowed course codes must be 3–10 characters and contain only letters/numbers."
+                )
+
+        if not errors:
+            Module.objects.create(
+                code=code,
+                title=title,
+                start_date=start_date_value,
+                end_date=end_date_value,
+                last_rollover_year=timezone.localdate().year,
+                is_active=is_active,
+                allowed_courses=parsed_allowed_courses,
+            )
+
+            messages.success(request, "Module created successfully.")
+            return redirect("accounts:admin_dashboard")
+
+    context = _admin_page_context(user, "Add Module")
+    context.update(
+        {
+            "errors": errors,
+            "initial": {
+                "code": request.POST.get("code", ""),
+                "title": request.POST.get("title", ""),
+                "start_date": request.POST.get("start_date", ""),
+                "end_date": request.POST.get("end_date", ""),
+                "allowed_courses": request.POST.get("allowed_courses", ""),
+                "is_active": (request.POST.get("is_active") == "on") if request.method == "POST" else True,
+            },
+        }
+    )
+    return render(request, "accounts/admin_add_module.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def admin_edit_enrollment(request):
+    user: User = request.user
+    _require_admin_user(user)
+
+    if request.method == "POST":
+        action = (request.POST.get("action") or "").strip()
+
+        if action == "add_student":
+            module = get_object_or_404(Module, pk=request.POST.get("student_module_id"))
+            student = get_object_or_404(StudentProfile, pk=request.POST.get("student_id"))
+
+            _, created = ModuleEnrollmentStudent.objects.get_or_create(
+                module=module,
+                student=student,
+            )
+
+            if created:
+                messages.success(request, f"Added {student.user.get_full_name() or student.user.username} to {module.code}.")
+            else:
+                messages.info(request, "That student is already enrolled in this module.")
+
+        elif action == "remove_student":
+            module = get_object_or_404(Module, pk=request.POST.get("module_id"))
+            student = get_object_or_404(StudentProfile, pk=request.POST.get("student_id"))
+
+            deleted, _ = ModuleEnrollmentStudent.objects.filter(
+                module=module,
+                student=student,
+            ).delete()
+
+            if deleted:
+                messages.success(request, f"Removed {student.user.get_full_name() or student.user.username} from {module.code}.")
+            else:
+                messages.info(request, "That student was not enrolled in this module.")
+
+        elif action == "add_lecturer":
+            module = get_object_or_404(Module, pk=request.POST.get("lecturer_module_id"))
+            lecturer = get_object_or_404(LecturerProfile, pk=request.POST.get("lecturer_id"))
+
+            should_be_primary = not module.lecturer_enrolments.exists()
+
+            _, created = ModuleEnrollmentLecturer.objects.get_or_create(
+                module=module,
+                lecturer=lecturer,
+                defaults={"is_primary": should_be_primary},
+            )
+
+            if created:
+                messages.success(request, f"Added {lecturer.user.get_full_name() or lecturer.user.username} to {module.code}.")
+            else:
+                messages.info(request, "That lecturer is already enrolled in this module.")
+
+        elif action == "remove_lecturer":
+            module = get_object_or_404(Module, pk=request.POST.get("module_id"))
+            lecturer = get_object_or_404(LecturerProfile, pk=request.POST.get("lecturer_id"))
+
+            was_primary = ModuleEnrollmentLecturer.objects.filter(
+                module=module,
+                lecturer=lecturer,
+                is_primary=True,
+            ).exists()
+
+            deleted, _ = ModuleEnrollmentLecturer.objects.filter(
+                module=module,
+                lecturer=lecturer,
+            ).delete()
+
+            if deleted:
+                if was_primary:
+                    _ensure_primary_lecturer(module)
+                messages.success(request, f"Removed {lecturer.user.get_full_name() or lecturer.user.username} from {module.code}.")
+            else:
+                messages.info(request, "That lecturer was not enrolled in this module.")
+
+        else:
+            messages.error(request, "Unknown admin enrollment action.")
+
+        return redirect("accounts:admin_edit_enrollment")
+
+    modules = Module.objects.filter(is_active=True).order_by("code", "title")
+    students = StudentProfile.objects.select_related("user").order_by("user__last_name", "user__first_name", "student_number")
+    lecturers = LecturerProfile.objects.select_related("user").order_by("user__last_name", "user__first_name", "staff_id")
+
+    context = _admin_page_context(user, "Edit Enrollment")
+    context.update(
+        {
+            "modules": modules,
+            "students": students,
+            "lecturers": lecturers,
+            "enrollment_rows": _build_admin_enrollment_rows(),
+        }
+    )
+    return render(request, "accounts/admin_edit_enrollment.html", context)
+
+@login_required
 def user_profile(request):
     _rollover_modules_if_due()
     user: User = request.user
+
+    if user.is_admin():
+        return redirect("accounts:admin_dashboard")
 
     context = {
         "user": user,
@@ -1492,6 +1863,9 @@ def open_notification(request, notification_id):
 def portal(request):
     _rollover_modules_if_due()
     user: User = request.user
+
+    if user.is_admin():
+        return redirect("accounts:admin_dashboard")
 
     today = timezone.localdate()
 

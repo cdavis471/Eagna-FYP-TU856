@@ -1,0 +1,43 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Admin Panel | Eagna{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
+</head>
+<body>
+  <header class="site-header admin-site-header">
+    <div class="header-left">
+      <a class="brand" href="{% url 'accounts:admin_dashboard' %}" aria-label="Eagna Admin Dashboard">
+        <img src="{% static 'accounts/logos/eagna-logo-white.png' %}" alt="Eagna" class="brand-logo">
+      </a>
+    </div>
+
+    <div class="header-center admin-header-center">
+      <span class="admin-header-title">{% block admin_header_title %}Admin Panel{% endblock %}</span>
+    </div>
+
+    <div class="header-right">
+      <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+        {% csrf_token %}
+        <button type="submit" class="logout-button">Logout</button>
+      </form>
+    </div>
+  </header>
+
+  {% if messages %}
+    <div class="flash-messages">
+      {% for message in messages %}
+        <div class="flash-message flash-message--{{ message.tags|default:'info' }}">
+          {{ message }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  <main class="page-content">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

@@ -11,6 +11,7 @@ class User(AbstractUser):  # Custom user model extending Django's AbstractUser
     class Role(models.TextChoices):  # Inner class defining choices for the user's role
         STUDENT = "STUDENT", "Student"  # Database value and human-readable label for student role
         LECTURER = "LECTURER", "Lecturer"  # Database value and human-readable label for lecturer role
+        ADMIN = "ADMIN", "Admin"  # Database value and human-readable label for admin role
 
     role = models.CharField(  # Field storing whether this user is a student or lecturer
         max_length=20,  # Maximum length of the string stored for the role
@@ -23,6 +24,9 @@ class User(AbstractUser):  # Custom user model extending Django's AbstractUser
 
     def is_lecturer(self):  # Helper method to check if user is a lecturer
         return self.role == self.Role.LECTURER  # Returns True if role field equals the LECTURER choice
+    
+    def is_admin(self): # Helper method to check if user is an admin
+        return self.role == self.Role.ADMIN # Returns True if role field equals the ADMIN choice
 
 class StudentProfile(models.Model):  # Extra data model for users who are students
     user = models.OneToOneField(  # One-to-one link between StudentProfile and User

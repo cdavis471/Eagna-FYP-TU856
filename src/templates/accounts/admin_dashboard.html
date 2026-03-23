@@ -1,1 +1,69 @@
-﻿
+﻿{% extends "accounts/base_admin.html" %}
+
+{% block title %}Admin Dashboard | Eagna{% endblock %}
+{% block admin_header_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <h1 class="section-title">Admin Dashboard</h1>
+    <p class="muted">
+      Manage lecturer accounts, create modules, and edit student / lecturer enrollment.
+    </p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="card-grid">
+      <a href="{% url 'accounts:admin_add_lecturer' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Add Lecturer</h3>
+          <p class="card-meta">Create a brand new lecturer account and lecturer profile.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_add_module' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Add Module</h3>
+          <p class="card-meta">Create a new module with code, title, dates, and allowed courses.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_edit_enrollment' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Edit Enrollment</h3>
+          <p class="card-meta">Add / remove students and lecturers from modules.</p>
+        </article>
+      </a>
+    </div>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="admin-stat-grid">
+      <article class="admin-stat-card">
+        <span class="admin-stat-label">Students</span>
+        <span class="admin-stat-value">{{ total_students }}</span>
+      </article>
+
+      <article class="admin-stat-card">
+        <span class="admin-stat-label">Lecturers</span>
+        <span class="admin-stat-value">{{ total_lecturers }}</span>
+      </article>
+
+      <article class="admin-stat-card">
+        <span class="admin-stat-label">Modules</span>
+        <span class="admin-stat-value">{{ total_modules }}</span>
+      </article>
+
+      <article class="admin-stat-card">
+        <span class="admin-stat-label">Student Enrolments</span>
+        <span class="admin-stat-value">{{ total_student_enrolments }}</span>
+      </article>
+
+      <article class="admin-stat-card">
+        <span class="admin-stat-label">Lecturer Enrolments</span>
+        <span class="admin-stat-value">{{ total_lecturer_enrolments }}</span>
+      </article>
+    </div>
+  </section>
+</div>
+{% endblock %}

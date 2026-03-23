@@ -1,0 +1,64 @@
+﻿{% extends "accounts/base_admin.html" %}
+
+{% block title %}Add Module | Eagna{% endblock %}
+{% block admin_header_title %}Add Module{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section admin-back-row">
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+  </section>
+
+  <section class="dashboard-section">
+    <h1 class="section-title">Add Module</h1>
+
+    {% if errors %}
+      <ul class="error-list">
+        {% for e in errors %}
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="post" class="auth-container admin-form-shell">
+      {% csrf_token %}
+
+      <div class="admin-form-grid">
+        <div class="form-group">
+          <label for="id_code">Module Code</label>
+          <input type="text" id="id_code" name="code" value="{{ initial.code }}">
+        </div>
+
+        <div class="form-group">
+          <label for="id_title">Module Title</label>
+          <input type="text" id="id_title" name="title" value="{{ initial.title }}">
+        </div>
+
+        <div class="form-group">
+          <label for="id_start_date">Start Date</label>
+          <input type="date" id="id_start_date" name="start_date" value="{{ initial.start_date }}">
+        </div>
+
+        <div class="form-group">
+          <label for="id_end_date">End Date</label>
+          <input type="date" id="id_end_date" name="end_date" value="{{ initial.end_date }}">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="id_allowed_courses">Allowed Courses</label>
+        <textarea id="id_allowed_courses" name="allowed_courses" rows="4" class="week-description-input" placeholder="Comma-separated or one per line, e.g. TU856, TU857">{{ initial.allowed_courses }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="quiz-checkbox-row">
+          <input type="checkbox" name="is_active" {% if initial.is_active %}checked{% endif %}>
+          <span>Module is active</span>
+        </label>
+      </div>
+
+      <button type="submit">Create Module</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

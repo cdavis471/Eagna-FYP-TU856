@@ -1468,22 +1468,110 @@ Portal Page
   background: #ffffff;
 }
 
-@media (max-width: 900px) {
-  .portal-calendar-grid {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
+/*
+===============
+Admin Dashboard
+===============
+*/
 
-  .portal-calendar-weekday {
-    display: none;
-  }
+.admin-site-header {
+  justify-content: space-between;
+}
 
-  .portal-calendar-cell {
-    min-height: 0;
-  }
+.admin-header-center {
+  justify-content: center;
+}
 
-  .portal-embed-frame {
-    min-height: 560px;
-  }
+.admin-header-title {
+  color: var(--text-on-dark);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin-back-row {
+  margin-bottom: 0.75rem;
+}
+
+.admin-form-shell {
+  max-width: 860px;
+}
+
+.admin-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.admin-two-column {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.admin-stacked-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.admin-stat-card {
+  background: var(--bg-card);
+  color: var(--text-on-light);
+  border-radius: 0.9rem;
+  padding: 1rem;
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.admin-stat-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--muted-dark);
+}
+
+.admin-stat-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--text-on-light);
+}
+
+.admin-inline-form {
+  margin: 0;
+}
+
+.admin-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.admin-chip--student {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.admin-chip--lecturer {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.admin-remove-button {
+  white-space: nowrap;
 }
 
 /* 
