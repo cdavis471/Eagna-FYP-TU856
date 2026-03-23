@@ -8,7 +8,7 @@
   <section class="dashboard-section">
     <h1 class="section-title">Admin Dashboard</h1>
     <p class="muted">
-      Manage lecturer accounts, create modules, and edit student / lecturer enrollment.
+      Manage lecturer accounts, create modules, edit enrollment, and publish global announcements.
     </p>
   </section>
 
@@ -32,6 +32,13 @@
         <article class="card card-clickable">
           <h3 class="card-title">Edit Enrollment</h3>
           <p class="card-meta">Add / remove students and lecturers from modules.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_create_global_announcement' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Create Global Announcement</h3>
+          <p class="card-meta">Publish a new global announcement to all students.</p>
         </article>
       </a>
     </div>
@@ -64,6 +71,43 @@
         <span class="admin-stat-value">{{ total_lecturer_enrolments }}</span>
       </article>
     </div>
+  </section>
+
+  <section class="dashboard-section">
+    <h2 class="section-title">Recent Global Announcements</h2>
+
+    {% if recent_global_announcements %}
+      {% for announcement in recent_global_announcements %}
+        <div class="announcement-card">
+          <div class="assessment-card-topline">
+            <div>
+              <h3 class="card-title">{{ announcement.title }}</h3>
+              <p class="card-meta">
+                {{ announcement.created_at|date:"Y-m-d H:i" }}
+                {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
+                  · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+                {% endif %}
+              </p>
+            </div>
+
+            <div class="announcement-actions">
+              <a href="{% url 'accounts:admin_edit_global_announcement' announcement.id %}" class="small-button">
+                Edit
+              </a>
+
+              <form method="post" action="{% url 'accounts:admin_delete_global_announcement' announcement.id %}" class="admin-inline-form">
+                {% csrf_token %}
+                <button type="submit" class="small-button admin-remove-button">Delete</button>
+              </form>
+            </div>
+          </div>
+
+          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No global announcements have been posted yet.</p>
+    {% endif %}
   </section>
 </div>
 {% endblock %}

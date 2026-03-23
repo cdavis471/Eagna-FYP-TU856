@@ -13,7 +13,7 @@ from django.contrib import messages  # Django's messaging framework for passing 
 from django.core.files.base import ContentFile  # Utility for creating file objects from raw content, used in file handling
 from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
 from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
-from .models import User, StudentProfile, LecturerProfile, Module, ModuleEnrollmentStudent, ModuleEnrollmentLecturer, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Notification  # Imports all custom models referenced by these views
+from .models import User, StudentProfile, LecturerProfile, Module, ModuleEnrollmentStudent, ModuleEnrollmentLecturer, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Notification, GlobalAnnouncement, ModuleAnnouncement  # Imports all custom models referenced by these views
 from .notifications import create_notification, notify_module_students, notify_module_lecturers
 import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
@@ -1309,6 +1309,34 @@ def _build_lecturer_profile_modules(lecturer):
 
     return module_rows
 
+def _recent_global_announcements():
+    return (
+        GlobalAnnouncement.objects
+        .select_related("created_by")
+        .order_by("-created_at", "-id")[:3]
+    )
+
+
+def _recent_module_announcements(module):
+    return (
+        module.module_announcements
+        .select_related("created_by")
+        .order_by("-created_at", "-id")[:3]
+    )
+
+
+def _validate_announcement_form(request):
+    title = (request.POST.get("title") or "").strip()
+    content = (request.POST.get("content") or "").strip()
+    errors = []
+
+    if not title:
+        errors.append("Title is required.")
+    if not content:
+        errors.append("Content is required.")
+
+    return title, content, errors
+
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
 
@@ -1486,6 +1514,7 @@ def dashboard(request):
             "nav_items": nav_items,
             "modules": modules_qs,
             "upcoming_items": upcoming_items,
+            "global_announcements": _recent_global_announcements(),
         }
 
     elif user.is_lecturer():
@@ -1533,6 +1562,7 @@ def admin_dashboard(request):
             "total_modules": Module.objects.count(),
             "total_student_enrolments": ModuleEnrollmentStudent.objects.count(),
             "total_lecturer_enrolments": ModuleEnrollmentLecturer.objects.count(),
+            "recent_global_announcements": _recent_global_announcements(),
         }
     )
     return render(request, "accounts/admin_dashboard.html", context)
@@ -1798,6 +1828,87 @@ def admin_edit_enrollment(request):
     return render(request, "accounts/admin_edit_enrollment.html", context)
 
 @login_required
+@require_http_methods(["GET", "POST"])
+def admin_create_global_announcement(request):
+    user: User = request.user
+    _require_admin_user(user)
+
+    errors = []
+
+    if request.method == "POST":
+        title, content, errors = _validate_announcement_form(request)
+
+        if not errors:
+            GlobalAnnouncement.objects.create(
+                title=title,
+                content=content,
+                created_by=user,
+            )
+            GlobalAnnouncement.trim_to_latest_three()
+
+            messages.success(request, "Global announcement created successfully.")
+            return redirect("accounts:admin_dashboard")
+
+    context = _admin_page_context(user, "Create Global Announcement")
+    context.update(
+        {
+            "errors": errors,
+            "initial": {
+                "title": request.POST.get("title", ""),
+                "content": request.POST.get("content", ""),
+            },
+        }
+    )
+    return render(request, "accounts/admin_global_announcement_form.html", context)
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def admin_edit_global_announcement(request, announcement_id):
+    user: User = request.user
+    _require_admin_user(user)
+
+    announcement = get_object_or_404(GlobalAnnouncement, pk=announcement_id)
+    errors = []
+
+    if request.method == "POST":
+        title, content, errors = _validate_announcement_form(request)
+
+        if not errors:
+            announcement.title = title
+            announcement.content = content
+            announcement.save(update_fields=["title", "content", "updated_at"])
+
+            messages.success(request, "Global announcement updated successfully.")
+            return redirect("accounts:admin_dashboard")
+
+    context = _admin_page_context(user, "Edit Global Announcement")
+    context.update(
+        {
+            "errors": errors,
+            "announcement": announcement,
+            "initial": {
+                "title": request.POST.get("title", announcement.title) if request.method == "POST" else announcement.title,
+                "content": request.POST.get("content", announcement.content) if request.method == "POST" else announcement.content,
+            },
+        }
+    )
+    return render(request, "accounts/admin_global_announcement_form.html", context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def admin_delete_global_announcement(request, announcement_id):
+    user: User = request.user
+    _require_admin_user(user)
+
+    announcement = get_object_or_404(GlobalAnnouncement, pk=announcement_id)
+    announcement.delete()
+
+    messages.success(request, "Global announcement deleted successfully.")
+    return redirect("accounts:admin_dashboard")
+
+@login_required
 def user_profile(request):
     _rollover_modules_if_due()
     user: User = request.user
@@ -1903,7 +2014,11 @@ def module_detail(request, code):
     try:
         module = (
             Module.objects
-            .prefetch_related("assignments__files", "quizzes")
+            .prefetch_related(
+                "assignments__files",
+                "quizzes",
+                "module_announcements__created_by",
+            )
             .get(code=code)
         )
     except Module.DoesNotExist:
@@ -1911,6 +2026,7 @@ def module_detail(request, code):
 
     run_start, run_end = module.current_cycle_window()
     now = timezone.now()
+    module_announcements = _recent_module_announcements(module)
 
     if user.is_student():
         student = user.student_profile
@@ -1935,6 +2051,7 @@ def module_detail(request, code):
             "module": module,
             "role": role,
             "assessment_items": assessment_items,
+            "module_announcements": module_announcements,
             "weeks": weeks,
             "run_start": run_start,
             "run_end": run_end,
@@ -1969,6 +2086,7 @@ def module_detail(request, code):
             "module": module,
             "role": role,
             "assessment_items": assessment_items,
+            "module_announcements": module_announcements,
             "weeks": weeks,
             "run_start": run_start,
             "run_end": run_end,
@@ -1979,6 +2097,96 @@ def module_detail(request, code):
 
     return render(request, "accounts/module_detail.html", context)
 
+@login_required
+@require_http_methods(["GET", "POST"])
+def create_module_announcement(request, code):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
+
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+
+    errors = []
+
+    if request.method == "POST":
+        title, content, errors = _validate_announcement_form(request)
+
+        if not errors:
+            ModuleAnnouncement.objects.create(
+                module=module,
+                title=title,
+                content=content,
+                created_by=user,
+            )
+            ModuleAnnouncement.trim_to_latest_three_for_module(module)
+
+            messages.success(request, "Module announcement created successfully.")
+            return redirect("accounts:module_detail", code=module.code)
+
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "module": module,
+        "errors": errors,
+        "initial": {
+            "title": request.POST.get("title", ""),
+            "content": request.POST.get("content", ""),
+        },
+    }
+    return render(request, "accounts/module_announcement_form.html", context)
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def edit_module_announcement(request, code, announcement_id):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
+
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+    announcement = get_object_or_404(ModuleAnnouncement, pk=announcement_id, module=module)
+
+    errors = []
+
+    if request.method == "POST":
+        title, content, errors = _validate_announcement_form(request)
+
+        if not errors:
+            announcement.title = title
+            announcement.content = content
+            announcement.save(update_fields=["title", "content", "updated_at"])
+
+            messages.success(request, "Module announcement updated successfully.")
+            return redirect("accounts:module_detail", code=module.code)
+
+    context = {
+        "user": user,
+        "nav_items": _shared_nav_items(),
+        "module": module,
+        "announcement": announcement,
+        "errors": errors,
+        "initial": {
+            "title": request.POST.get("title", announcement.title) if request.method == "POST" else announcement.title,
+            "content": request.POST.get("content", announcement.content) if request.method == "POST" else announcement.content,
+        },
+    }
+    return render(request, "accounts/module_announcement_form.html", context)
+
+@login_required
+@require_http_methods(["POST"])
+def delete_module_announcement(request, code, announcement_id):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
+
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+    announcement = get_object_or_404(ModuleAnnouncement, pk=announcement_id, module=module)
+
+    announcement.delete()
+    messages.success(request, "Module announcement deleted successfully.")
+    return redirect("accounts:module_detail", code=module.code)
 
 @login_required
 def upload_week_file(request, code, week_number):

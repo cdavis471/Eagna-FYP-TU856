@@ -176,6 +176,55 @@
     {% endif %}
   </section>
   {% endif %}
+  <section class="dashboard-section">
+    <div class="assessment-card-topline">
+      <h2 class="section-title">Module Announcements</h2>
+
+      {% if role == "lecturer" %}
+        <a href="{% url 'accounts:create_module_announcement' module.code %}" class="small-button">
+          + Create Announcement
+        </a>
+      {% endif %}
+    </div>
+
+    {% if module_announcements %}
+      {% for announcement in module_announcements %}
+        <div class="announcement-card">
+          <div class="assessment-card-topline">
+            <div>
+              <h3 class="card-title">{{ announcement.title }}</h3>
+              <p class="card-meta">
+                {{ announcement.created_at|date:"Y-m-d H:i" }}
+                {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
+                  · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+                {% endif %}
+                {% if announcement.created_by %}
+                  · {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
+                {% endif %}
+              </p>
+            </div>
+
+            {% if role == "lecturer" %}
+              <div class="announcement-actions">
+                <a href="{% url 'accounts:edit_module_announcement' module.code announcement.id %}" class="small-button">
+                  Edit
+                </a>
+
+                <form method="post" action="{% url 'accounts:delete_module_announcement' module.code announcement.id %}" class="admin-inline-form">
+                  {% csrf_token %}
+                  <button type="submit" class="small-button admin-remove-button">Delete</button>
+                </form>
+              </div>
+            {% endif %}
+          </div>
+
+          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No module announcements have been posted yet.</p>
+    {% endif %}
+  </section>
   <!-- Section that displays weekly teaching resources / academic calendar view -->
   <!-- Weekly Resources / Academic Calendar -->
   <section class="dashboard-section">

@@ -740,3 +740,61 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.recipient} - {self.title}"
+    
+class GlobalAnnouncement(models.Model):
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="global_announcements_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return self.title
+
+    @classmethod
+    def trim_to_latest_three(cls):
+        stale_ids = list(
+            cls.objects.order_by("-created_at", "-id")
+            .values_list("id", flat=True)[3:]
+        )
+        if stale_ids:
+            cls.objects.filter(id__in=stale_ids).delete()
+
+class ModuleAnnouncement(models.Model):
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        related_name="module_announcements",
+    )
+    title = models.CharField(max_length=255)
+    content = models.TextField()
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="module_announcements_created",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.module.code} - {self.title}"
+
+    @classmethod
+    def trim_to_latest_three_for_module(cls, module):
+        stale_ids = list(
+            cls.objects.filter(module=module)
+            .order_by("-created_at", "-id")
+            .values_list("id", flat=True)[3:]
+        )
+        if stale_ids:
+            cls.objects.filter(id__in=stale_ids).delete()

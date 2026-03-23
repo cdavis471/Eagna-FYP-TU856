@@ -2,7 +2,7 @@ from django.urls import path  # Imports the path function for defining URL patte
 from django.contrib.auth.views import LogoutView  # Imports Django's built-in view for handling user logout
 from django.conf.urls.static import static  # Provides helper to serve static files in development (even if not used here directly)
 
-from .views import RoleBasedLoginView, dashboard, admin_dashboard, admin_add_lecturer, admin_add_module, admin_edit_enrollment, user_profile, open_notification, portal, module_detail, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt  # Imports all view functions/classes referenced in this URL config
+from .views import RoleBasedLoginView, dashboard, admin_dashboard, admin_add_lecturer, admin_add_module, admin_edit_enrollment, admin_create_global_announcement, admin_edit_global_announcement, admin_delete_global_announcement, user_profile, open_notification, portal, module_detail, create_module_announcement, edit_module_announcement, delete_module_announcement, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt  # Imports all view functions/classes referenced in this URL config
 
 app_name = "accounts"  # Namespaces these URLs under "accounts" so they can be reversed with the 'accounts:' prefix
 
@@ -18,6 +18,9 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
     path("admin-dashboard/lecturers/new/", admin_add_lecturer, name="admin_add_lecturer"),
     path("admin-dashboard/modules/new/", admin_add_module, name="admin_add_module"),
     path("admin-dashboard/enrollment/", admin_edit_enrollment, name="admin_edit_enrollment"),
+    path("admin-dashboard/announcements/new/", admin_create_global_announcement, name="admin_create_global_announcement"),
+    path("admin-dashboard/announcements/<int:announcement_id>/edit/", admin_edit_global_announcement, name="admin_edit_global_announcement"),
+    path("admin-dashboard/announcements/<int:announcement_id>/delete/", admin_delete_global_announcement, name="admin_delete_global_announcement"),
     
     path("student-dashboard/", dashboard, name="student_dashboard"),  # URL alias for student dashboard; uses same dashboard view
     path("lecturer-dashboard/", dashboard, name="lecturer_dashboard"),  # URL alias for lecturer dashboard; also uses shared dashboard view
@@ -91,6 +94,21 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
         "modules/<str:code>/quizzes/<int:quiz_id>/submit/",
         submit_quiz_attempt,
         name="submit_quiz_attempt",
+    ),
+    path(
+        "modules/<str:code>/announcements/new/", 
+        create_module_announcement, 
+        name="create_module_announcement"
+    ),
+    path(
+        "modules/<str:code>/announcements/<int:announcement_id>/edit/", 
+        edit_module_announcement, 
+        name="edit_module_announcement"
+    ),
+    path(
+        "modules/<str:code>/announcements/<int:announcement_id>/delete/", 
+        delete_module_announcement, 
+        name="delete_module_announcement"
     ),
 ]
 

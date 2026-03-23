@@ -1574,6 +1574,41 @@ Admin Dashboard
   white-space: nowrap;
 }
 
+/*
+=============
+Announcements
+=============
+*/
+
+.announcement-card {
+  background: #ffffff;
+  color: var(--text-on-light);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.95rem;
+  padding: 1rem;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.15);
+  margin-bottom: 1rem;
+}
+
+.announcement-card:last-child {
+  margin-bottom: 0;
+}
+
+.announcement-content {
+  color: var(--text-on-light);
+  line-height: 1.65;
+  margin-top: 0.6rem;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.announcement-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished

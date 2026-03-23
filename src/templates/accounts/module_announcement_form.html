@@ -1,0 +1,47 @@
+﻿{% extends "accounts/base.html" %}
+
+{% block title %}
+  {% if announcement %}Edit Module Announcement{% else %}Create Module Announcement{% endif %}
+  – {{ module.code }} | Eagna
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <a href="{% url 'accounts:module_detail' module.code %}" class="small-button">← Back to module</a>
+  </section>
+
+  <section class="dashboard-section">
+    <h1 class="section-title">
+      {% if announcement %}Edit Module Announcement{% else %}Create Module Announcement{% endif %}
+    </h1>
+    <p class="muted">{{ module.code }} – {{ module.title }}</p>
+
+    {% if errors %}
+      <ul class="error-list">
+        {% for e in errors %}
+          <li>{{ e }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <form method="post" class="auth-container">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="id_title">Title</label>
+        <input type="text" id="id_title" name="title" value="{{ initial.title }}">
+      </div>
+
+      <div class="form-group">
+        <label for="id_content">Content</label>
+        <textarea id="id_content" name="content" rows="8" class="week-description-input">{{ initial.content }}</textarea>
+      </div>
+
+      <button type="submit">
+        {% if announcement %}Save Announcement{% else %}Create Announcement{% endif %}
+      </button>
+    </form>
+  </section>
+</div>
+{% endblock %}
