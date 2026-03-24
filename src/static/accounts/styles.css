@@ -2248,37 +2248,6 @@ Registration Form - Final UI
   }
 }
 
-/*
-===========================
-Font Adjustments - Final UI
-===========================
-*/
-
-h1, h2, h3,
-.auth-title,
-.registration-title {
-  font-weight: 800;
-}
-
-label,
-.form-label,
-.auth-subtitle {
-  font-weight: 600;
-}
-
-.auth-action-button,
-button {
-  font-family: inherit;
-  font-weight: 700;
-}
-
-input,
-select,
-textarea {
-  font-family: inherit;
-  font-weight: 400;
-}
-
 /* 
 ===============================
 Responsive Tweaks - Unfinished
