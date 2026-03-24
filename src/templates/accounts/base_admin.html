@@ -4,6 +4,9 @@
 <head>
   <meta charset="UTF-8" />
   <title>{% block title %}Admin Panel | Eagna{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
 </head>
 <body>
@@ -19,9 +22,9 @@
     </div>
 
     <div class="header-right">
-      <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
+      <form method="post" action="{% url 'accounts:logout' %}" class="header-logout-form">
         {% csrf_token %}
-        <button type="submit" class="logout-button">Logout</button>
+        <button type="submit" class="site-nav-button logout-button">Logout</button>
       </form>
     </div>
   </header>

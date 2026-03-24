@@ -23,27 +23,22 @@
 <body class="{% block body_class %}{% endblock %}">
   <!-- Site-wide header displayed at the top of every page -->
   <header class="site-header">
-    <!-- Left side of the header containing the logo -->
     <div class="header-left">
-    <a class="brand" href="{% url 'accounts:dashboard' %}" aria-label="Eagna Home">
-      <img src="{% static 'accounts/logos/eagna-logo-white.png' %}" alt="Eagna" class="brand-logo">
-    </a>
-  </div>
+      <a class="brand" href="{% url 'accounts:dashboard' %}" aria-label="Eagna Home">
+        <img
+          src="{% static 'accounts/logos/eagna-logo-white.png' %}"
+          alt="Eagna"
+          class="brand-logo">
+      </a>
+    </div>
 
-    <!-- Center part of the header containing the main navigation links -->
     <div class="header-center">
-      <!-- Primary navigation menu for the site -->
-      <nav class="main-nav">
-        <!-- Only render nav items if a nav_items list has been provided in context -->
+      <nav class="main-nav" aria-label="Primary navigation">
         {% if nav_items %}
-          <!-- Unordered list of navigation links -->
-          <ul>
-            <!-- Loop over each navigation item passed into the template -->
+          <ul class="nav-button-list">
             {% for item in nav_items %}
-              <!-- Single navigation entry -->
               <li>
-                <!-- Anchor link using the item's URL and label text -->
-                <a href="{{ item.url }}">{{ item.label }}</a>
+                <a href="{{ item.url }}" class="site-nav-button">{{ item.label }}</a>
               </li>
             {% endfor %}
           </ul>
@@ -51,21 +46,17 @@
       </nav>
     </div>
 
-    <!-- Right side of the header containing user info and logout control -->
     <div class="header-right">
-      <!-- Only show user information and logout button if a user is logged in -->
       {% if user.is_authenticated %}
         {% include "accounts/partials/notifications_dropdown.html" %}
-        <!-- Text label showing the logged-in user's name or username -->
-        <a href="{% url 'accounts:profile' %}" class="user-label user-link">
+
+        <a href="{% url 'accounts:profile' %}" class="user-link user-chip">
           {{ user.get_full_name|default:user.username }}
         </a>
-        <!-- Logout form that posts to the accounts:logout URL -->
-        <form method="post" action="{% url 'accounts:logout' %}" style="display:inline;">
-          <!-- CSRF token required for secure POST requests in Django -->
+
+        <form method="post" action="{% url 'accounts:logout' %}" class="header-logout-form">
           {% csrf_token %}
-          <!-- Button that submits the logout request when clicked -->
-          <button type="submit" class="logout-button">Logout</button>
+          <button type="submit" class="site-nav-button logout-button">Logout</button>
         </form>
       {% endif %}
     </div>
@@ -96,23 +87,19 @@
 
   <!-- Site-wide footer shown at the bottom of every page -->
   <footer class="site-footer">
-    <!-- Upper part of the footer, here showing the TU Dublin logo -->
     <div class="footer-top">
-	<img src="https://pxl01-tudublinie.terminalfour.net/prod01/tudublin-cdn-pxl/media/website/site-assets/images/tu-dublin-logo.svg">
+      <img
+        src="https://pxl01-tudublinie.terminalfour.net/prod01/tudublin-cdn-pxl/media/website/site-assets/images/tu-dublin-logo.svg"
+        alt="TU Dublin"
+        class="footer-logo">
     </div>
 
-    <!-- Footer navigation area, mirroring the nav_items if provided -->
     <div class="footer-nav">
-      <!-- Only show footer navigation if nav_items are available -->
       {% if nav_items %}
-        <!-- Unordered list of footer navigation links -->
-        <ul>
-          <!-- Loop through each navigation item again for the footer -->
+        <ul class="nav-button-list footer-button-list">
           {% for item in nav_items %}
-            <!-- Single footer navigation entry -->
             <li>
-              <!-- Anchor link using the item's URL and label -->
-              <a href="{{ item.url }}">{{ item.label }}</a>
+              <a href="{{ item.url }}" class="site-nav-button footer-nav-button">{{ item.label }}</a>
             </li>
           {% endfor %}
         </ul>
