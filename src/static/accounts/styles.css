@@ -1694,29 +1694,32 @@ Login Intro Splash Screen
   animation: splashLogoReveal 1.15s ease-out 0.2s forwards;
 }
 
-.login-splash__glow-line {
-  width: min(60vw, 220px);
-  height: 3px;
-  border-radius: 999px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
+.login-splash__center-text {
+  position: absolute;
+  z-index: 2;
+  margin: 0;
+  top: calc(50% + 58px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(64vw, 230px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  text-align: center;
   opacity: 0;
-  transform: scaleX(0.4);
-  animation: splashLineReveal 0.8s ease-out 1s forwards;
+  animation: splashCenterTextReveal 0.85s ease-out 1.05s forwards;
 }
 
-.login-splash__tagline {
-  margin: 0;
-  color: rgba(255, 255, 255, 0.92);
-  font-size: 0.95rem;
-  letter-spacing: 0.04em;
-  opacity: 0;
-  transform: translateY(6px);
-  animation: splashTaglineReveal 0.85s ease-out 1.25s forwards;
+@keyframes splashCenterTextReveal {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 @keyframes splashLogoReveal {
@@ -1731,28 +1734,6 @@ Login Intro Splash Screen
   100% {
     opacity: 1;
     transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes splashLineReveal {
-  0% {
-    opacity: 0;
-    transform: scaleX(0.4);
-  }
-  100% {
-    opacity: 1;
-    transform: scaleX(1);
-  }
-}
-
-@keyframes splashTaglineReveal {
-  0% {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
   }
 }
 

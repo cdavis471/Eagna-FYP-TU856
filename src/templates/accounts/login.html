@@ -16,15 +16,10 @@
         alt="Eagna"
         class="login-splash__logo">
 
-      <div class="login-splash__glow-line"></div>
-
-      <p class="login-splash__tagline">
-        A faster, more accessible student portal
-      </p>
     </div>
   </div>
 
-  <div class="auth-container auth-container--intro">
+  <div id="login-form-shell" class="auth-container auth-container--intro" inert>
     <h2>Login</h2>
 
     {% if form.errors %}
@@ -37,7 +32,7 @@
       </ul>
     {% endif %}
 
-    <form method="post" action="{% url 'accounts:login' %}">
+    <form method="post" action="{% url 'accounts:login' %}" autocomplete="off">
       {% csrf_token %}
 
       <div class="form-group">
@@ -60,7 +55,12 @@
 <script>
   (function () {
     const splash = document.getElementById("login-splash");
+    const formShell = document.getElementById("login-form-shell");
     if (!splash) return;
+
+    if (document.activeElement && typeof document.activeElement.blur === "function") {
+      document.activeElement.blur();
+    }
 
     window.setTimeout(function () {
       splash.classList.add("login-splash--hide");
@@ -68,6 +68,9 @@
 
     window.setTimeout(function () {
       splash.remove();
+      if (formShell) {
+        formShell.removeAttribute("inert");
+      }
     }, 3600);
   })();
 </script>
