@@ -158,7 +158,7 @@
         if (nextCourseValue) {
           showHelper("Course changed. Please choose modules again for this course.");
         } else {
-          showHelper("Enter or select your course first, then choose modules.");
+          showHelper("Enter your course first, then choose modules.");
         }
       } else {
         renderDropdown(modules);
