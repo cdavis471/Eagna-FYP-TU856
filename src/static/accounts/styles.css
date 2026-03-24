@@ -2310,12 +2310,18 @@ Header / Footer - Final UI
 }
 
 .main-nav a.site-nav-button:hover,
-.footer-nav a.site-nav-button:hover,
-.header-logout-form .logout-button:hover {
+.footer-nav a.site-nav-button:hover {
   background: #ffffff;
   color: #3551b8;
   text-decoration: none;
   transform: translateY(-1px);
+}
+
+.header-logout-form .logout-button:hover {
+  background: #ffffff;
+  color: #3551b8;
+  text-decoration: none;
+  transform: none;
 }
 
 .main-nav a.site-nav-button:visited,
@@ -2370,7 +2376,7 @@ Header / Footer - Final UI
 
 .notification-button:hover {
   opacity: 1;
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .notification-bell {
@@ -2381,7 +2387,7 @@ Header / Footer - Final UI
 .footer-top {
   display: flex;
   justify-content: center;
-  margin-bottom: 1.35rem;
+  margin-bottom: 1.8rem;
   padding-top: 0.35rem;
 }
 
@@ -2406,7 +2412,7 @@ Responsive Rules - Final UI
 ===========================
 */
 
-@media (max-width: 1120px) {
+@media (max-width: 1450px) {
   .site-header {
     grid-template-columns: 1fr;
     grid-template-areas:
@@ -2414,7 +2420,9 @@ Responsive Rules - Final UI
       "nav"
       "actions";
     justify-items: center;
-    row-gap: 0.95rem;
+    row-gap: 1.8rem;
+    padding-top: 1.1rem;
+    padding-bottom: 1.9rem;
   }
 
   .header-left {
@@ -2434,6 +2442,7 @@ Responsive Rules - Final UI
     width: 100%;
     justify-content: center;
     gap: 0.9rem;
+    margin-top: 0.15rem;
   }
 
   .nav-button-list {
@@ -2443,8 +2452,8 @@ Responsive Rules - Final UI
 
 @media (max-width: 640px) {
   .site-header {
-    row-gap: 0.85rem;
-    padding: 0.85rem 1rem;
+    row-gap: 1.25rem;
+    padding: 1rem 1rem 1.4rem;
   }
 
   .nav-button-list,
