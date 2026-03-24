@@ -2007,7 +2007,7 @@ Registration Form - Final UI
 }
 
 .registration-form-title {
-  margin: 0 0 1.5rem;
+  margin: 0 0 2.1rem;
   text-align: center;
   font-size: 2rem;
   line-height: 1.1;
@@ -2019,12 +2019,12 @@ Registration Form - Final UI
 .registration-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.15rem;
 }
 
 .registration-form-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
 }
 
@@ -2090,9 +2090,10 @@ Registration Form - Final UI
 .registration-hint {
   display: block;
   margin-top: 0.4rem;
-  color: #3551b8;
+  color: #07164d;
   font-size: 0.86rem;
   line-height: 1.45;
+  font-style: italic;
 }
 
 .registration-divider {
@@ -2156,7 +2157,7 @@ Registration Form - Final UI
 
 .registration-page .dropdown {
   margin-top: 0.55rem;
-  border: 2px solid #07164d;
+  border: 1px solid #3551b8;
   border-radius: 0.9rem;
   background: #ffffff;
   box-shadow: 0 10px 26px rgba(7, 22, 77, 0.14);
@@ -2207,7 +2208,7 @@ Registration Form - Final UI
   border-radius: 999px;
   background: #eef3ff;
   color: #07164d;
-  border: 1px solid #c9d4f4;
+  border: 1px solid #3551b8;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -2215,7 +2216,7 @@ Registration Form - Final UI
 
 .registration-page .module-chip .chip-x {
   font-weight: 700;
-  color: #3551b8;
+  color: #dc2626;
 }
 
 .registration-page .message-list {
