@@ -335,6 +335,23 @@ button[type="submit"] {
     box-shadow 0.1s ease;
 }
 
+button[type="submit"]:not(.auth-action-button) {
+  width: 100%;
+  padding: 0.75rem 1.2rem;
+  border-radius: 0.75rem;
+  border: none;
+  background: var(--tertiary);
+  color: var(--text-on-dark);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition:
+    background-color 0.1s ease,
+    transform 0.05s ease,
+    box-shadow 0.1s ease;
+}
+
 button[type="submit"]:hover {
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
   transform: translateY(-1px);
