@@ -1881,6 +1881,7 @@ Login Form - Final UI
   border: 0;
   border-radius: 0.9rem;
   text-decoration: none;
+  font-family: inherit;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1;
@@ -2098,7 +2099,7 @@ Registration Form - Final UI
 
 .registration-divider {
   height: 1px;
-  background: rgba(7, 22, 77, 0.14);
+  background: #07164d;
   margin: 0.2rem 0;
 }
 
@@ -2119,6 +2120,7 @@ Registration Form - Final UI
   border: 0;
   border-radius: 0.9rem;
   text-decoration: none;
+  font-family: inherit;
   font-size: 1rem;
   font-weight: 700;
   line-height: 1;
@@ -2156,7 +2158,7 @@ Registration Form - Final UI
 }
 
 .registration-page .dropdown {
-  margin-top: 0.55rem;
+  margin-top: 1rem;
   border: 1px solid #3551b8;
   border-radius: 0;
   background: #ffffff;
@@ -2205,7 +2207,7 @@ Registration Form - Final UI
   align-items: center;
   gap: 0.45rem;
   padding: 0.55rem 0.75rem;
-  border-radius: 999px;
+  border-radius: 0px;
   background: #eef3ff;
   color: #07164d;
   border: 1px solid #3551b8;
