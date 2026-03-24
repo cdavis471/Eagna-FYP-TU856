@@ -98,19 +98,19 @@
   <!-- Section showing the modules that this student is enrolled in -->
   <!-- Your Modules -->
   <!-- Semantic section for listing all of the student's modules -->
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-modules-section">
     <!-- Heading for the modules section -->
     <h2 class="section-title">Your Modules</h2>
     <!-- Check if the student currently has any modules attached -->
     {% if modules %}
       <!-- Grid layout for rendering each module as a card -->
-      <div class="card-grid">
+      <div class="card-grid dashboard-modules-grid">
         <!-- Loop through each module object assigned to the student -->
         {% for m in modules %}
           <!-- Clickable card wrapper linking to the module detail page -->
           <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
             <!-- Card container for a single module -->
-            <article class="card card-clickable">
+            <article class="card card-clickable dashboard-module-card">
               <!-- Display the module title/textual name -->
               <h3 class="card-title">{{ m.title }}</h3>
               <!-- Row of metadata containing the module code -->

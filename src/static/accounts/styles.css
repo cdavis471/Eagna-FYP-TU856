@@ -2407,6 +2407,49 @@ Header / Footer - Final UI
 }
 
 /* 
+============================
+Dashboard Modules - Final UI
+============================
+*/
+
+.dashboard-modules-section .section-title {
+  margin-bottom: 0.45rem;
+}
+
+.dashboard-modules-grid {
+  gap: 0.9rem;
+}
+
+.dashboard-module-card {
+  justify-content: flex-start;
+  gap: 0.22rem;
+  min-height: auto;
+  padding: 1rem 1rem 0.95rem;
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
+
+.dashboard-module-card .card-title {
+  margin-bottom: 0.18rem;
+}
+
+.dashboard-module-card .card-meta {
+  margin: 0;
+  font-size: 0.94rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #3551b8;
+}
+
+.dashboard-module-card .card-meta + .card-meta {
+  margin-top: 0.05rem;
+}
+
+.dashboard-module-card.card-clickable:hover {
+  border-color: #07164d;
+}
+
+/* 
 ===========================
 Responsive Rules - Final UI
 ===========================

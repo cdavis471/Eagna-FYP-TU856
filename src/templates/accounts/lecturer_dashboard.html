@@ -58,19 +58,19 @@
   <!-- Section listing all modules assigned to this lecturer -->
   <!-- Your Modules -->
   <!-- Semantic section element for the lecturer's modules list -->
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-modules-section">
     <!-- Heading for the "Your Modules" section -->
     <h2 class="section-title">Your Modules</h2>
     <!-- Check if the lecturer has any modules assigned -->
     {% if modules %}
       <!-- Grid layout displaying each module as a clickable card -->
-      <div class="card-grid">
+      <div class="card-grid dashboard-modules-grid">
         <!-- Loop through each module associated with the lecturer -->
         {% for m in modules %}
           <!-- Clickable wrapper that links to the module detail view -->
           <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
             <!-- Card representing a single module taught by the lecturer -->
-            <article class="card card-clickable">
+            <article class="card card-clickable dashboard-module-card">
               <!-- Show the full title of the module -->
               <h3 class="card-title">{{ m.title }}</h3>
               <!-- Metadata row showing only the module code -->
