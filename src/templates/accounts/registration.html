@@ -1,174 +1,166 @@
-﻿<!-- Extend the shared base template used for all accounts-related pages -->
-{% extends "accounts/base.html" %}
+﻿{% extends "accounts/base.html" %}
 {% load static %}
 
-<!-- Set the page title that will appear in the browser tab -->
 {% block title %}Register | Eagna{% endblock %}
+{% block body_class %}registration-page{% endblock %}
 
-<!-- Begin the main content section that will be injected into the base template -->
 {% block content %}
-<!-- Container that automatically wraps the registration form content -->
-<div class="auth-container">
-    <!-- Heading text shown at the top of the registration form -->
-    <h2>Student Registration</h2>
-    <!-- Display form validation errors if they exist -->
+<div class="registration-layout-shell">
+  <div class="auth-container registration-card">
+    <h1 class="registration-form-title">STUDENT REGISTRATION</h1>
+
     {% if errors %}
-    <ul class="error-list">
+      <ul class="error-list">
         {% for field, field_errors in errors.items %}
-        {% for err in field_errors %}
+          {% for err in field_errors %}
             <li>{{ err }}</li>
+          {% endfor %}
         {% endfor %}
-        {% endfor %}
-    </ul>
+      </ul>
     {% endif %}
 
-    <!-- Display any Django messages (e.g. success or error notifications) if they exist -->
     {% if messages %}
-        <ul class="message-list">
+      <ul class="message-list">
         {% for message in messages %}
-            <li class="message message-{{ message.tags }}">{{ message }}</li>
+          <li class="message message-{{ message.tags }}">{{ message }}</li>
         {% endfor %}
-        </ul>
+      </ul>
     {% endif %}
-    
-    <!-- Registration form that submits a POST request to the current URL -->
-    <form method="post">
-        <!-- CSRF token required by Django to protect against cross-site request forgery -->
-        {% csrf_token %}
-        <!-- First Name Input Field -->
+
+    <form method="post" class="registration-form" autocomplete="off">
+      {% csrf_token %}
+
+      <div class="registration-form-grid">
         <div class="form-group">
-            <label for="id_first_name">First Name</label>
-            <input
-                type="text"
-                id="id_first_name"
-                name="first_name"
-                value="{{ form_data.first_name|default_if_none:'' }}"
-                required
-            >
+          <label for="id_first_name" class="registration-form-label">FIRST NAME</label>
+          <input
+            type="text"
+            id="id_first_name"
+            name="first_name"
+            value="{{ form_data.first_name|default_if_none:'' }}"
+            required
+          >
         </div>
-        <!-- Last Name Input Field -->
+
         <div class="form-group">
-            <label for="id_last_name">Surname</label>
-            <input
-                type="text"
-                id="id_last_name"
-                name="last_name"
-                value="{{ form_data.last_name|default_if_none:'' }}"
-                required
-            >
+          <label for="id_last_name" class="registration-form-label">SURNAME</label>
+          <input
+            type="text"
+            id="id_last_name"
+            name="last_name"
+            value="{{ form_data.last_name|default_if_none:'' }}"
+            required
+          >
         </div>
-        <!-- Email Input Field -->
+      </div>
+
+      <div class="form-group">
+        <label for="id_email" class="registration-form-label">STUDENT EMAIL</label>
+        <input
+          type="email"
+          id="id_email"
+          name="email"
+          value="{{ form_data.email|default_if_none:'' }}"
+          placeholder="C12345678@mytudublin.ie"
+          required
+        >
+        <small class="registration-hint">Must end with @mytudublin.ie</small>
+      </div>
+
+      <div class="registration-form-grid">
         <div class="form-group">
-            <label for="id_email">Student Email</label>
-            <input
-                type="email"
-                id="id_email"
-                name="email"
-                value="{{ form_data.email|default_if_none:'' }}"
-                placeholder="C12345678@mytudublin.ie"
-                required
-            >
-            <small class="hint">Must end with @mytudublin.ie</small>
+          <label for="id_password1" class="registration-form-label">PASSWORD</label>
+          <input
+            type="password"
+            id="id_password1"
+            name="password1"
+            required
+          >
+          <small class="registration-hint">
+            At least 8 characters, 1 uppercase letter, 1 number, 1 special character
+          </small>
         </div>
-        <!-- Password Input Field -->
+
         <div class="form-group">
-            <label for="id_password1">Password</label>
-            <input
-                type="password"
-                id="id_password1"
-                name="password1"
-                required
+          <label for="id_password2" class="registration-form-label">RE-ENTER PASSWORD</label>
+          <input
+            type="password"
+            id="id_password2"
+            name="password2"
+            required
+          >
+        </div>
+      </div>
+
+      <div class="registration-divider"></div>
+
+      <div class="form-group">
+        <label for="id_course" class="registration-form-label">COURSE</label>
+        <input
+          type="text"
+          id="id_course"
+          name="course"
+          list="course-options"
+          value="{{ form_data.course|default_if_none:'' }}"
+          placeholder="Enter Course Code (e.g. TU856)..."
+          required
+        >
+        <datalist id="course-options">
+          {% for c in valid_courses %}
+            <option value="{{ c }}"></option>
+          {% endfor %}
+        </datalist>
+      </div>
+
+      <div class="registration-divider"></div>
+
+      <div class="form-group">
+        <label for="module-search" class="registration-form-label">Modules</label>
+
+        <input
+          type="text"
+          id="module-search"
+          placeholder="Search modules (code or title)..."
+          autocomplete="off"
+        >
+
+        <div id="module-dropdown" class="dropdown" hidden></div>
+
+        <div id="selected-modules" class="selected-modules"></div>
+
+        <div id="module-helper" class="registration-hint" aria-live="polite"></div>
+
+        <select id="id_module_ids" name="module_ids" multiple hidden required>
+          {% for m in modules %}
+            <option
+              value="{{ m.id }}"
+              data-courses="{{ m.allowed_courses|join:',' }}"
+              {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
+                selected
+              {% endif %}
             >
-            <small class="hint">
-                At least 8 characters, 1 uppercase letter, 1 number, 1 special character.
-            </small>
-        </div>
-        <!-- Password Confirmation Input Field -->
-        <div class="form-group">
-            <label for="id_password2">Re-Enter Password</label>
-            <input
-                type="password"
-                id="id_password2"
-                name="password2"
-                required
-            >
-        </div>
+              {{ m.code }} – {{ m.title }}
+            </option>
+          {% endfor %}
+        </select>
 
-        <hr>
+        <small class="registration-hint">
+          Choose your course first. Matching modules will remain visible until the course changes.
+        </small>
+      </div>
 
-        <!-- Course Code Input Field with Datalist for Autocomplete; stored in DB -->
-        <div class="form-group">
-            <label for="id_course">Course</label>
-            <input
-                type="text"
-                id="id_course"
-                name="course"
-                list="course-options"
-                value="{{ form_data.course|default_if_none:'' }}"
-                placeholder="Start typing your course code (e.g. TU856)..."
-                required
-            >
-            <datalist id="course-options">
-                {% for c in valid_courses %}
-                <option value="{{ c }}"></option>
-                {% endfor %}
-            </datalist>
-            <small class="hint">
-                Course options are derived from modules' allowed course codes.
-            </small>
-        </div>
+      <div class="registration-action-group">
+        <button type="submit" class="auth-action-button auth-action-button--primary">
+          Create Account
+        </button>
 
-        <hr>
-
-        <!-- Modules - Multi-Select With Text Filter & Stored in DB -->
-        <div class="form-group">
-            <label for="module-search">Modules</label>
-
-            <!-- Search Bar -->
-            <input
-                type="text"
-                id="module-search"
-                placeholder="Search modules (code or title)..."
-                autocomplete="off"
-            >
-            <!-- Scrollable Dropdown Results -->
-            <div id="module-dropdown" class="dropdown" hidden></div>
-
-            <!-- Selected Modules -->
-            <div id="selected-modules" class="selected-modules"></div>
-
-            <!-- Optional helper message -->
-            <div id="module-helper" class="hint" aria-live="polite"></div>
-
-            <!-- Hidden Multi-Select -->
-            <select id="id_module_ids" name="module_ids" multiple hidden required>
-                {% for m in modules %}
-                <option
-                    value="{{ m.id }}"
-                    data-courses="{{ m.allowed_courses|join:',' }}"
-                    {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
-                    selected
-                    {% endif %}
-                >
-                    {{ m.code }} – {{ m.title }}
-                </option>
-                {% endfor %}
-            </select>
-
-            <small class="hint">
-                Start typing to search modules. Results are filtered by your chosen course.
-            </small>
-        </div>
-
-        <div class="form-row">
-            <button type="submit">Create Account</button>
-        </div>
-
-        <a href="{% url 'accounts:login' %}" class="auth-button">Back to Login</a>
+        <a href="{% url 'accounts:login' %}" class="auth-action-button auth-action-button--secondary">
+          Back To Login
+        </a>
+      </div>
     </form>
+  </div>
 </div>
 
-<!-- End of the main content block for this template -->
-<!-- Client-Side Filter for Module Options -->
 <script src="{% static 'accounts/module_search.js' %}" defer></script>
 {% endblock %}

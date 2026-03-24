@@ -1983,6 +1983,268 @@ Login Form - Final UI
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/*
+============================
+Registration Form - Final UI
+============================
+*/
+
+.registration-layout-shell {
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.registration-card {
+  width: min(100%, 780px);
+  margin: 0 auto;
+  padding: 2rem 1.75rem;
+  border-radius: 1.15rem;
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.32);
+}
+
+.registration-form-title {
+  margin: 0 0 1.5rem;
+  text-align: center;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #07164d;
+  letter-spacing: 0.01em;
+}
+
+.registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.registration-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.registration-page .auth-container .form-group {
+  margin-bottom: 0;
+}
+
+.registration-form-label,
+.registration-page .form-group label {
+  color: #07164d;
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
+}
+
+.registration-page .auth-container input[type="text"],
+.registration-page .auth-container input[type="email"],
+.registration-page .auth-container input[type="password"],
+.registration-page .auth-container select,
+.registration-page #module-search {
+  min-height: 52px;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 2px solid #07164d;
+  background: #ffffff;
+  color: #07164d;
+  font-size: 1rem;
+  font-weight: 500;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.08s ease;
+}
+
+.registration-page .auth-container input[type="text"]::placeholder,
+.registration-page .auth-container input[type="email"]::placeholder,
+.registration-page .auth-container input[type="password"]::placeholder,
+.registration-page #module-search::placeholder {
+  color: #5d6f9d;
+  opacity: 1;
+}
+
+.registration-page .auth-container input[type="text"]:focus,
+.registration-page .auth-container input[type="email"]:focus,
+.registration-page .auth-container input[type="password"]:focus,
+.registration-page .auth-container select:focus,
+.registration-page #module-search:focus {
+  outline: none;
+  border-color: #3551b8;
+  box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
+  background-color: #ffffff;
+}
+
+.registration-page .auth-container input:-webkit-autofill,
+.registration-page .auth-container input:-webkit-autofill:hover,
+.registration-page .auth-container input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #07164d;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.registration-hint {
+  display: block;
+  margin-top: 0.4rem;
+  color: #3551b8;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.registration-divider {
+  height: 1px;
+  background: rgba(7, 22, 77, 0.14);
+  margin: 0.2rem 0;
+}
+
+.registration-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.registration-page .auth-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 50px;
+  padding: 0.85rem 1rem;
+  border: 0;
+  border-radius: 0.9rem;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.18s ease,
+    filter 0.18s ease;
+}
+
+.registration-page .auth-action-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.98);
+}
+
+.registration-page .auth-action-button--primary {
+  background: #07164d;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(7, 22, 77, 0.2);
+}
+
+.registration-page .auth-action-button--primary:hover {
+  background: #061241;
+}
+
+.registration-page .auth-action-button--secondary {
+  background: #3551b8;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(53, 81, 184, 0.18);
+}
+
+.registration-page .auth-action-button--secondary:hover {
+  background: #2d46a2;
+}
+
+.registration-page .dropdown {
+  margin-top: 0.55rem;
+  border: 2px solid #07164d;
+  border-radius: 0.9rem;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(7, 22, 77, 0.14);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.registration-page .dropdown-item {
+  padding: 0.8rem 1rem;
+  color: #07164d;
+  cursor: pointer;
+  border-top: 1px solid rgba(7, 22, 77, 0.08);
+  transition: background-color 0.12s ease, color 0.12s ease;
+}
+
+.registration-page .dropdown-item:first-child {
+  border-top: 0;
+}
+
+.registration-page .dropdown-item:hover {
+  background: #eef3ff;
+}
+
+.registration-page .dropdown-item--disabled {
+  color: #5d6f9d;
+  cursor: default;
+  background: #ffffff;
+}
+
+.registration-page .dropdown-item--selected {
+  background: #eef3ff;
+  color: #3551b8;
+  font-weight: 700;
+}
+
+.registration-page .selected-modules {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.75rem;
+}
+
+.registration-page .module-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 999px;
+  background: #eef3ff;
+  color: #07164d;
+  border: 1px solid #c9d4f4;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.registration-page .module-chip .chip-x {
+  font-weight: 700;
+  color: #3551b8;
+}
+
+.registration-page .message-list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+@media (max-width: 700px) {
+  .registration-layout-shell {
+    padding: 1.5rem 0.75rem 2.5rem;
+  }
+
+  .registration-card {
+    width: min(100%, 520px);
+    padding: 1.5rem 1.1rem;
+    border-radius: 1rem;
+  }
+
+  .registration-form-title {
+    font-size: 1.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .registration-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished

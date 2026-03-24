@@ -11,7 +11,7 @@
   function parseCourses(datasetCourses) {
     return (datasetCourses || "")
       .split(",")
-      .map(s => s.trim())
+      .map((s) => s.trim())
       .filter(Boolean);
   }
 
@@ -41,36 +41,31 @@
     return !!module.optionEl.selected;
   }
 
-  function removeInvalidSelections(modules, course) {
-    if (!course) return 0;
-
-    let removed = 0;
-    for (const m of modules) {
-      if (isSelected(m) && !m.allowedCourses.includes(course)) {
-        setSelected(m, false);
-        removed += 1;
-      }
+  function clearAllSelections(modules) {
+    for (const module of modules) {
+      setSelected(module, false);
     }
-    return removed;
   }
 
   function renderSelected(modules) {
     const container = byId("selected-modules");
     if (!container) return;
-    container.innerHTML = "";
 
+    container.innerHTML = "";
     const selected = modules.filter(isSelected);
 
-    selected.forEach(m => {
+    selected.forEach((m) => {
       const chip = document.createElement("div");
       chip.className = "module-chip";
       chip.title = "Click to remove";
       chip.innerHTML = `<span>${m.label}</span><span class="chip-x">×</span>`;
+
       chip.addEventListener("click", () => {
         setSelected(m, false);
         renderSelected(modules);
         renderDropdown(modules);
       });
+
       container.appendChild(chip);
     });
   }
@@ -92,21 +87,18 @@
     dropdown.hidden = false;
     dropdown.innerHTML = "";
 
-    // No Course Selected - Prompt User to Select Course First
     if (!course) {
       const item = document.createElement("div");
       item.className = "dropdown-item dropdown-item--disabled";
-      item.textContent = "Select a course first to see matching modules.";
+      item.textContent = "Enter a course first to see matching modules.";
       dropdown.appendChild(item);
-      showHelper("Choose your course first, then search modules.");
+      showHelper("Enter or select your course first, then choose modules.");
       return;
     }
 
-    // Filter - Must Match Course | Must Match Search | Must Not Already Be Selected
     const matches = modules
-      .filter(m => m.allowedCourses.includes(course))
-      .filter(m => m.label.toLowerCase().includes(q))
-      .filter(m => !isSelected(m))
+      .filter((m) => m.allowedCourses.includes(course))
+      .filter((m) => m.label.toLowerCase().includes(q))
       .slice(0, 50);
 
     if (matches.length === 0) {
@@ -118,17 +110,22 @@
       return;
     }
 
-    matches.forEach(m => {
+    matches.forEach((m) => {
       const item = document.createElement("div");
       item.className = "dropdown-item";
       item.textContent = m.label;
+
+      if (isSelected(m)) {
+        item.classList.add("dropdown-item--selected");
+      }
+
       item.addEventListener("click", () => {
-        setSelected(m, true);
-        input.value = "";
+        setSelected(m, !isSelected(m));
         renderSelected(modules);
         renderDropdown(modules);
         input.focus();
       });
+
       dropdown.appendChild(item);
     });
 
@@ -136,46 +133,60 @@
   }
 
   function wireUp() {
-    
     const modules = buildModuleIndex();
     const courseEl = byId("id_course");
     const searchEl = byId("module-search");
     const dropdown = byId("module-dropdown");
 
-    // Missing Elements - Cannot Wire Up
     if (!courseEl || !searchEl || !dropdown) return;
 
-    // Initial Render of Selected Modules
-    renderSelected(modules);
+    let previousCourseValue = getCourseValue();
 
-    // When Course Changes --> Remove Invalid Selected Modules & Refresh Dropdown
-    const onCourseChange = () => {
-      const course = getCourseValue();
-      const removed = removeInvalidSelections(modules, course);
-      if (removed > 0) {
-        showHelper(`Removed ${removed} module(s) not valid for the selected course.`);
+    renderSelected(modules);
+    renderDropdown(modules);
+
+    const onCourseChangedExplicitly = () => {
+      const nextCourseValue = getCourseValue();
+
+      if (nextCourseValue !== previousCourseValue) {
+        previousCourseValue = nextCourseValue;
+        searchEl.value = "";
+        clearAllSelections(modules);
+        renderSelected(modules);
+        renderDropdown(modules);
+
+        if (nextCourseValue) {
+          showHelper("Course changed. Please choose modules again for this course.");
+        } else {
+          showHelper("Enter or select your course first, then choose modules.");
+        }
       } else {
-        showHelper("");
+        renderDropdown(modules);
       }
-      renderSelected(modules);
-      renderDropdown(modules);
     };
 
-    // Course Change Behaviour
-    courseEl.addEventListener("input", onCourseChange);
-    courseEl.addEventListener("change", onCourseChange);
+    courseEl.addEventListener("input", onCourseChangedExplicitly);
+    courseEl.addEventListener("change", onCourseChangedExplicitly);
 
-    // Search Behaviour
     searchEl.addEventListener("input", () => renderDropdown(modules));
     searchEl.addEventListener("focus", () => renderDropdown(modules));
 
-    // Hide Dropdown On Outside Click
     document.addEventListener("click", (e) => {
-      if (dropdown.contains(e.target) || searchEl.contains(e.target)) return;
-      dropdown.hidden = true;
+      if (
+        dropdown.contains(e.target) ||
+        searchEl.contains(e.target) ||
+        courseEl.contains(e.target)
+      ) {
+        return;
+      }
+
+      if (getCourseValue()) {
+        dropdown.hidden = false;
+      } else {
+        dropdown.hidden = true;
+      }
     });
   }
 
-  // Initialize on DOM Ready
   document.addEventListener("DOMContentLoaded", wireUp);
 })();
