@@ -11,19 +11,19 @@
   <!-- Section showing submissions that have not yet been graded -->
   <!-- Ungraded Submissions -->
   <!-- Semantic section element for the list of ungraded submissions -->
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-card-section">
     <!-- Heading for the ungraded submissions section -->
     <h2 class="section-title">Ungraded Submissions</h2>
     <!-- Check if there are any ungraded submissions to display -->
     {% if ungraded_submissions %}
       <!-- Grid layout used to present each ungraded submission as a card -->
-      <div class="card-grid">
+      <div class="card-grid dashboard-cards-grid">
         <!-- Loop through each ungraded submission linked to the lecturer's modules -->
         {% for s in ungraded_submissions %}
           <!-- Clickable wrapper that links to the corresponding assignment detail page -->
           <a href="{% url 'accounts:assignment_detail' s.assignment.module.code s.assignment.id %}" class="card-link-wrapper">
             <!-- Card representing a single ungraded submission -->
-            <article class="card card-clickable">
+            <article class="card card-clickable dashboard-card-panel">
               <!-- Show the title of the assignment that was submitted -->
               <h3 class="card-title">{{ s.assignment.title }}</h3>
               <!-- Row of metadata showing the module name and module code -->
@@ -58,19 +58,19 @@
   <!-- Section listing all modules assigned to this lecturer -->
   <!-- Your Modules -->
   <!-- Semantic section element for the lecturer's modules list -->
-  <section class="dashboard-section dashboard-modules-section">
+  <section class="dashboard-section dashboard-card-section dashboard-modules-section">
     <!-- Heading for the "Your Modules" section -->
     <h2 class="section-title">Your Modules</h2>
     <!-- Check if the lecturer has any modules assigned -->
     {% if modules %}
       <!-- Grid layout displaying each module as a clickable card -->
-      <div class="card-grid dashboard-modules-grid">
+      <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
         <!-- Loop through each module associated with the lecturer -->
         {% for m in modules %}
           <!-- Clickable wrapper that links to the module detail view -->
           <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
             <!-- Card representing a single module taught by the lecturer -->
-            <article class="card card-clickable dashboard-module-card">
+            <article class="card card-clickable dashboard-card-panel dashboard-module-card">
               <!-- Show the full title of the module -->
               <h3 class="card-title">{{ m.title }}</h3>
               <!-- Metadata row showing only the module code -->
@@ -87,16 +87,18 @@
       <p class="muted">No modules are currently assigned.</p>
     {% endif %}
   </section>
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-card-section">
     <h2 class="section-title">Global Announcements</h2>
     {% if global_announcements %}
-      {% for announcement in global_announcements %}
-        <div class="announcement-card">
-          <h3 class="card-title">{{ announcement.title }}</h3>
-          <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
-          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
-        </div>
-      {% endfor %}
+      <div class="card-grid dashboard-cards-grid dashboard-announcements-grid">
+        {% for announcement in global_announcements %}
+          <article class="announcement-card dashboard-card-panel dashboard-announcement-card">
+            <h3 class="card-title">{{ announcement.title }}</h3>
+            <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
+            <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+          </article>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="muted">No global announcements have been posted yet.</p>
     {% endif %}

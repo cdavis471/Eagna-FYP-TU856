@@ -9,15 +9,15 @@
 <!-- Top-level container that wraps all dashboard content for the student -->
 <div class="dashboard-container">
   <!-- Section that highlights the student's upcoming assessments -->
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-card-section">
     <h2 class="section-title">Upcoming Assessments</h2>
 
     {% if upcoming_items %}
-      <div class="card-grid">
+      <div class="card-grid dashboard-cards-grid">
         {% for item in upcoming_items %}
           {% if item.is_clickable %}
             <a href="{{ item.url }}" class="card-link-wrapper">
-              <article class="card card-clickable">
+              <article class="card card-clickable dashboard-card-panel">
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
@@ -53,7 +53,7 @@
             </a>
           {% else %}
             <div class="card-link-wrapper card-link-wrapper-disabled">
-              <article class="card card-disabled">
+              <article class="card card-disabled dashboard-card-panel">
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
@@ -98,19 +98,19 @@
   <!-- Section showing the modules that this student is enrolled in -->
   <!-- Your Modules -->
   <!-- Semantic section for listing all of the student's modules -->
-  <section class="dashboard-section dashboard-modules-section">
+  <section class="dashboard-section dashboard-card-section dashboard-modules-section">
     <!-- Heading for the modules section -->
     <h2 class="section-title">Your Modules</h2>
     <!-- Check if the student currently has any modules attached -->
     {% if modules %}
       <!-- Grid layout for rendering each module as a card -->
-      <div class="card-grid dashboard-modules-grid">
+      <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
         <!-- Loop through each module object assigned to the student -->
         {% for m in modules %}
           <!-- Clickable card wrapper linking to the module detail page -->
           <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
             <!-- Card container for a single module -->
-            <article class="card card-clickable dashboard-module-card">
+            <article class="card card-clickable dashboard-card-panel dashboard-module-card">
               <!-- Display the module title/textual name -->
               <h3 class="card-title">{{ m.title }}</h3>
               <!-- Row of metadata containing the module code -->
@@ -141,17 +141,18 @@
     {% endif %}
   </section>
 
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-card-section">
     <h2 class="section-title">Global Announcements</h2>
-
     {% if global_announcements %}
-      {% for announcement in global_announcements %}
-        <div class="announcement-card">
-          <h3 class="card-title">{{ announcement.title }}</h3>
-          <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
-          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
-        </div>
-      {% endfor %}
+      <div class="card-grid dashboard-cards-grid dashboard-announcements-grid">
+        {% for announcement in global_announcements %}
+          <article class="announcement-card dashboard-card-panel dashboard-announcement-card">
+            <h3 class="card-title">{{ announcement.title }}</h3>
+            <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
+            <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+          </article>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="muted">No global announcements have been posted yet.</p>
     {% endif %}

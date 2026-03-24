@@ -2407,33 +2407,41 @@ Header / Footer - Final UI
 }
 
 /* 
-============================
-Dashboard Modules - Final UI
-============================
+===========================
+Dashboard Cards - Final UI
+===========================
 */
 
-.dashboard-modules-section .section-title {
-  margin-bottom: 0.45rem;
+.dashboard-card-section .section-title {
+  margin-bottom: 1.1rem;
 }
 
-.dashboard-modules-grid {
-  gap: 0.9rem;
+.dashboard-cards-grid {
+  gap: 1rem;
+  align-items: stretch;
 }
 
-.dashboard-module-card {
+.dashboard-cards-grid > .card-link-wrapper,
+.dashboard-cards-grid > .card-link-wrapper-disabled {
+  display: block;
+  height: 100%;
+}
+
+.dashboard-card-panel {
   justify-content: flex-start;
   gap: 0.22rem;
-  min-height: auto;
+  min-height: 220px;
+  height: 100%;
   padding: 1rem 1rem 0.95rem;
   border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
 }
 
-.dashboard-module-card .card-title {
+.dashboard-card-panel .card-title {
   margin-bottom: 0.18rem;
 }
 
-.dashboard-module-card .card-meta {
+.dashboard-card-panel .card-meta {
   margin: 0;
   font-size: 0.94rem;
   font-weight: 600;
@@ -2441,12 +2449,27 @@ Dashboard Modules - Final UI
   color: #3551b8;
 }
 
-.dashboard-module-card .card-meta + .card-meta {
-  margin-top: 0.05rem;
+.dashboard-card-panel .card-meta + .card-meta {
+  margin-top: 0.08rem;
 }
 
-.dashboard-module-card.card-clickable:hover {
+.dashboard-card-panel.card-clickable:hover {
   border-color: #07164d;
+}
+
+.dashboard-announcement-card {
+  margin-bottom: 0;
+}
+
+.dashboard-announcement-card .announcement-content {
+  margin-top: 0.45rem;
+  color: #3551b8;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.dashboard-modules-grid .dashboard-module-card {
+  min-height: 220px;
 }
 
 /* 
