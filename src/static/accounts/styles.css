@@ -2274,20 +2274,30 @@ Header / Footer - Final UI
 */
 
 .site-header {
+  background: var(--bg-header-footer);
+  color: var(--text-on-dark);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 1rem 1.25rem;
   align-items: center;
   padding: 0.9rem clamp(1rem, 2.4vw, 2rem);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  position: relative;
+  z-index: 10;
 }
 
 .site-footer {
+  background: var(--bg-header-footer);
+  color: var(--text-on-dark);
   padding: 1.85rem clamp(1rem, 2.4vw, 2rem) 1.75rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.6);
 }
 
 .header-left,
 .header-center,
 .header-right {
+  display: flex;
+  align-items: center;
   min-width: 0;
 }
 
@@ -2307,12 +2317,22 @@ Header / Footer - Final UI
   align-items: center;
 }
 
-.brand-logo {
-  max-height: 68px;
+.brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
 }
 
-.main-nav ul,
-.footer-nav ul {
+.brand-logo {
+  display: block;
+  width: auto;
+  max-height: 68px;
+  height: auto;
+}
+
+.nav-button-list,
+.footer-button-list {
+  list-style: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -2320,7 +2340,6 @@ Header / Footer - Final UI
   gap: 0.75rem;
   margin: 0;
   padding: 0;
-  list-style: none;
 }
 
 .site-nav-button,
@@ -2330,6 +2349,7 @@ Header / Footer - Final UI
   align-items: center;
   justify-content: center;
   min-height: 2.6rem;
+  min-width: 9.5rem;
   padding: 0.7rem 1rem;
   border-radius: 999px;
   border: 1px solid rgba(7, 22, 77, 0.14);
@@ -2340,6 +2360,7 @@ Header / Footer - Final UI
   letter-spacing: 0.01em;
   text-decoration: none;
   white-space: nowrap;
+  box-sizing: border-box;
   transition:
     transform 0.12s ease,
     background-color 0.18s ease,
@@ -2349,6 +2370,7 @@ Header / Footer - Final UI
 }
 
 .site-nav-button,
+.footer-nav .site-nav-button,
 .logout-button {
   background: #ffffff;
   color: #07164d;
@@ -2357,11 +2379,24 @@ Header / Footer - Final UI
 }
 
 .site-nav-button:hover,
+.footer-nav .site-nav-button:hover,
 .logout-button:hover {
-  background: #f7f9ff;
-  color: #07164d;
+  background: #ffffff;
+  color: #3551b8;
   text-decoration: none;
   transform: translateY(-1px);
+}
+
+.site-nav-button:visited,
+.footer-nav .site-nav-button:visited,
+.main-nav .site-nav-button:visited {
+  color: #07164d;
+}
+
+.site-nav-button:hover:visited,
+.footer-nav .site-nav-button:hover:visited,
+.main-nav .site-nav-button:hover:visited {
+  color: #3551b8;
 }
 
 .user-link,
@@ -2376,14 +2411,21 @@ Header / Footer - Final UI
   box-shadow: 0 4px 12px rgba(53, 81, 184, 0.22);
 }
 
-.user-chip:hover {
-  background: #2d46a2;
+.user-chip:hover,
+.user-chip:visited {
   color: #ffffff;
   text-decoration: none;
+}
+
+.user-chip:hover {
+  background: #2d46a2;
   transform: translateY(-1px);
 }
 
 .logout-button {
+  width: auto !important;
+  margin-top: 0 !important;
+  border: 1px solid rgba(7, 22, 77, 0.14);
   font: inherit;
 }
 
@@ -2400,10 +2442,12 @@ Header / Footer - Final UI
 }
 
 .notification-shell {
-  margin-right: 0.15rem;
+  position: relative;
+  margin-right: 0.25rem;
 }
 
 .notification-button {
+  position: relative;
   width: 2.6rem;
   height: 2.6rem;
   padding: 0;
@@ -2420,10 +2464,12 @@ Header / Footer - Final UI
 }
 
 .notification-bell {
+  line-height: 1;
   font-size: 1rem;
 }
 
 .footer-top {
+  display: flex;
   justify-content: center;
   margin-bottom: 1.35rem;
   padding-top: 0.35rem;
@@ -2436,6 +2482,7 @@ Header / Footer - Final UI
 }
 
 .footer-nav {
+  display: flex;
   justify-content: center;
 }
 
@@ -2469,10 +2516,6 @@ Responsive Rules - Final UI
   .header-right {
     grid-area: actions;
   }
-
-  .site-footer {
-    padding-top: 1.65rem;
-  }
 }
 
 @media (max-width: 640px) {
@@ -2497,8 +2540,8 @@ Responsive Rules - Final UI
     gap: 0.85rem;
   }
 
-  .main-nav ul,
-  .footer-nav ul {
+  .nav-button-list,
+  .footer-button-list {
     gap: 0.6rem;
   }
 
@@ -2506,6 +2549,7 @@ Responsive Rules - Final UI
   .user-chip,
   .logout-button {
     min-height: 2.45rem;
+    min-width: 8.75rem;
     padding: 0.65rem 0.9rem;
     font-size: 0.9rem;
   }
