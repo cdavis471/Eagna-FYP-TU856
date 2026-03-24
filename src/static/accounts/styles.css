@@ -1775,6 +1775,169 @@ Login Intro Splash Screen
   }
 }
 
+/*
+=========================
+Login Form - Final UI
+=========================
+*/
+
+.login-layout-shell {
+  min-height: calc(100vh - 180px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.login-card {
+  width: min(100%, 420px);
+  margin: 0 auto;
+  padding: 2rem 1.75rem;
+  border-radius: 1.15rem;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+}
+
+.login-form-title {
+  margin: 0 0 1.5rem;
+  text-align: center;
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 700;
+  color: #07164d;
+  letter-spacing: 0.01em;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-form-label {
+  color: #07164d;
+  font-weight: 700;
+  font-size: 0.98rem;
+  letter-spacing: 0.01em;
+}
+
+.login-page .auth-container .form-group {
+  margin-bottom: 0;
+}
+
+.login-page .auth-container input[type="text"],
+.login-page .auth-container input[type="email"],
+.login-page .auth-container input[type="password"] {
+  min-height: 52px;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid #c9d4f4;
+  background: #ffffff;
+  color: #07164d;
+  font-size: 1rem;
+  font-weight: 500;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.08s ease;
+}
+
+.login-page .auth-container input[type="text"]::placeholder,
+.login-page .auth-container input[type="email"]::placeholder,
+.login-page .auth-container input[type="password"]::placeholder {
+  color: #5d6f9d;
+  opacity: 1;
+}
+
+.login-page .auth-container input[type="text"]:focus,
+.login-page .auth-container input[type="email"]:focus,
+.login-page .auth-container input[type="password"]:focus {
+  outline: none;
+  border-color: #3551b8;
+  box-shadow: 0 0 0 4px rgba(53, 81, 184, 0.14);
+}
+
+.login-page .auth-container input:-webkit-autofill,
+.login-page .auth-container input:-webkit-autofill:hover,
+.login-page .auth-container input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #07164d;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.login-action-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.auth-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 50px;
+  padding: 0.85rem 1rem;
+  border: 0;
+  border-radius: 0.9rem;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.18s ease,
+    filter 0.18s ease;
+}
+
+.auth-action-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(0.98);
+}
+
+.auth-action-button--primary {
+  background: #07164d;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(7, 22, 77, 0.2);
+}
+
+.auth-action-button--primary:hover {
+  background: #061241;
+}
+
+.auth-action-button--secondary {
+  background: #3551b8;
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(53, 81, 184, 0.18);
+}
+
+.auth-action-button--secondary:hover {
+  background: #2d46a2;
+}
+
+.login-page .error-list {
+  margin: 0 0 1rem;
+}
+
+@media (max-width: 640px) {
+  .login-layout-shell {
+    padding: 1.5rem 0.75rem 2.5rem;
+  }
+
+  .login-card {
+    width: min(100%, 390px);
+    padding: 1.5rem 1.1rem;
+    border-radius: 1rem;
+  }
+
+  .login-form-title {
+    font-size: 1.75rem;
+    margin-bottom: 1.25rem;
+  }
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished
