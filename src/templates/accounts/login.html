@@ -20,7 +20,7 @@
 
   <div class="login-layout-shell">
     <div id="login-form-shell" class="auth-container auth-container--intro login-card" inert>
-      <h1 class="login-form-title">Login</h1>
+      <h1 class="login-form-title">WELCOME</h1>
 
       {% if form.errors %}
         <ul class="error-list">
@@ -36,22 +36,22 @@
         {% csrf_token %}
 
         <div class="form-group">
-          <label for="{{ form.username.id_for_label }}" class="login-form-label">Email</label>
+          <label for="{{ form.username.id_for_label }}" class="login-form-label">EMAIL</label>
           {{ form.username }}
         </div>
 
         <div class="form-group">
-          <label for="{{ form.password.id_for_label }}" class="login-form-label">Password</label>
+          <label for="{{ form.password.id_for_label }}" class="login-form-label">PASSWORD</label>
           {{ form.password }}
         </div>
 
         <div class="login-action-group">
           <button type="submit" class="auth-action-button auth-action-button--primary">
-            Login
+            LOGIN
           </button>
 
           <a href="{% url 'accounts:register' %}" class="auth-action-button auth-action-button--secondary">
-            Student Registration
+            STUDENT REGISTRATION
           </a>
         </div>
       </form>

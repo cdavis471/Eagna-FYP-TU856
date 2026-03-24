@@ -1938,6 +1938,51 @@ Login Form - Final UI
   }
 }
 
+.login-page .auth-container {
+  border-radius: 1.05rem;
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.32);
+}
+
+.login-page .auth-container h2 {
+  font-size: 1.75rem;
+  color: #07164d;
+}
+
+.login-page .form-group label {
+  color: #07164d;
+  font-weight: 700;
+}
+
+.login-page .form-group input[type="text"],
+.login-page .form-group input[type="password"],
+.login-page .form-group input[type="email"] {
+  border: 2px solid #07164d;
+  color: #07164d;
+}
+
+.login-page .form-group input[type="text"]:focus,
+.login-page .form-group input[type="password"]:focus,
+.login-page .form-group input[type="email"]:focus {
+  border-color: #3551b8;
+  box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
+  background-color: #ffffff;
+}
+
+.login-page .form-group input[type="text"]::placeholder,
+.login-page .form-group input[type="password"]::placeholder,
+.login-page .form-group input[type="email"]::placeholder {
+  color: #5d6f9d;
+}
+
+.login-page .form-group input:-webkit-autofill,
+.login-page .form-group input:-webkit-autofill:hover,
+.login-page .form-group input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #07164d;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished
