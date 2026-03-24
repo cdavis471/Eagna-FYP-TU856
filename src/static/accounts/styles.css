@@ -40,8 +40,8 @@ body {
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 400;
   background-color: var(--bg-main);   
   color: var(--text-on-dark);         
   display: flex;
@@ -2246,6 +2246,37 @@ Registration Form - Final UI
   .registration-form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/*
+===========================
+Font Adjustments - Final UI
+===========================
+*/
+
+h1, h2, h3,
+.auth-title,
+.registration-title {
+  font-weight: 800;
+}
+
+label,
+.form-label,
+.auth-subtitle {
+  font-weight: 600;
+}
+
+.auth-action-button,
+button {
+  font-family: inherit;
+  font-weight: 700;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-weight: 400;
 }
 
 /* 
