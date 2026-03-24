@@ -1609,6 +1609,193 @@ Announcements
   align-items: center;
 }
 
+/*
+=========================
+Login Intro Splash Screen
+=========================
+*/
+
+.login-page {
+  overflow-x: hidden;
+}
+
+.auth-container--intro {
+  position: relative;
+  z-index: 1;
+}
+
+.login-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.08), transparent 35%),
+    linear-gradient(180deg, #07164d 0%, #3551b8 100%);
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.65s ease,
+    visibility 0.65s ease;
+}
+
+.login-splash--hide {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.login-splash__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 22%),
+    radial-gradient(circle at 80% 25%, rgba(255, 255, 255, 0.05), transparent 24%),
+    radial-gradient(circle at 30% 80%, rgba(255, 255, 255, 0.05), transparent 26%);
+  animation: splashBgShift 3s ease-in-out forwards;
+}
+
+.login-splash__content {
+  position: relative;
+  z-index: 1;
+  width: min(78vw, 420px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.login-splash__ring {
+  position: absolute;
+  width: min(78vw, 360px);
+  height: min(78vw, 360px);
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 0 18px rgba(255, 255, 255, 0.03),
+    0 0 80px rgba(255, 255, 255, 0.10);
+  animation: splashRingPulse 2.2s ease-in-out 0.3s both;
+}
+
+.login-splash__logo {
+  position: relative;
+  z-index: 2;
+  width: min(68vw, 280px);
+  height: auto;
+  display: block;
+  filter:
+    drop-shadow(0 0 14px rgba(255, 255, 255, 0.20))
+    drop-shadow(0 0 34px rgba(255, 255, 255, 0.10));
+  opacity: 0;
+  transform: scale(0.92);
+  animation: splashLogoReveal 1.15s ease-out 0.2s forwards;
+}
+
+.login-splash__glow-line {
+  width: min(60vw, 220px);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  opacity: 0;
+  transform: scaleX(0.4);
+  animation: splashLineReveal 0.8s ease-out 1s forwards;
+}
+
+.login-splash__tagline {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: splashTaglineReveal 0.85s ease-out 1.25s forwards;
+}
+
+@keyframes splashLogoReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.92) translateY(10px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.02) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes splashLineReveal {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.4);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes splashTaglineReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes splashRingPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashBgShift {
+  0% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .login-splash__content {
+    width: min(86vw, 320px);
+  }
+
+  .login-splash__logo {
+    width: min(72vw, 220px);
+  }
+
+  .login-splash__tagline {
+    font-size: 0.85rem;
+  }
+}
+
 /* 
 ===============================
 Responsive Tweaks - Unfinished

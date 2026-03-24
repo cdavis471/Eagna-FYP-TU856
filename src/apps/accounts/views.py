@@ -1339,6 +1339,7 @@ def _validate_announcement_form(request):
 
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
+    redirect_authenticated_user = True  # If a user is already authenticated, they will be redirected to the success URL instead of seeing the login form again
 
     def get_success_url(self):  # Overrides method to control where a user is redirected after successful login
         # Redirect based on role
@@ -1542,6 +1543,7 @@ def dashboard(request):
             "nav_items": nav_items,
             "modules": modules_qs,
             "ungraded_submissions": ungraded_submissions_qs,
+            "global_announcements": _recent_global_announcements(),
         }
 
     else:

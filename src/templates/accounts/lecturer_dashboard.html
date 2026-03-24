@@ -87,6 +87,20 @@
       <p class="muted">No modules are currently assigned.</p>
     {% endif %}
   </section>
+  <section class="dashboard-section">
+    <h2 class="section-title">Global Announcements</h2>
+    {% if global_announcements %}
+      {% for announcement in global_announcements %}
+        <div class="announcement-card">
+          <h3 class="card-title">{{ announcement.title }}</h3>
+          <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
+          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No global announcements have been posted yet.</p>
+    {% endif %}
+  </section>
 </div>
 <!-- End of the main content block for this template -->
 {% endblock %}

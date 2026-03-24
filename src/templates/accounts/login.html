@@ -1,58 +1,74 @@
-<!-- Extend the shared base template used for all accounts-related pages -->
 {% extends "accounts/base.html" %}
+{% load static %}
 
-<!-- Set the page title that will appear in the browser tab -->
 {% block title %}Login | Eagna{% endblock %}
+{% block body_class %}login-page{% endblock %}
 
-<!-- Begin the main content section that will be injected into the base template -->
 {% block content %}
-  <!-- Container that visually wraps the authentication form content -->
-  <div class="auth-container">
-    <!-- Heading text shown at the top of the login form -->
+  <div id="login-splash" class="login-splash" aria-hidden="true">
+    <div class="login-splash__bg"></div>
+
+    <div class="login-splash__content">
+      <div class="login-splash__ring"></div>
+
+      <img
+        src="{% static 'accounts/logos/eagna-logo-white-condensed.png' %}"
+        alt="Eagna"
+        class="login-splash__logo">
+
+      <div class="login-splash__glow-line"></div>
+
+      <p class="login-splash__tagline">
+        A faster, more accessible student portal
+      </p>
+    </div>
+  </div>
+
+  <div class="auth-container auth-container--intro">
     <h2>Login</h2>
 
-    <!-- Check if the Django form object has any validation errors -->
     {% if form.errors %}
-      <!-- Unordered list used to display one or more error messages -->
       <ul class="error-list">
-        <!-- Loop through each field and its associated list of errors -->
         {% for field, errors in form.errors.items %}
-          <!-- Loop through each individual error message for this field -->
           {% for error in errors %}
-            <!-- List item containing a single error message -->
             <li>{{ error }}</li>
           {% endfor %}
         {% endfor %}
       </ul>
     {% endif %}
 
-    <!-- Form used to submit login credentials to the login URL -->
     <form method="post" action="{% url 'accounts:login' %}">
-      <!-- CSRF token required by Django to protect against cross-site request forgery -->
       {% csrf_token %}
 
-      <!-- Grouping container for the username/email input and its label -->
       <div class="form-group">
-        <!-- Label associated with the username field, displayed as 'Email' -->
         <label for="{{ form.username.id_for_label }}">Email</label>
-        <!-- Render the Django form field for the username (email) input -->
         {{ form.username }}
       </div>
 
-      <!-- Grouping container for the password input and its label -->
       <div class="form-group">
-        <!-- Label associated with the password input field -->
         <label for="{{ form.password.id_for_label }}">Password</label>
-        <!-- Render the Django form field for the password input -->
         {{ form.password }}
       </div>
 
-      <!-- Submit button that triggers the login form POST request -->
       <button type="submit">Login</button>
-      <!-- Button that triggers the registration page navigation -->
       <a href="{% url 'accounts:register' %}" class="auth-button">Student Registration</a>
     </form>
   </div>
-<!-- End of the main content block for this template -->
 {% endblock %}
 
+{% block extra_scripts %}
+<script>
+  (function () {
+    const splash = document.getElementById("login-splash");
+    if (!splash) return;
+
+    window.setTimeout(function () {
+      splash.classList.add("login-splash--hide");
+    }, 2800);
+
+    window.setTimeout(function () {
+      splash.remove();
+    }, 3600);
+  })();
+</script>
+{% endblock %}
