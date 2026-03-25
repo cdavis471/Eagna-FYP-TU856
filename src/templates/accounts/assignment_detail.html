@@ -10,80 +10,84 @@
 <div class="dashboard-container assessment-detail-page assignment-detail-page">
   <!-- Section containing assignment overview and materials -->
   <section class="dashboard-section">
-    <!-- Main heading showing assignment title and module information -->
-    <div class="assessment-card-topline assessment-detail-header">
-      <div>
-        <h1 class="section-title">{{ assignment.title }}</h1>
-        <p class="muted">{{ module.code }} – {{ module.title }}</p>
+    <div class="assessment-hero-card">
+      <div class="assessment-detail-header">
+        <div>
+          <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <h1 class="section-title">{{ assignment.title }}</h1>
+        </div>
+
+        <span class="assessment-badge assignment">Assignment</span>
       </div>
 
-      <span class="assessment-badge assignment">Assignment</span>
-    </div>
+      <div class="assessment-meta-grid">
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Due</span>
+          <span class="assessment-meta-value">{{ assignment.due_datetime|date:"Y-m-d H:i" }}</span>
+        </div>
 
-    <p class="muted">
-      Due: {{ assignment.due_datetime|date:"Y-m-d H:i" }} · Max mark: {{ assignment.max_mark }}
-    </p>
-
-    <!-- Only show the description block if the assignment has descriptive text -->
-    {% if assignment.description %}
-      <!-- Block containing the assignment description -->
-      <div class="week-block">
-        <!-- Subheading for the description section -->
-        <h3 class="week-title">Description</h3>
-        <!-- Paragraph showing the full assignment description -->
-        <p class="week-description-text">{{ assignment.description }}</p>
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Percentage of Module</span>
+          <span class="assessment-meta-value">{{ assignment.max_mark }}%</span>
+        </div>
       </div>
-    {% endif %}
 
-    <!-- Only show assignment materials if any files are attached -->
-    {% if assignment.files.all %}
-      <!-- Block containing the list of assignment resource files -->
-      <div class="week-block">
-        <!-- Subheading for assignment materials -->
-        <h3 class="week-title">Assignment Materials</h3>
-        <!-- Unordered list of attached assignment files -->
-        <ul class="week-files">
-          <!-- Loop through each file associated with the assignment -->
-          {% for f in assignment.files.all %}
-            <li class="week-file-item">
-              <a href="{{ f.file.url }}" target="_blank">
-                {{ f.original_name|default:f.file.name }}
-              </a>
+      {% if assignment.description %}
+        <div class="assessment-surface">
+          <h3 class="week-title">Description</h3>
+          <p class="assessment-body-text">{{ assignment.description }}</p>
+        </div>
+      {% endif %}
 
-              <span class="week-file-meta">
-                (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
-              </span>
+      {% if assignment.files.all %}
+        <div class="assessment-surface">
+          <h3 class="week-title">Assignment Materials</h3>
 
-              {% if f.parsed_document %}
-                {% if f.parsed_document.parser_status == "READY" %}
-                  <span class="status-badge ready">Ready</span>
+          <ul class="assessment-file-list">
+            {% for f in assignment.files.all %}
+              <li class="assessment-file-row">
+                <div class="assessment-file-main">
+                  <a href="{{ f.file.url }}" target="_blank" class="assessment-file-name">
+                    {{ f.original_name|default:f.file.name }}
+                  </a>
 
-                  <button type="button"
-                          class="small-button"
-                          hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
-                          hx-target="#parsed-modal-body"
-                          hx-swap="innerHTML">
-                    View parsed version
-                  </button>
+                  <span class="week-file-meta">
+                    (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                  </span>
+                </div>
 
-                  {% if role == "lecturer" and f.parsed_document.images.all %}
-                    <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}"
-                      class="small-button">
-                      Edit image descriptions
-                    </a>
+                <div class="assessment-action-row">
+                  {% if f.parsed_document %}
+                    {% if f.parsed_document.parser_status == "READY" %}
+                      <span class="status-badge ready">Ready</span>
+
+                      <button type="button"
+                              class="small-button"
+                              hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
+                              hx-target="#parsed-modal-body"
+                              hx-swap="innerHTML">
+                        View
+                      </button>
+
+                      {% if role == "lecturer" and f.parsed_document.images.all %}
+                        <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}"
+                          class="small-button">
+                          Edit Image Descriptions
+                        </a>
+                      {% endif %}
+                    {% elif f.parsed_document.parser_status == "PROCESSING" %}
+                      <span class="status-badge processing">Processing</span>
+                    {% elif f.parsed_document.parser_status == "FAILED" %}
+                      <span class="status-badge failed">Failed</span>
+                    {% endif %}
                   {% endif %}
-
-                {% elif f.parsed_document.parser_status == "PROCESSING" %}
-                  <span class="status-badge processing">Processing</span>
-                {% elif f.parsed_document.parser_status == "FAILED" %}
-                  <span class="status-badge failed">Failed</span>
-                {% endif %}
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </div>
-    {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+    </div>
   </section>
 
   <!-- Branch for the student-facing view of this assignment -->
@@ -91,80 +95,65 @@
     <!-- Section where a student can view and manage their submission -->
     <!-- Student submission area -->
     <section class="dashboard-section">
-      <!-- Heading for the student's submission information -->
       <h2 class="section-title">Your Submission</h2>
 
-      <!-- If the student already has a submission, show its details -->
-      {% if submission %}
-        <!-- Block displaying the current submission status, files, and grade -->
-        <div class="week-block">
-          <!-- Basic metadata about the submission -->
-          <p class="card-meta">
-            Status: {{ submission.get_status_display }}<br>
-            Submitted: {{ submission.submitted_at|date:"Y-m-d H:i" }}
-          </p>
+      <div class="assessment-detail-grid">
+        <div class="assessment-surface">
+          <h3 class="week-title">Current Submission</h3>
 
-          <!-- Show submitted files only if any exist for this submission -->
-          {% if submission.files.all %}
-            <!-- Subheading for the student's submitted files -->
-            <h4 class="week-files-title">Submitted files</h4>
-            <!-- Unordered list of files the student has uploaded -->
-            <ul class="week-files">
-              <!-- Loop through each file belonging to the submission -->
-              {% for f in submission.files.all %}
-                <!-- Single list item representing one submitted file -->
-                <li>
-                  <!-- Link to open or download the file -->
-                  <a href="{{ f.file.url }}" target="_blank">
-                    {{ f.original_name|default:f.file.name }}
-                  </a>
-                  <!-- Metadata showing when the file was uploaded -->
-                  <span class="week-file-meta">
-                    (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
-                  </span>
-                </li>
-              {% endfor %}
-            </ul>
-          {% endif %}
-
-          <!-- If a grade has been recorded, show the mark and any feedback -->
-          {% if submission.grade %}
-            <!-- Subheading for the grade information -->
-            <h4 class="week-files-title">Grade</h4>
-            <!-- Paragraph containing mark and optional feedback -->
+          {% if submission %}
             <p class="card-meta">
-              Mark: {{ submission.grade.value }} / {{ assignment.max_mark }}<br>
-              {% if submission.grade.feedback_text %}
-                Feedback: {{ submission.grade.feedback_text }}
-              {% endif %}
+              Status: {{ submission.get_status_display }}<br>
+              Submitted: {{ submission.submitted_at|date:"Y-m-d H:i" }}
             </p>
+
+            {% if submission.files.all %}
+              <h4 class="week-files-title">Submitted files</h4>
+              <ul class="week-files">
+                {% for f in submission.files.all %}
+                  <li>
+                    <a href="{{ f.file.url }}" target="_blank">
+                      {{ f.original_name|default:f.file.name }}
+                    </a>
+                    <span class="week-file-meta">
+                      (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+
+            {% if submission.grade %}
+              <h4 class="week-files-title">Grade</h4>
+              <p class="card-meta">
+                Mark: {{ submission.grade.value }} / {{ assignment.max_mark }}<br>
+                {% if submission.grade.feedback_text %}
+                  Feedback: {{ submission.grade.feedback_text }}
+                {% endif %}
+              </p>
+            {% endif %}
+          {% else %}
+            <p class="muted">You have not submitted this assignment yet.</p>
           {% endif %}
         </div>
-      {% else %}
-        <!-- Message shown if the student has not yet submitted anything -->
-        <p class="muted">You have not submitted this assignment yet.</p>
-      {% endif %}
 
-      <!-- Block containing the upload form for student submissions -->
-      <div class="week-block">
-        <!-- Subheading introducing the submission form -->
-        <h3 class="week-title">Submit work</h3>
-        <!-- Form allowing a student to upload one or more files for this assignment -->
-        <form method="post"
-              action="{% url 'accounts:submit_assignment' module.code assignment.id %}"
-              enctype="multipart/form-data"
-              class="week-upload-form">
-          <!-- CSRF token required for secure POST requests -->
-          {% csrf_token %}
-          <!-- Informational text describing how new uploads affect the submission -->
-          <p class="muted" style="font-size: 0.85rem;">
-            Upload one or more files. New uploads will be added to your submission and update the submitted time.
-          </p>
-          <!-- File input that supports selecting multiple files -->
-          <input type="file" name="files" multiple class="week-upload-input">
-          <!-- Submit button to upload or re-upload submission files -->
-          <button type="submit" class="small-button">Submit / Upload</button>
-        </form>
+        <div class="assessment-surface">
+          <h3 class="week-title">Submit Work</h3>
+
+          <form method="post"
+                action="{% url 'accounts:submit_assignment' module.code assignment.id %}"
+                enctype="multipart/form-data"
+                class="week-upload-form">
+            {% csrf_token %}
+
+            <p class="muted">
+              Upload one or more files. New uploads will be added to your submission and update the submitted time.
+            </p>
+
+            <input type="file" name="files" multiple class="week-upload-input">
+            <button type="submit" class="small-button">Submit / Upload</button>
+          </form>
+        </div>
       </div>
     </section>
 
@@ -173,76 +162,61 @@
     <!-- Section listing all student submissions for this assignment -->
     <!-- Lecturer submissions list -->
     <section class="dashboard-section">
-      <!-- Heading for the list of student submissions -->
       <h2 class="section-title">Student Submissions</h2>
 
-      <!-- Only show submission blocks if at least one student has submitted -->
       {% if submissions %}
-        <!-- Loop over each student submission for this assignment -->
-        {% for s in submissions %}
-          <!-- Block showing details for a single student's submission -->
-          <div class="week-block">
-            <!-- Subheading displaying the student's name or username -->
-            <h3 class="week-title">
-              {{ s.student.user.get_full_name|default:s.student.user.username }}
-            </h3>
-            <!-- Basic metadata about the submission status and time -->
-            <p class="card-meta">
-              Status: {{ s.get_status_display }}<br>
-              Submitted: {{ s.submitted_at|date:"Y-m-d H:i" }}
-            </p>
+        <div class="assessment-submissions-grid">
+          {% for s in submissions %}
+            <div class="assessment-surface assessment-submission-card">
+              <h3 class="week-title">
+                {{ s.student.user.get_full_name|default:s.student.user.username }}
+              </h3>
 
-            <!-- Show files only if the student has uploaded any -->
-            {% if s.files.all %}
-              <!-- Subheading for the list of submitted files -->
-              <h4 class="week-files-title">Files</h4>
-              <!-- Unordered list of the student's submitted files -->
-              <ul class="week-files">
-                <!-- Loop through each file in this submission -->
-                {% for f in s.files.all %}
-                  <!-- List item representing one file -->
-                  <li>
-                    <!-- Link to open or download the file in a new tab -->
-                    <a href="{{ f.file.url }}" target="_blank">
-                      {{ f.original_name|default:f.file.name }}
-                    </a>
-                    <!-- Metadata showing upload time for this file -->
-                    <span class="week-file-meta">
-                      (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
-                    </span>
-                  </li>
-                {% endfor %}
-              </ul>
-            {% else %}
-              <!-- Message when a submission exists but contains no files -->
-              <p class="muted">No files uploaded yet.</p>
-            {% endif %}
-
-            <!-- If a grade already exists, show it and provide a link to edit -->
-            {% if s.grade %}
-              <!-- Paragraph showing the current grade and optional feedback -->
               <p class="card-meta">
-                Grade: {{ s.grade.value }} / {{ assignment.max_mark }}<br>
-                {% if s.grade.feedback_text %}
-                  Feedback: {{ s.grade.feedback_text }}
-                {% endif %}
+                Status: {{ s.get_status_display }}<br>
+                Submitted: {{ s.submitted_at|date:"Y-m-d H:i" }}
               </p>
-              <!-- Button-style link allowing the lecturer to edit this grade -->
-              <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
-                 class="small-button">
-                Edit grade
-              </a>
-            {% else %}
-              <!-- Button-style link allowing the lecturer to add a new grade -->
-              <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
-                 class="small-button">
-                Add grade
-              </a>
-            {% endif %}
-          </div>
-        {% endfor %}
+
+              {% if s.files.all %}
+                <h4 class="week-files-title">Files</h4>
+                <ul class="week-files">
+                  {% for f in s.files.all %}
+                    <li>
+                      <a href="{{ f.file.url }}" target="_blank">
+                        {{ f.original_name|default:f.file.name }}
+                      </a>
+                      <span class="week-file-meta">
+                        (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                      </span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="muted">No files uploaded yet.</p>
+              {% endif %}
+
+              {% if s.grade %}
+                <p class="card-meta">
+                  Grade: {{ s.grade.value }} / {{ assignment.max_mark }}<br>
+                  {% if s.grade.feedback_text %}
+                    Feedback: {{ s.grade.feedback_text }}
+                  {% endif %}
+                </p>
+
+                <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
+                  class="small-button">
+                  Edit grade
+                </a>
+              {% else %}
+                <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
+                  class="small-button">
+                  Add grade
+                </a>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
       {% else %}
-        <!-- Message shown if no student has submitted this assignment yet -->
         <p class="muted">No submissions yet for this assignment.</p>
       {% endif %}
     </section>

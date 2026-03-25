@@ -5,38 +5,48 @@
 {% block content %}
 <div class="dashboard-container assessment-detail-page quiz-detail-page">
   <section class="dashboard-section">
-    <div class="assessment-card-topline assessment-detail-header">
-      <div>
-        <h1 class="section-title">{{ quiz.title }}</h1>
-        <p class="muted">{{ module.code }} – {{ module.title }}</p>
-      </div>
-      <span class="assessment-badge quiz">Quiz</span>
-    </div>
+    <div class="assessment-hero-card">
+      <div class="assessment-detail-header">
+        <div>
+          <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <h1 class="section-title">{{ quiz.title }}</h1>
+        </div>
 
-    {% if quiz.description %}
-      <p class="week-description-text">{{ quiz.description }}</p>
-    {% endif %}
+        <span class="assessment-badge quiz">Quiz</span>
+      </div>
 
-    <div class="quiz-meta-grid">
-      <div class="quiz-meta-card">
-        <strong>Opens</strong>
-        <span>{{ quiz.open_datetime|date:"Y-m-d H:i" }}</span>
-      </div>
-      <div class="quiz-meta-card">
-        <strong>Closes</strong>
-        <span>{{ quiz.close_datetime|date:"Y-m-d H:i" }}</span>
-      </div>
-      <div class="quiz-meta-card">
-        <strong>Time limit</strong>
-        <span>{{ quiz.time_limit_minutes }} minutes</span>
-      </div>
-      <div class="quiz-meta-card">
-        <strong>Attempts allowed</strong>
-        <span>{{ quiz.max_attempts }}</span>
-      </div>
-      <div class="quiz-meta-card">
-        <strong>Max mark</strong>
-        <span>{{ quiz.max_mark }}</span>
+      {% if quiz.description %}
+        <div class="assessment-surface">
+          <h3 class="week-title">Description</h3>
+          <p class="assessment-body-text">{{ quiz.description }}</p>
+        </div>
+      {% endif %}
+
+      <div class="assessment-meta-grid">
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Opens</span>
+          <span class="assessment-meta-value">{{ quiz.open_datetime|date:"Y-m-d H:i" }}</span>
+        </div>
+
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Closes</span>
+          <span class="assessment-meta-value">{{ quiz.close_datetime|date:"Y-m-d H:i" }}</span>
+        </div>
+
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Time limit</span>
+          <span class="assessment-meta-value">{{ quiz.time_limit_minutes }} minutes</span>
+        </div>
+
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Attempts allowed</span>
+          <span class="assessment-meta-value">{{ quiz.max_attempts }}</span>
+        </div>
+
+        <div class="assessment-meta-card">
+          <span class="assessment-meta-label">Max mark</span>
+          <span class="assessment-meta-value">{{ quiz.max_mark }}</span>
+        </div>
       </div>
     </div>
   </section>
@@ -44,26 +54,27 @@
   {% if role == "lecturer" %}
     <section class="dashboard-section">
       <h2 class="section-title">Questions</h2>
+      <div class="quiz-question-stack">
+        {% for row in question_rows %}
+          <div class="quiz-question-editor">
+            <h3 class="card-title">Question {{ row.number }}</h3>
+            <p class="card-meta">{{ row.prompt }}</p>
+            <p class="card-meta">Type: {{ row.question_type }}</p>
+            <p class="card-meta">Marks: {{ row.marks }}</p>
 
-      {% for row in question_rows %}
-        <div class="quiz-question-editor">
-          <h3 class="card-title">Question {{ row.number }}</h3>
-          <p class="card-meta">{{ row.prompt }}</p>
-          <p class="card-meta">Type: {{ row.question_type }}</p>
-          <p class="card-meta">Marks: {{ row.marks }}</p>
-
-          <ul class="week-files">
-            {% for option in row.options %}
-              <li>
-                {{ option.text }}
-                {% if option.is_correct %}
-                  <strong>(correct)</strong>
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endfor %}
+            <ul class="week-files">
+              {% for option in row.options %}
+                <li>
+                  {{ option.text }}
+                  {% if option.is_correct %}
+                    <strong>(correct)</strong>
+                  {% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endfor %}
+      </div>
     </section>
 
     <section class="dashboard-section">
@@ -265,58 +276,62 @@
 
       <section class="dashboard-section">
         <h2 class="section-title">Question Review</h2>
+        <div class="quiz-question-stack">
+          {% for row in question_rows %}
+            <div class="quiz-question-editor">
+              <h3 class="card-title">Question {{ row.number }}</h3>
+              <p class="card-meta">{{ row.prompt }}</p>
+              <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
+              <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
+              <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
 
-        {% for row in question_rows %}
-          <div class="quiz-question-editor">
-            <h3 class="card-title">Question {{ row.number }}</h3>
-            <p class="card-meta">{{ row.prompt }}</p>
-            <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
-            <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
-            <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
-
-            <ul class="week-files">
-              {% for option in row.options %}
-                <li>
-                  {{ option.text }}
-                  {% if option.selected %}
-                    <strong>(your choice)</strong>
-                  {% endif %}
-                  {% if option.is_correct %}
-                    <strong>(correct)</strong>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
-          </div>
-        {% endfor %}
+              <ul class="week-files">
+                {% for option in row.options %}
+                  <li>
+                    {{ option.text }}
+                    {% if option.selected %}
+                      <strong>(your choice)</strong>
+                    {% endif %}
+                    {% if option.is_correct %}
+                      <strong>(correct)</strong>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+        </div>
       </section>
 
     {% else %}
       <section class="dashboard-section">
         <h2 class="section-title">Quiz Availability</h2>
-        <p class="muted">
-          Questions will only become visible after you begin an attempt.
-        </p>
 
-        <p class="card-meta">
-          Attempts used: {{ state.attempts_used }} / {{ quiz.max_attempts }}
-        </p>
+        <div class="assessment-surface assessment-availability-card">
+          <p class="muted">
+            Questions will only become visible after you begin an attempt.
+          </p>
 
-        <p class="card-meta">
-          Status:
-          <span class="assessment-status{% if state.status_label == 'Closed' or state.status_label == 'Submitted' %} assessment-status--dark{% elif state.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
-            {{ state.status_label }}
-          </span>
-        </p>
+          <p class="card-meta">
+            Attempts used: {{ state.attempts_used }} / {{ quiz.max_attempts }}
+          </p>
 
-        {% if can_start_attempt %}
-          <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
-            {% csrf_token %}
-            <button type="submit" class="small-button">Start quiz</button>
-          </form>
-        {% else %}
-          <p class="muted">This quiz is not currently available to start.</p>
-        {% endif %}
+          <p class="card-meta">
+            Status:
+            <span class="assessment-status{% if state.status_label == 'Closed' or state.status_label == 'Submitted' %} assessment-status--dark{% elif state.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+              {{ state.status_label }}
+            </span>
+          </p>
+
+          {% if can_start_attempt %}
+            <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+              {% csrf_token %}
+              <button type="submit" class="small-button">Start quiz</button>
+            </form>
+          {% else %}
+            <p class="muted">This quiz is not currently available to start.</p>
+          {% endif %}
+        </div>
       </section>
     {% endif %}
   {% endif %}

@@ -569,26 +569,38 @@ Weekly Resources / Academic Calendar
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0.45rem 0.95rem;
-  border-radius: 0.7rem;
-  border: none;
-  background: var(--tertiary); 
-  color: var(--text-on-dark);       
-  font-size: 0.85rem;
-  font-weight: 500;
+  min-height: 2.45rem;
+  padding: 0.68rem 1rem;
+  border-radius: 0.85rem;
+  border: 2px solid #07164d;
+  background: #07164d;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 0.94rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+  box-shadow: 0 6px 16px rgba(7, 22, 77, 0.18);
   transition:
-    background-color 0.1s ease,
-    box-shadow 0.1s ease,
-    transform 0.05s ease;
+    background-color 0.12s ease,
+    box-shadow 0.12s ease,
+    transform 0.08s ease,
+    border-color 0.12s ease;
 }
 
 .small-button:hover {
-  box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
+  background: #3551b8;
+  border-color: #07164d;
+  box-shadow: 0 10px 22px rgba(7, 22, 77, 0.2);
   transform: translateY(-1px);
-  opacity: 0.95;
+  opacity: 1;
+}
+
+button.small-button {
+  width: auto;
+  margin-top: 0;
 }
 
 /*
@@ -2563,9 +2575,9 @@ Module Detail - Final UI
 }
 
 /* 
-====================================
+======================================
 Shared Assessment / Surface - Final UI
-====================================
+======================================
 */
 
 .assessment-badge {
@@ -2737,6 +2749,208 @@ Shared Assessment / Surface - Final UI
 }
 
 /* 
+================================
+Assessment Detail Pages - Final UI
+================================
+*/
+
+.assessment-detail-page .dashboard-section {
+  margin-bottom: 1.4rem;
+}
+
+.assessment-hero-card,
+.assessment-surface {
+  background: #ffffff;
+  color: #07164d;
+  border: 2px solid #07164d;
+  border-radius: 1rem;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+  padding: 1.15rem 1.2rem;
+}
+
+.assessment-hero-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.assessment-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.assessment-detail-kicker {
+  margin-bottom: 0.35rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #3551b8;
+}
+
+.assessment-detail-page .section-title {
+  margin: 0;
+  color: #07164d;
+  font-size: 2rem;
+  line-height: 1.08;
+}
+
+.assessment-detail-page .muted {
+  color: #3551b8;
+}
+
+.assessment-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.assessment-meta-card {
+  background: #ffffff;
+  border: 2px solid #07164d;
+  border-radius: 0.9rem;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.1);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.assessment-meta-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #3551b8;
+}
+
+.assessment-meta-value {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #07164d;
+}
+
+.assessment-body-text {
+  margin: 0;
+  color: #3551b8;
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.assessment-detail-grid,
+.assessment-submissions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.assessment-submission-card {
+  height: 100%;
+}
+
+.assessment-detail-page .week-title {
+  margin: 0 0 0.5rem;
+  color: #07164d;
+}
+
+.assessment-detail-page .week-files-title,
+.assessment-detail-page .card-meta,
+.assessment-detail-page .week-label,
+.assessment-detail-page .week-description-text {
+  color: #3551b8;
+  font-weight: 600;
+}
+
+.assessment-detail-page .week-block,
+.assessment-detail-page .quiz-meta-card,
+.assessment-detail-page .quiz-question-editor {
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
+
+.assessment-detail-page .quiz-meta-card strong,
+.assessment-detail-page .quiz-question-editor .card-title,
+.assessment-detail-page .quiz-question-editor legend {
+  color: #07164d;
+}
+
+.assessment-detail-page .quiz-meta-card span,
+.assessment-detail-page .quiz-question-editor .card-meta,
+.assessment-detail-page .quiz-option-row,
+.assessment-detail-page .quiz-fill-preview {
+  color: #3551b8;
+}
+
+.assessment-file-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.15rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.assessment-file-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  padding: 0.8rem 0.9rem;
+  border: 1px solid rgba(7, 22, 77, 0.12);
+  border-radius: 0.85rem;
+  background: #f8fbff;
+}
+
+.assessment-file-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+}
+
+.assessment-file-name {
+  color: #07164d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.assessment-file-name:hover {
+  text-decoration: underline;
+}
+
+.assessment-action-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.assessment-detail-page .week-file-meta {
+  color: #3551b8;
+  font-style: italic;
+  margin-left: 0;
+}
+
+.quiz-question-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.assessment-detail-page .quiz-timer-banner {
+  background: #eef3ff;
+  color: #07164d;
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
+
+.assessment-availability-card {
+  max-width: 620px;
+}
+
+/* 
 ===========================
 Responsive Rules - Final UI
 ===========================
@@ -2792,6 +3006,17 @@ Responsive Rules - Final UI
 
   .quiz-meta-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 980px) {
+  .assessment-detail-grid,
+  .assessment-submissions-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .assessment-detail-page .section-title {
+    font-size: 1.8rem;
   }
 }
 
@@ -2891,5 +3116,38 @@ Responsive Rules - Final UI
 
   .profile-metric {
     align-self: flex-start;
+  }
+  .assessment-detail-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.85rem;
+  }
+
+  .assessment-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .assessment-file-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .assessment-action-row {
+    width: 100%;
+  }
+
+  .assessment-action-row .small-button,
+  .assessment-action-row .admin-inline-form,
+  .assessment-action-row .admin-inline-form .small-button {
+    width: 100%;
+  }
+
+  .assessment-detail-page .section-title {
+    font-size: 1.6rem;
+  }
+
+  .assessment-hero-card,
+  .assessment-surface {
+    padding: 1rem;
   }
 }

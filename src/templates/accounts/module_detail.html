@@ -281,7 +281,7 @@
                                 hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
                                 hx-target="#parsed-modal-body"
                                 hx-swap="innerHTML">
-                          View parsed version
+                          View
                         </button>
                       {% elif f.parsed_document.parser_status == "PROCESSING" %}
                         <span class="status-badge processing">Processing</span>
@@ -361,13 +361,13 @@
                                   hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
                                   hx-target="#parsed-modal-body"
                                   hx-swap="innerHTML">
-                            View parsed version
+                            View
                           </button>
 
                           {% if f.parsed_document.images.all %}
                             <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}"
                               class="small-button">
-                              Edit image descriptions
+                              Edit Image Descriptions
                             </a>
                           {% endif %}
 
@@ -397,7 +397,7 @@
               <!-- File input allowing the lecturer to choose a document to upload -->
               <input type="file" name="file" class="week-upload-input" accept=".docx,.pptx">
               <!-- Button to submit the chosen file to be stored as a weekly resource -->
-              <button type="submit" class="small-button">Upload file</button>
+              <button type="submit" class="small-button">Upload File</button>
             </form>
           </div>
         {% endfor %}
