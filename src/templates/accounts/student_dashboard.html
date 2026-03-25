@@ -37,7 +37,7 @@
                 </p>
 
                 <p class="card-meta">
-                  Max mark: {{ item.max_mark }}
+                  Percentage of Module: {{ item.max_mark }}%
                 </p>
 
                 {% if item.detail_line %}
@@ -73,7 +73,7 @@
                 </p>
 
                 <p class="card-meta">
-                  Max mark: {{ item.max_mark }}
+                  Percentage of Module: {{ item.max_mark }}%
                 </p>
 
                 {% if item.detail_line %}
@@ -123,12 +123,12 @@
                 <!-- Check if there is at least one lecturer associated with this module -->
                 {% if m.lecturers.all %}
                   <!-- Label for the lecturer information -->
-                  Lecturer:
+                  Lecturer -
                   <!-- Show first lecturer's full name, or their username if no full name is set -->
                   {{ m.lecturers.first.user.get_full_name|default:m.lecturers.first.user.username }}
                 {% else %}
                   <!-- Fallback text indicating that a lecturer has not yet been assigned -->
-                  Lecturer: TBA
+                  Lecturer - TBA
                 {% endif %}
               </p>
             </article>

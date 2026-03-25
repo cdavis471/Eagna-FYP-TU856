@@ -27,19 +27,21 @@
   <!-- Branch into the student-specific view if the role is "student" -->
   {% if role == "student" %}
   <!-- Student view: list of assignments and quizzes for this module -->
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
     <h2 class="section-title">Assignments &amp; Quizzes</h2>
 
     {% if assessment_items %}
-      <div class="card-grid">
+      <div class="card-grid dashboard-cards-grid module-assessments-grid">
         {% for item in assessment_items %}
           {% if item.is_clickable %}
             <a href="{{ item.url }}" class="card-link-wrapper">
-              <article class="card card-clickable">
+              <article class="card card-clickable dashboard-card-panel module-assessment-card">
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
-                    <span class="assessment-status">{{ item.status_label }}</span>
+                    <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                      {{ item.status_label }}
+                    </span>
                   {% endif %}
                 </div>
 
@@ -72,11 +74,13 @@
             </a>
           {% else %}
             <div class="card-link-wrapper card-link-wrapper-disabled">
-              <article class="card card-disabled">
+              <article class="card card-disabled dashboard-card-panel module-assessment-card{% if item.status_label == 'Not open yet' %} module-assessment-card--locked{% endif %}">
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
-                    <span class="assessment-status">{{ item.status_label }}</span>
+                    <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                      {{ item.status_label }}
+                    </span>
                   {% endif %}
                 </div>
 
@@ -117,10 +121,10 @@
   <!-- Branch into the lecturer-specific view if the role is "lecturer" instead -->
   {% elif role == "lecturer" %}
   <!-- Lecturer view: assignments and quizzes with creation controls -->
-  <section class="dashboard-section">
-    <div style="display:flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+  <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
+    <div class="module-section-header">
       <h2 class="section-title">Assignments &amp; Quizzes</h2>
-      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+      <div class="module-section-actions">
         <a href="{% url 'accounts:create_assignment' module.code %}" class="small-button">
           + Create assignment
         </a>
@@ -131,14 +135,16 @@
     </div>
 
     {% if assessment_items %}
-      <div class="card-grid">
+      <div class="card-grid dashboard-cards-grid module-assessments-grid">
         {% for item in assessment_items %}
           <a href="{{ item.url }}" class="card-link-wrapper">
-            <article class="card card-clickable">
+            <article class="card card-clickable dashboard-card-panel module-assessment-card">
               <div class="assessment-card-topline">
                 <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                 {% if item.status_label %}
-                  <span class="assessment-status">{{ item.status_label }}</span>
+                  <span class="assessment-status{% if item.status_label == 'Closed' or item.status_label == 'Submitted' %} assessment-status--dark{% endif %}">
+                    {{ item.status_label }}
+                  </span>
                 {% endif %}
               </div>
 
@@ -176,20 +182,23 @@
     {% endif %}
   </section>
   {% endif %}
-  <section class="dashboard-section">
-    <div class="assessment-card-topline">
+  <section class="dashboard-section dashboard-card-section module-page-section module-announcements-section">
+    <div class="module-section-header">
       <h2 class="section-title">Module Announcements</h2>
 
       {% if role == "lecturer" %}
-        <a href="{% url 'accounts:create_module_announcement' module.code %}" class="small-button">
-          + Create Announcement
-        </a>
+        <div class="module-section-actions">
+          <a href="{% url 'accounts:create_module_announcement' module.code %}" class="small-button">
+            + Create Announcement
+          </a>
+        </div>
       {% endif %}
     </div>
 
     {% if module_announcements %}
-      {% for announcement in module_announcements %}
-        <div class="announcement-card">
+      <div class="card-grid dashboard-cards-grid module-announcements-grid">
+        {% for announcement in module_announcements %}
+          <article class="announcement-card dashboard-card-panel dashboard-announcement-card module-announcement-card">
           <div class="assessment-card-topline">
             <div>
               <h3 class="card-title">{{ announcement.title }}</h3>
@@ -219,15 +228,16 @@
           </div>
 
           <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
-        </div>
+          </article>
       {% endfor %}
+    </div>
     {% else %}
       <p class="muted">No module announcements have been posted yet.</p>
     {% endif %}
   </section>
   <!-- Section that displays weekly teaching resources / academic calendar view -->
   <!-- Weekly Resources / Academic Calendar -->
-  <section class="dashboard-section">
+  <section class="dashboard-section dashboard-card-section module-page-section module-calendar-section">
     <!-- Heading for the academic calendar and weekly resources area -->
     <h2 class="section-title">Academic Calendar</h2>
 
@@ -238,7 +248,7 @@
         <!-- Loop over each week object associated with this module -->
         {% for w in weeks %}
           <!-- Container for the information and materials for a single week -->
-          <div class="week-block">
+          <div class="week-block module-week-card">
             <!-- Week heading showing number -->
             <h3 class="week-title">
               <!-- Display the week number -->
@@ -299,7 +309,7 @@
         <!-- Loop through each week for which the lecturer can manage content -->
         {% for w in weeks %}
           <!-- Container grouping description, files, and upload controls for a week -->
-          <div class="week-block">
+          <div class="week-block module-week-card">
             <!-- Heading displaying the week number  -->
             <h3 class="week-title">
               <!-- Show week number -->

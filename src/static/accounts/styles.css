@@ -2473,6 +2473,96 @@ Dashboard Cards - Final UI
 }
 
 /* 
+========================
+Module Detail - Final UI
+========================
+*/
+
+.module-page-section .section-title {
+  margin-bottom: 1.1rem;
+}
+
+.module-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+}
+
+.module-section-header .section-title {
+  margin-bottom: 0;
+}
+
+.module-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.module-assessments-grid,
+.module-announcements-grid {
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.module-assessment-card {
+  min-height: 220px;
+}
+
+.module-assessments-section .module-assessment-card.card-disabled {
+  border-style: solid;
+}
+
+.module-assessments-section .module-assessment-card--locked {
+  border-style: dashed;
+}
+
+.module-assessment-card .assessment-badge.assignment {
+  background: #07164d;
+  color: #ffffff;
+}
+
+.module-assessment-card .assessment-badge.quiz {
+  background: #3551b8;
+  color: #ffffff;
+}
+
+.module-assessment-card .assessment-status--dark {
+  color: #07164d;
+}
+
+.module-assessment-card .assessment-status--upcoming {
+  background: transparent;
+  color: #3551b8;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.module-announcement-card {
+  margin-bottom: 0;
+}
+
+.module-announcement-card .announcement-content {
+  margin-top: 0.45rem;
+  color: #3551b8;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.module-calendar-section .module-week-card {
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
+
+.week-file-meta {
+  color: #07164d;
+  font-style: italic;
+}
+
+/* 
 ===========================
 Responsive Rules - Final UI
 ===========================
@@ -2513,6 +2603,10 @@ Responsive Rules - Final UI
 
   .nav-button-list {
     justify-content: center;
+  }
+
+  .module-section-header {
+    align-items: flex-start;
   }
 }
 
@@ -2563,5 +2657,26 @@ Responsive Rules - Final UI
   .auth-container {
     margin: 2.5rem 1rem;
     padding: 1.5rem 1.6rem;
+  }
+
+  .module-section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .module-section-actions,
+  .announcement-actions {
+    width: 100%;
+  }
+
+  .module-section-actions .small-button,
+  .announcement-actions .small-button,
+  .announcement-actions .admin-inline-form {
+    width: 100%;
+  }
+
+  .announcement-actions .admin-inline-form .small-button {
+    width: 100%;
   }
 }
