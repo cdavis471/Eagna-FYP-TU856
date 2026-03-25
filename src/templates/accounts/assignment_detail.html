@@ -10,7 +10,7 @@
 <div class="dashboard-container assessment-detail-page assignment-detail-page">
   <!-- Section containing assignment overview and materials -->
   <section class="dashboard-section">
-    <div class="assessment-hero-card">
+    <div class="assessment-hero-card assignment-overview-card">
       <div class="assessment-detail-header">
         <div>
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
@@ -20,32 +20,32 @@
         <span class="assessment-badge assignment">Assignment</span>
       </div>
 
-      <div class="assessment-meta-grid">
-        <div class="assessment-meta-card">
+      <div class="assessment-meta-grid assignment-overview-meta-grid">
+        <div class="assessment-meta-card assignment-overview-panel assignment-overview-meta-card">
           <span class="assessment-meta-label">Due</span>
           <span class="assessment-meta-value">{{ assignment.due_datetime|date:"Y-m-d H:i" }}</span>
         </div>
 
-        <div class="assessment-meta-card">
+        <div class="assessment-meta-card assignment-overview-panel assignment-overview-meta-card">
           <span class="assessment-meta-label">Percentage of Module</span>
           <span class="assessment-meta-value">{{ assignment.max_mark }}%</span>
         </div>
       </div>
 
       {% if assignment.description %}
-        <div class="assessment-surface">
+        <div class="assessment-surface assignment-overview-panel assignment-description-panel">
           <h3 class="week-title">Description</h3>
           <p class="assessment-body-text">{{ assignment.description }}</p>
         </div>
       {% endif %}
 
       {% if assignment.files.all %}
-        <div class="assessment-surface">
+        <div class="assessment-surface assignment-overview-panel assignment-materials-panel">
           <h3 class="week-title">Assignment Materials</h3>
 
-          <ul class="assessment-file-list">
+          <ul class="assessment-file-list assignment-materials-list">
             {% for f in assignment.files.all %}
-              <li class="assessment-file-row">
+              <li class="assessment-file-row assignment-material-row">
                 <div class="assessment-file-main">
                   <a href="{{ f.file.url }}" target="_blank" class="assessment-file-name">
                     {{ f.original_name|default:f.file.name }}

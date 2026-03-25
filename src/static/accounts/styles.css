@@ -2950,6 +2950,69 @@ Assessment Detail Pages - Final UI
   max-width: 620px;
 }
 
+.assignment-overview-card {
+  gap: 1.1rem;
+}
+
+.assignment-overview-meta-grid {
+  gap: 0.9rem;
+}
+
+.assignment-overview-panel {
+  border: 2px solid #3551b8;
+  background: #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.18);
+}
+
+.assignment-overview-meta-card {
+  gap: 0.3rem;
+}
+
+.assignment-overview-panel .assessment-meta-label,
+.assignment-overview-panel .week-title {
+  color: #3551b8;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.assignment-overview-panel .assessment-meta-value,
+.assignment-description-panel .assessment-body-text {
+  color: #ffffff;
+}
+
+.assignment-description-panel .assessment-body-text {
+  font-weight: 500;
+  line-height: 1.65;
+}
+
+.assignment-materials-panel {
+  background: #07164d;
+  border-color: #3551b8;
+}
+
+.assignment-materials-panel .week-title {
+  margin-bottom: 0.65rem;
+}
+
+.assignment-material-row {
+  background: #ffffff;
+  border: 2px solid #3551b8;
+  box-shadow: none;
+}
+
+.assignment-materials-panel .assessment-file-list {
+  margin-top: 0;
+}
+
+.assignment-materials-panel .assessment-file-name {
+  color: #07164d;
+}
+
+.assignment-materials-panel .week-file-meta {
+  color: #07164d;
+}
+
 /* 
 ===========================
 Responsive Rules - Final UI
