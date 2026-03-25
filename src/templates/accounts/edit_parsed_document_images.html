@@ -3,44 +3,80 @@
 {% block title %}Edit Image Descriptions – {{ module.code }} | Eagna{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="dashboard-container workflow-page parsed-image-edit-page">
   <section class="dashboard-section">
-    <h1 class="section-title">Edit Image Descriptions</h1>
-    <p class="muted">
-      File: {{ parsed_document.get_source_name }}
-    </p>
+    <div class="assessment-hero-card workflow-hero-card">
+      <div class="workflow-panel-header">
+        <div>
+          <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <h1 class="section-title">Edit Image Descriptions</h1>
+        </div>
 
-    {% if parsed_document.images.all %}
-      <form method="post" class="dashboard-section">
-        {% csrf_token %}
+        <a href="{% url 'accounts:module_detail' module.code %}" class="small-button">Back to module</a>
+      </div>
 
-        {% for image in parsed_document.images.all %}
-          <div class="week-block">
-            <h3 class="week-title">
-              {% if image.page_number %}
-                Page / Slide {{ image.page_number }}
-              {% else %}
-                Embedded image
-              {% endif %}
-            </h3>
-
-            <img src="{{ image.image.url }}"
-                 alt=""
-                 class="parsed-image-preview">
-
-            <label class="week-label" for="alt_{{ image.id }}">Alternative text</label>
-            <textarea id="alt_{{ image.id }}"
-                      name="alt_{{ image.id }}"
-                      rows="3"
-                      class="week-description-input">{{ image.alt_text }}</textarea>
-          </div>
-        {% endfor %}
-
-        <button type="submit">Save image descriptions</button>
-      </form>
-    {% else %}
-      <p class="muted">No extracted images were found for this document.</p>
-    {% endif %}
+      <div class="assessment-surface">
+        <h3 class="week-title">Source File</h3>
+        <p class="assessment-body-text">{{ parsed_document.get_source_name }}</p>
+      </div>
+    </div>
   </section>
+
+  {% if parsed_document.images.all %}
+    <form method="post">
+      {% csrf_token %}
+
+      <section class="dashboard-section">
+        <div class="assessment-surface workflow-panel-shell">
+          <div class="workflow-panel-header">
+            <div>
+              <div class="assessment-detail-kicker">Extracted Images</div>
+              <h2 class="workflow-panel-title">Review and<br>Describe</h2>
+            </div>
+
+            <p class="workflow-panel-subtitle">
+              Update the alternative text for each extracted image or slide preview below.
+            </p>
+          </div>
+
+          <div class="parsed-image-grid">
+            {% for image in parsed_document.images.all %}
+              <div class="assessment-surface parsed-image-card">
+                <h3 class="week-title">
+                  {% if image.page_number %}
+                    Page / Slide {{ image.page_number }}
+                  {% else %}
+                    Embedded image
+                  {% endif %}
+                </h3>
+
+                <img src="{{ image.image.url }}"
+                     alt=""
+                     class="parsed-image-preview">
+
+                <div>
+                  <label class="week-label" for="alt_{{ image.id }}">Alternative text</label>
+                  <textarea id="alt_{{ image.id }}"
+                            name="alt_{{ image.id }}"
+                            rows="3"
+                            class="week-description-input">{{ image.alt_text }}</textarea>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="workflow-submit-row">
+            <button type="submit" class="small-button">Save image descriptions</button>
+          </div>
+        </div>
+      </section>
+    </form>
+  {% else %}
+    <section class="dashboard-section">
+      <div class="assessment-surface workflow-form-card">
+        <p class="muted">No extracted images were found for this document.</p>
+      </div>
+    </section>
+  {% endif %}
 </div>
 {% endblock %}

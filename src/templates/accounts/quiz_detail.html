@@ -5,7 +5,7 @@
 {% block content %}
 <div class="dashboard-container assessment-detail-page quiz-detail-page">
   <section class="dashboard-section">
-    <div class="assessment-hero-card">
+    <div class="assessment-hero-card quiz-overview-card">
       <div class="assessment-detail-header">
         <div>
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
@@ -16,34 +16,34 @@
       </div>
 
       {% if quiz.description %}
-        <div class="assessment-surface">
+        <div class="assessment-surface quiz-overview-panel quiz-description-panel">
           <h3 class="week-title">Description</h3>
           <p class="assessment-body-text">{{ quiz.description }}</p>
         </div>
       {% endif %}
 
-      <div class="assessment-meta-grid">
-        <div class="assessment-meta-card">
+      <div class="assessment-meta-grid quiz-overview-meta-grid">
+        <div class="assessment-meta-card quiz-overview-panel">
           <span class="assessment-meta-label">Opens</span>
           <span class="assessment-meta-value">{{ quiz.open_datetime|date:"Y-m-d H:i" }}</span>
         </div>
 
-        <div class="assessment-meta-card">
+        <div class="assessment-meta-card quiz-overview-panel">
           <span class="assessment-meta-label">Closes</span>
           <span class="assessment-meta-value">{{ quiz.close_datetime|date:"Y-m-d H:i" }}</span>
         </div>
 
-        <div class="assessment-meta-card">
+        <div class="assessment-meta-card quiz-overview-panel">
           <span class="assessment-meta-label">Time limit</span>
           <span class="assessment-meta-value">{{ quiz.time_limit_minutes }} minutes</span>
         </div>
 
-        <div class="assessment-meta-card">
+        <div class="assessment-meta-card quiz-overview-panel">
           <span class="assessment-meta-label">Attempts allowed</span>
           <span class="assessment-meta-value">{{ quiz.max_attempts }}</span>
         </div>
 
-        <div class="assessment-meta-card">
+        <div class="assessment-meta-card quiz-overview-panel">
           <span class="assessment-meta-label">Max mark</span>
           <span class="assessment-meta-value">{{ quiz.max_mark }}</span>
         </div>
@@ -53,121 +53,162 @@
 
   {% if role == "lecturer" %}
     <section class="dashboard-section">
-      <h2 class="section-title">Questions</h2>
-      <div class="quiz-question-stack">
-        {% for row in question_rows %}
-          <div class="quiz-question-editor">
-            <h3 class="card-title">Question {{ row.number }}</h3>
-            <p class="card-meta">{{ row.prompt }}</p>
-            <p class="card-meta">Type: {{ row.question_type }}</p>
-            <p class="card-meta">Marks: {{ row.marks }}</p>
-
-            <ul class="week-files">
-              {% for option in row.options %}
-                <li>
-                  {{ option.text }}
-                  {% if option.is_correct %}
-                    <strong>(correct)</strong>
-                  {% endif %}
-                </li>
-              {% endfor %}
-            </ul>
+      <div class="assessment-surface workflow-panel-shell">
+        <div class="workflow-panel-header">
+          <div>
+            <div class="assessment-detail-kicker">Lecturer View</div>
+            <h2 class="workflow-panel-title">Question<br>Bank</h2>
           </div>
-        {% endfor %}
+
+          <p class="workflow-panel-subtitle">
+            Review the question structure, answer options, and marks awarded per question.
+          </p>
+        </div>
+
+        <div class="quiz-question-stack">
+          {% for row in question_rows %}
+            <div class="quiz-question-editor">
+              <h3 class="card-title">Question {{ row.number }}</h3>
+              <p class="card-meta">{{ row.prompt }}</p>
+              <p class="card-meta">Type: {{ row.question_type }}</p>
+              <p class="card-meta">Marks: {{ row.marks }}</p>
+
+              <ul class="week-files">
+                {% for option in row.options %}
+                  <li>
+                    {{ option.text }}
+                    {% if option.is_correct %}
+                      <strong>(correct)</strong>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+        </div>
       </div>
     </section>
 
     <section class="dashboard-section">
-      <h2 class="section-title">Student Attempts</h2>
+      <div class="assessment-surface workflow-panel-shell">
+        <div class="workflow-panel-header">
+          <div>
+            <div class="assessment-detail-kicker">Lecturer View</div>
+            <h2 class="workflow-panel-title">Student<br>Attempts</h2>
+          </div>
 
-      {% if attempts %}
-        <div class="week-block">
-          <ul class="week-files">
-            {% for attempt in attempts %}
-              <li>
-                {{ attempt.student.user.get_full_name|default:attempt.student.user.username }}
-                —
-                Attempt {{ attempt.attempt_number }}
-                —
-                {{ attempt.status }}
-                —
-                {{ attempt.weighted_score }}/{{ quiz.max_mark }}
-                {% if attempt.submitted_at %}
-                  — submitted {{ attempt.submitted_at|date:"Y-m-d H:i" }}
-                {% else %}
-                  — in progress
-                {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
+          <p class="workflow-panel-subtitle">
+            Track each attempt, whether it is still in progress, and the weighted score returned.
+          </p>
         </div>
-      {% else %}
-        <p class="muted">No student attempts yet.</p>
-      {% endif %}
+
+        {% if attempts %}
+          <div class="assessment-submissions-grid">
+            {% for attempt in attempts %}
+              <div class="assessment-surface assessment-submission-card attempt-summary-card">
+                <h3 class="week-title">
+                  {{ attempt.student.user.get_full_name|default:attempt.student.user.username }}
+                </h3>
+
+                <p class="card-meta">
+                  Attempt {{ attempt.attempt_number }}<br>
+                  Status: {{ attempt.status }}
+                </p>
+
+                <p class="card-meta">
+                  Weighted score: {{ attempt.weighted_score }}/{{ quiz.max_mark }}
+                </p>
+
+                <p class="card-meta">
+                  {% if attempt.submitted_at %}
+                    Submitted: {{ attempt.submitted_at|date:"Y-m-d H:i" }}
+                  {% else %}
+                    In progress
+                  {% endif %}
+                </p>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No student attempts yet.</p>
+        {% endif %}
+      </div>
     </section>
 
   {% elif role == "student" %}
     {% if active_attempt %}
       <section class="dashboard-section">
-        <div class="quiz-timer-banner">
-          Time remaining:
-          <strong id="quiz-timer-display"></strong>
+        <div class="assessment-surface workflow-panel-shell">
+          <div class="workflow-panel-header">
+            <div>
+              <div class="assessment-detail-kicker">Attempt {{ active_attempt.attempt_number }} of {{ quiz.max_attempts }}</div>
+              <h2 class="workflow-panel-title">Quiz<br>Attempt</h2>
+            </div>
+
+            <div class="quiz-timer-banner">
+              Time remaining:
+              <strong id="quiz-timer-display"></strong>
+            </div>
+          </div>
+
+          <p class="workflow-panel-subtitle">
+            Questions only appear once the attempt has started. Your answers are saved as you work.
+          </p>
+
+          <form method="post"
+                action="{% url 'accounts:submit_quiz_attempt' module.code quiz.id %}"
+                id="quiz-attempt-form"
+                data-save-url="{% url 'accounts:save_quiz_progress' module.code quiz.id %}"
+                data-remaining-seconds="{{ remaining_seconds }}">
+            {% csrf_token %}
+
+            <div class="quiz-question-stack">
+              {% for row in question_rows %}
+                <fieldset class="quiz-question-editor">
+                  <legend class="card-title">Question {{ row.number }}</legend>
+                  <p class="card-meta">{{ row.prompt }}</p>
+                  <p class="card-meta">Marks: {{ row.marks }}</p>
+
+                  {% if row.question_type == "FILL_BLANK" %}
+                    <p class="quiz-fill-preview">
+                      Selected answer:
+                      <span class="quiz-blank-selected" data-question-id="{{ row.id }}">
+                        {% if row.selected_answer_text != "No answer selected" %}
+                          {{ row.selected_answer_text }}
+                        {% else %}
+                          _____
+                        {% endif %}
+                      </span>
+                    </p>
+                  {% endif %}
+
+                  <div class="quiz-options-list">
+                    {% for option in row.options %}
+                      <label class="quiz-option-row">
+                        {% if row.question_type == "MULTIPLE_SELECT" %}
+                          <input type="checkbox"
+                                name="question_{{ row.id }}"
+                                value="{{ option.id }}"
+                                {% if option.selected %}checked{% endif %}>
+                        {% else %}
+                          <input type="radio"
+                                name="question_{{ row.id }}"
+                                value="{{ option.id }}"
+                                {% if option.selected %}checked{% endif %}>
+                        {% endif %}
+                        <span>{{ option.text }}</span>
+                      </label>
+                    {% endfor %}
+                  </div>
+                </fieldset>
+              {% endfor %}
+            </div>
+
+            <div class="workflow-submit-row">
+              <button type="submit" class="small-button">Submit quiz</button>
+            </div>
+          </form>
         </div>
-
-        <p class="muted">
-          Attempt {{ active_attempt.attempt_number }} of {{ quiz.max_attempts }}.
-          Questions only appear once the attempt has started.
-        </p>
-
-        <form method="post"
-              action="{% url 'accounts:submit_quiz_attempt' module.code quiz.id %}"
-              id="quiz-attempt-form"
-              data-save-url="{% url 'accounts:save_quiz_progress' module.code quiz.id %}"
-              data-remaining-seconds="{{ remaining_seconds }}">
-          {% csrf_token %}
-
-          {% for row in question_rows %}
-            <fieldset class="quiz-question-editor">
-              <legend class="card-title">Question {{ row.number }}</legend>
-              <p class="card-meta">{{ row.prompt }}</p>
-              <p class="card-meta">Marks: {{ row.marks }}</p>
-
-              {% if row.question_type == "FILL_BLANK" %}
-                <p class="quiz-fill-preview">
-                  Selected answer:
-                  <span class="quiz-blank-selected" data-question-id="{{ row.id }}">
-                    {% if row.selected_answer_text != "No answer selected" %}
-                      {{ row.selected_answer_text }}
-                    {% else %}
-                      _____
-                    {% endif %}
-                  </span>
-                </p>
-              {% endif %}
-
-              <div class="quiz-options-list">
-                {% for option in row.options %}
-                  <label class="quiz-option-row">
-                    {% if row.question_type == "MULTIPLE_SELECT" %}
-                      <input type="checkbox"
-                             name="question_{{ row.id }}"
-                             value="{{ option.id }}"
-                             {% if option.selected %}checked{% endif %}>
-                    {% else %}
-                      <input type="radio"
-                             name="question_{{ row.id }}"
-                             value="{{ option.id }}"
-                             {% if option.selected %}checked{% endif %}>
-                    {% endif %}
-                    <span>{{ option.text }}</span>
-                  </label>
-                {% endfor %}
-              </div>
-            </fieldset>
-          {% endfor %}
-
-          <button type="submit" class="small-button">Submit quiz</button>
-        </form>
       </section>
 
       <script>
@@ -241,75 +282,97 @@
 
     {% elif submitted_attempt %}
       <section class="dashboard-section">
-        <h2 class="section-title">Attempt Summary</h2>
+        <div class="assessment-surface workflow-panel-shell">
+          <div class="workflow-panel-header">
+            <div>
+              <div class="assessment-detail-kicker">Student View</div>
+              <h2 class="workflow-panel-title">Attempt<br>Summary</h2>
+            </div>
+          </div>
 
-        <div class="quiz-meta-grid">
-          <div class="quiz-meta-card">
-            <strong>Attempt</strong>
-            <span>{{ submitted_attempt.attempt_number }}</span>
+          <div class="quiz-meta-grid">
+            <div class="quiz-meta-card">
+              <strong>Attempt</strong>
+              <span>{{ submitted_attempt.attempt_number }}</span>
+            </div>
+            <div class="quiz-meta-card">
+              <strong>Status</strong>
+              <span>{{ submitted_attempt.status }}</span>
+            </div>
+            <div class="quiz-meta-card">
+              <strong>Raw score</strong>
+              <span>{{ submitted_attempt.raw_score }}</span>
+            </div>
+            <div class="quiz-meta-card">
+              <strong>Weighted score</strong>
+              <span>{{ submitted_attempt.weighted_score }}/{{ quiz.max_mark }}</span>
+            </div>
+            <div class="quiz-meta-card">
+              <strong>Submitted</strong>
+              <span>{{ submitted_attempt.submitted_at|date:"Y-m-d H:i" }}</span>
+            </div>
           </div>
-          <div class="quiz-meta-card">
-            <strong>Status</strong>
-            <span>{{ submitted_attempt.status }}</span>
-          </div>
-          <div class="quiz-meta-card">
-            <strong>Raw score</strong>
-            <span>{{ submitted_attempt.raw_score }}</span>
-          </div>
-          <div class="quiz-meta-card">
-            <strong>Weighted score</strong>
-            <span>{{ submitted_attempt.weighted_score }}/{{ quiz.max_mark }}</span>
-          </div>
-          <div class="quiz-meta-card">
-            <strong>Submitted</strong>
-            <span>{{ submitted_attempt.submitted_at|date:"Y-m-d H:i" }}</span>
-          </div>
+
+          {% if can_start_attempt %}
+            <div class="workflow-submit-row workflow-submit-row--start">
+              <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+                {% csrf_token %}
+                <button type="submit" class="small-button">Start another attempt</button>
+              </form>
+            </div>
+          {% endif %}
         </div>
-
-        {% if can_start_attempt %}
-          <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
-            {% csrf_token %}
-            <button type="submit" class="small-button">Start another attempt</button>
-          </form>
-        {% endif %}
       </section>
 
       <section class="dashboard-section">
-        <h2 class="section-title">Question Review</h2>
-        <div class="quiz-question-stack">
-          {% for row in question_rows %}
-            <div class="quiz-question-editor">
-              <h3 class="card-title">Question {{ row.number }}</h3>
-              <p class="card-meta">{{ row.prompt }}</p>
-              <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
-              <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
-              <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
-
-              <ul class="week-files">
-                {% for option in row.options %}
-                  <li>
-                    {{ option.text }}
-                    {% if option.selected %}
-                      <strong>(your choice)</strong>
-                    {% endif %}
-                    {% if option.is_correct %}
-                      <strong>(correct)</strong>
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
+        <div class="assessment-surface workflow-panel-shell">
+          <div class="workflow-panel-header">
+            <div>
+              <div class="assessment-detail-kicker">Student View</div>
+              <h2 class="workflow-panel-title">Question<br>Review</h2>
             </div>
-          {% endfor %}
+          </div>
+
+          <div class="quiz-question-stack">
+            {% for row in question_rows %}
+              <div class="quiz-question-editor">
+                <h3 class="card-title">Question {{ row.number }}</h3>
+                <p class="card-meta">{{ row.prompt }}</p>
+                <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
+                <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
+                <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
+
+                <ul class="week-files">
+                  {% for option in row.options %}
+                    <li>
+                      {{ option.text }}
+                      {% if option.selected %}
+                        <strong>(your choice)</strong>
+                      {% endif %}
+                      {% if option.is_correct %}
+                        <strong>(correct)</strong>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
         </div>
       </section>
 
     {% else %}
       <section class="dashboard-section">
-        <h2 class="section-title">Quiz Availability</h2>
+        <div class="assessment-surface workflow-panel-shell assessment-availability-card">
+          <div class="workflow-panel-header">
+            <div>
+              <div class="assessment-detail-kicker">Student View</div>
+              <h2 class="workflow-panel-title">Quiz<br>Availability</h2>
+            </div>
+          </div>
 
-        <div class="assessment-surface assessment-availability-card">
-          <p class="muted">
-            Questions will only become visible after you begin an attempt.
+          <p class="workflow-panel-subtitle">
+            Questions become visible once you start an attempt.
           </p>
 
           <p class="card-meta">
@@ -324,10 +387,12 @@
           </p>
 
           {% if can_start_attempt %}
-            <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
-              {% csrf_token %}
-              <button type="submit" class="small-button">Start quiz</button>
-            </form>
+            <div class="workflow-submit-row workflow-submit-row--start">
+              <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+                {% csrf_token %}
+                <button type="submit" class="small-button">Start quiz</button>
+              </form>
+            </div>
           {% else %}
             <p class="muted">This quiz is not currently available to start.</p>
           {% endif %}

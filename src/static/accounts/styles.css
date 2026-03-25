@@ -2749,9 +2749,9 @@ Shared Assessment / Surface - Final UI
 }
 
 /* 
-================================
+==================================
 Assessment Detail Pages - Final UI
-================================
+==================================
 */
 
 .assessment-detail-page .dashboard-section {
@@ -3013,6 +3013,271 @@ Assessment Detail Pages - Final UI
 }
 
 /* 
+=================================
+Lecturer Workflow / Forms - Final UI
+=================================
+*/
+
+.workflow-page .dashboard-section {
+  margin-bottom: 1.35rem;
+}
+
+.workflow-panel-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.workflow-panel-header,
+.quiz-builder-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.workflow-panel-title {
+  margin: 0;
+  color: #07164d;
+  font-size: 1.45rem;
+  line-height: 1.08;
+}
+
+.workflow-panel-subtitle {
+  margin: 0;
+  max-width: 34rem;
+  color: #3551b8;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  font-weight: 500;
+}
+
+.workflow-alert-card {
+  max-width: 980px;
+  margin: 0 auto;
+  border-color: #fecaca;
+  background: #fff8f8;
+}
+
+.workflow-alert-card .error-list {
+  margin: 0;
+}
+
+.workflow-form-card {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.workflow-form-card--compact {
+  max-width: none;
+  margin: 0;
+}
+
+.workflow-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.workflow-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.workflow-form-grid--triple {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workflow-field--full {
+  grid-column: 1 / -1;
+}
+
+.workflow-form .form-group {
+  margin-bottom: 0;
+}
+
+.workflow-form label {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: #07164d;
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.workflow-form input[type="text"],
+.workflow-form input[type="email"],
+.workflow-form input[type="password"],
+.workflow-form input[type="number"],
+.workflow-form input[type="date"],
+.workflow-form input[type="time"],
+.workflow-form select,
+.workflow-form textarea,
+.workflow-form .week-description-input {
+  width: 100%;
+  min-height: 52px;
+  padding: 0.85rem 1rem;
+  border-radius: 0.9rem;
+  border: 2px solid #07164d;
+  background: #ffffff;
+  color: #07164d;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.08s ease;
+}
+
+.workflow-form textarea,
+.workflow-form .week-description-input {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.workflow-form input::placeholder,
+.workflow-form textarea::placeholder {
+  color: #5d6f9d;
+  opacity: 1;
+}
+
+.workflow-form input:focus,
+.workflow-form select:focus,
+.workflow-form textarea:focus,
+.workflow-form .week-description-input:focus {
+  outline: none;
+  border-color: #3551b8;
+  box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
+  background-color: #ffffff;
+}
+
+.workflow-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid #07164d;
+  border-radius: 0.9rem;
+  background: #f8fbff;
+}
+
+.workflow-checkbox-row input {
+  width: auto;
+}
+
+.workflow-checkbox-row span {
+  color: #07164d;
+  font-weight: 600;
+}
+
+.workflow-submit-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.25rem;
+}
+
+.workflow-submit-row--start {
+  justify-content: flex-start;
+}
+
+.workflow-submit-row .small-button {
+  min-width: 220px;
+}
+
+.quiz-overview-card {
+  gap: 1.1rem;
+}
+
+.quiz-overview-meta-grid {
+  gap: 0.9rem;
+}
+
+.quiz-overview-panel {
+  border: 2px solid #3551b8;
+  background: #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.18);
+}
+
+.quiz-overview-panel .assessment-meta-label,
+.quiz-overview-panel .week-title {
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.quiz-overview-panel .assessment-meta-value,
+.quiz-description-panel .assessment-body-text {
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+.lecturer-submission-card,
+.attempt-summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.lecturer-submission-card .week-title,
+.attempt-summary-card .week-title {
+  margin-bottom: 0;
+}
+
+.quiz-builder-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.quiz-builder-header {
+  margin-bottom: 0;
+}
+
+.quiz-builder .quiz-question-editor {
+  margin-bottom: 0;
+}
+
+.parsed-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.parsed-image-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.parsed-image-card .parsed-image-preview {
+  width: 100%;
+  margin-bottom: 0;
+  border: 2px solid #3551b8;
+  background: #f8fbff;
+}
+
+.parsed-image-card .week-label {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #07164d;
+  margin-bottom: 0.35rem;
+}
+
+.parsed-image-card .week-description-input {
+  min-height: 140px;
+  border: 2px solid #07164d;
+  border-radius: 0.9rem;
+  padding: 0.85rem 1rem;
+  color: #07164d;
+}
+
+/* 
 ===========================
 Responsive Rules - Final UI
 ===========================
@@ -3076,9 +3341,13 @@ Responsive Rules - Final UI
   .assessment-submissions-grid {
     grid-template-columns: 1fr;
   }
-
   .assessment-detail-page .section-title {
     font-size: 1.8rem;
+  }
+  .workflow-form-grid,
+  .workflow-form-grid--triple,
+  .parsed-image-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -3211,5 +3480,21 @@ Responsive Rules - Final UI
   .assessment-hero-card,
   .assessment-surface {
     padding: 1rem;
+  }
+  .workflow-panel-header,
+  .quiz-builder-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .workflow-submit-row .small-button,
+  .workflow-panel-header .small-button,
+  .quiz-builder-header .small-button {
+    width: 100%;
+  }
+
+  .workflow-panel-title {
+    font-size: 1.3rem;
   }
 }

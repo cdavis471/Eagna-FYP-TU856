@@ -3,85 +3,116 @@
 {% block title %}Create Quiz – {{ module.code }} | Eagna{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="dashboard-container workflow-page create-quiz-page">
   <section class="dashboard-section">
-    <h1 class="section-title">Create Quiz – {{ module.code }} {{ module.title }}</h1>
+    <div class="assessment-hero-card workflow-hero-card">
+      <div class="assessment-detail-header">
+        <div>
+          <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <h1 class="section-title">Create Quiz</h1>
+        </div>
 
-    {% if errors %}
-      <ul class="error-list">
-        {% for e in errors %}
-          <li>{{ e }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-
-    <form method="post" id="create-quiz-form" class="auth-container">
-      {% csrf_token %}
-      <input type="hidden" name="questions_payload" id="id_questions_payload">
-
-      <div class="form-group">
-        <label for="id_title">Title</label>
-        <input type="text" id="id_title" name="title" value="{{ initial.title }}">
+        <span class="assessment-badge quiz">Quiz</span>
       </div>
 
-      <div class="form-group">
-        <label for="id_description">Description / Instructions</label>
-        <textarea id="id_description" name="description" rows="4" class="week-description-input">{{ initial.description }}</textarea>
+      <p class="assessment-body-text">
+        Build the quiz structure, configure availability, and define the questions in one clean workflow.
+      </p>
+    </div>
+  </section>
+
+  {% if errors %}
+    <section class="dashboard-section">
+      <div class="assessment-surface workflow-alert-card">
+        <ul class="error-list">
+          {% for e in errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
       </div>
+    </section>
+  {% endif %}
 
-      <div class="form-group">
-        <label for="id_open_date">Open date</label>
-        <input type="date" id="id_open_date" name="open_date" value="{{ initial.open_date }}">
-      </div>
+  <section class="dashboard-section">
+    <div class="assessment-surface workflow-form-card">
+      <form method="post" id="create-quiz-form" class="workflow-form">
+        {% csrf_token %}
+        <input type="hidden" name="questions_payload" id="id_questions_payload">
 
-      <div class="form-group">
-        <label for="id_open_time">Open time</label>
-        <input type="time" id="id_open_time" name="open_time" value="{{ initial.open_time }}">
-      </div>
+        <div class="workflow-form-grid">
+          <div class="form-group workflow-field--full">
+            <label for="id_title">Title</label>
+            <input type="text" id="id_title" name="title" value="{{ initial.title }}">
+          </div>
 
-      <div class="form-group">
-        <label for="id_close_date">Close date</label>
-        <input type="date" id="id_close_date" name="close_date" value="{{ initial.close_date }}">
-      </div>
+          <div class="form-group workflow-field--full">
+            <label for="id_description">Description / Instructions</label>
+            <textarea id="id_description" name="description" rows="4" class="week-description-input">{{ initial.description }}</textarea>
+          </div>
 
-      <div class="form-group">
-        <label for="id_close_time">Close time</label>
-        <input type="time" id="id_close_time" name="close_time" value="{{ initial.close_time }}">
-      </div>
+          <div class="form-group">
+            <label for="id_open_date">Open date</label>
+            <input type="date" id="id_open_date" name="open_date" value="{{ initial.open_date }}">
+          </div>
 
-      <div class="form-group">
-        <label for="id_time_limit_minutes">Time limit (minutes)</label>
-        <input type="number" id="id_time_limit_minutes" name="time_limit_minutes" min="1" value="{{ initial.time_limit_minutes }}">
-      </div>
+          <div class="form-group">
+            <label for="id_open_time">Open time</label>
+            <input type="time" id="id_open_time" name="open_time" value="{{ initial.open_time }}">
+          </div>
 
-      <div class="form-group">
-        <label for="id_max_attempts">Attempts allowed</label>
-        <input type="number" id="id_max_attempts" name="max_attempts" min="1" value="{{ initial.max_attempts }}">
-      </div>
+          <div class="form-group">
+            <label for="id_close_date">Close date</label>
+            <input type="date" id="id_close_date" name="close_date" value="{{ initial.close_date }}">
+          </div>
 
-      <div class="form-group">
-        <label for="id_max_mark">Max mark / weighting</label>
-        <input type="number" step="0.01" id="id_max_mark" name="max_mark" value="{{ initial.max_mark }}">
-      </div>
+          <div class="form-group">
+            <label for="id_close_time">Close time</label>
+            <input type="time" id="id_close_time" name="close_time" value="{{ initial.close_time }}">
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label class="quiz-checkbox-row">
-          <input type="checkbox" name="is_published" {% if initial.is_published %}checked{% endif %}>
-          <span>Publish immediately</span>
-        </label>
-      </div>
+        <div class="workflow-form-grid workflow-form-grid--triple">
+          <div class="form-group">
+            <label for="id_time_limit_minutes">Time limit (minutes)</label>
+            <input type="number" id="id_time_limit_minutes" name="time_limit_minutes" min="1" value="{{ initial.time_limit_minutes }}">
+          </div>
 
-      <hr class="quiz-divider">
+          <div class="form-group">
+            <label for="id_max_attempts">Attempts allowed</label>
+            <input type="number" id="id_max_attempts" name="max_attempts" min="1" value="{{ initial.max_attempts }}">
+          </div>
 
-      <div class="assessment-card-topline">
-        <h2 class="section-title" style="margin-bottom:0;">Questions</h2>
-        <button type="button" id="add-question-button" class="small-button">+ Add question</button>
-      </div>
+          <div class="form-group">
+            <label for="id_max_mark">Max mark / weighting</label>
+            <input type="number" step="0.01" id="id_max_mark" name="max_mark" value="{{ initial.max_mark }}">
+          </div>
+        </div>
 
-      <div id="question-builder" class="quiz-builder"></div>
+        <div class="form-group workflow-field--full">
+          <label class="workflow-checkbox-row">
+            <input type="checkbox" name="is_published" {% if initial.is_published %}checked{% endif %}>
+            <span>Publish immediately</span>
+          </label>
+        </div>
 
-      <button type="submit">Create quiz</button>
-    </form>
+        <div class="assessment-surface quiz-builder-shell">
+          <div class="quiz-builder-header">
+            <div>
+              <div class="assessment-detail-kicker">Question Builder</div>
+              <h2 class="workflow-panel-title">Quiz<br>Questions</h2>
+            </div>
+
+            <button type="button" id="add-question-button" class="small-button">+ Add question</button>
+          </div>
+
+          <div id="question-builder" class="quiz-builder"></div>
+        </div>
+
+        <div class="workflow-submit-row">
+          <button type="submit" class="small-button">Create quiz</button>
+        </div>
+      </form>
+    </div>
   </section>
 </div>
 

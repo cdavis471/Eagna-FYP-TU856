@@ -34,14 +34,14 @@
 
       {% if assignment.description %}
         <div class="assessment-surface assignment-overview-panel assignment-description-panel">
-          <h3 class="week-title">Description</h3>
+          <h3 class="week-title">DESCRIPTION</h3>
           <p class="assessment-body-text">{{ assignment.description }}</p>
         </div>
       {% endif %}
 
       {% if assignment.files.all %}
         <div class="assessment-surface assignment-overview-panel assignment-materials-panel">
-          <h3 class="week-title">Assignment Materials</h3>
+          <h3 class="week-title">ASSIGNMENT MATERIALS</h3>
 
           <ul class="assessment-file-list assignment-materials-list">
             {% for f in assignment.files.all %}
@@ -158,66 +158,72 @@
 
   <!-- Branch for the lecturer-facing view of this assignment -->
   {% elif role == "lecturer" %}
-    <!-- Section listing all student submissions for this assignment -->
-    <!-- Lecturer submissions list -->
     <section class="dashboard-section">
-      <h2 class="section-title">Student Submissions</h2>
+      <div class="assessment-surface workflow-panel-shell">
+        <div class="workflow-panel-header">
+          <div>
+            <div class="assessment-detail-kicker">Lecturer View</div>
+            <h2 class="workflow-panel-title">Student<br>Submissions</h2>
+          </div>
 
-      {% if submissions %}
-        <div class="assessment-submissions-grid">
-          {% for s in submissions %}
-            <div class="assessment-surface assessment-submission-card">
-              <h3 class="week-title">
-                {{ s.student.user.get_full_name|default:s.student.user.username }}
-              </h3>
+          <p class="workflow-panel-subtitle">
+            Review uploaded work and open the grading form for each student from this panel.
+          </p>
+        </div>
 
-              <p class="card-meta">
-                Status: {{ s.get_status_display }}<br>
-                Submitted: {{ s.submitted_at|date:"Y-m-d H:i" }}
-              </p>
+        {% if submissions %}
+          <div class="assessment-submissions-grid">
+            {% for s in submissions %}
+              <div class="assessment-surface assessment-submission-card lecturer-submission-card">
+                <h3 class="week-title">
+                  {{ s.student.user.get_full_name|default:s.student.user.username }}
+                </h3>
 
-              {% if s.files.all %}
-                <h4 class="week-files-title">Files</h4>
-                <ul class="week-files">
-                  {% for f in s.files.all %}
-                    <li>
-                      <a href="{{ f.file.url }}" target="_blank">
-                        {{ f.original_name|default:f.file.name }}
-                      </a>
-                      <span class="week-file-meta">
-                        (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
-                      </span>
-                    </li>
-                  {% endfor %}
-                </ul>
-              {% else %}
-                <p class="muted">No files uploaded yet.</p>
-              {% endif %}
-
-              {% if s.grade %}
                 <p class="card-meta">
-                  Grade: {{ s.grade.value }} / {{ assignment.max_mark }}<br>
-                  {% if s.grade.feedback_text %}
-                    Feedback: {{ s.grade.feedback_text }}
-                  {% endif %}
+                  Status: {{ s.get_status_display }}<br>
+                  Submitted: {{ s.submitted_at|date:"Y-m-d H:i" }}
                 </p>
 
-                <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
-                  class="small-button">
-                  Edit grade
-                </a>
-              {% else %}
-                <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
-                  class="small-button">
-                  Add grade
-                </a>
-              {% endif %}
-            </div>
-          {% endfor %}
-        </div>
-      {% else %}
-        <p class="muted">No submissions yet for this assignment.</p>
-      {% endif %}
+                {% if s.files.all %}
+                  <h4 class="week-files-title">Submitted files</h4>
+                  <ul class="week-files">
+                    {% for f in s.files.all %}
+                      <li>
+                        <a href="{{ f.file.url }}" target="_blank">
+                          {{ f.original_name|default:f.file.name }}
+                        </a>
+                        <span class="week-file-meta">
+                          (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                        </span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="muted">No files uploaded yet.</p>
+                {% endif %}
+
+                {% if s.grade %}
+                  <p class="card-meta">
+                    Grade: {{ s.grade.value }} / {{ assignment.max_mark }}<br>
+                    {% if s.grade.feedback_text %}
+                      Feedback: {{ s.grade.feedback_text }}
+                    {% endif %}
+                  </p>
+                {% endif %}
+
+                <div class="workflow-submit-row workflow-submit-row--start">
+                  <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
+                    class="small-button">
+                    {% if s.grade %}Edit grade{% else %}Add grade{% endif %}
+                  </a>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No submissions yet for this assignment.</p>
+        {% endif %}
+      </div>
     </section>
   {% endif %}
 </div>
