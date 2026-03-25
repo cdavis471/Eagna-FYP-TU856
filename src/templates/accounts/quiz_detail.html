@@ -3,9 +3,9 @@
 {% block title %}{{ quiz.title }} – {{ module.code }} | Eagna{% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="dashboard-container assessment-detail-page quiz-detail-page">
   <section class="dashboard-section">
-    <div class="assessment-card-topline">
+    <div class="assessment-card-topline assessment-detail-header">
       <div>
         <h1 class="section-title">{{ quiz.title }}</h1>
         <p class="muted">{{ module.code }} – {{ module.title }}</p>
@@ -155,7 +155,7 @@
             </fieldset>
           {% endfor %}
 
-          <button type="submit">Submit quiz</button>
+          <button type="submit" class="small-button">Submit quiz</button>
         </form>
       </section>
 
@@ -258,7 +258,7 @@
         {% if can_start_attempt %}
           <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
             {% csrf_token %}
-            <button type="submit">Start another attempt</button>
+            <button type="submit" class="small-button">Start another attempt</button>
           </form>
         {% endif %}
       </section>
@@ -303,13 +303,16 @@
         </p>
 
         <p class="card-meta">
-          Status: {{ state.status_label }}
+          Status:
+          <span class="assessment-status{% if state.status_label == 'Closed' or state.status_label == 'Submitted' %} assessment-status--dark{% elif state.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+            {{ state.status_label }}
+          </span>
         </p>
 
         {% if can_start_attempt %}
           <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
             {% csrf_token %}
-            <button type="submit">Start quiz</button>
+            <button type="submit" class="small-button">Start quiz</button>
           </form>
         {% else %}
           <p class="muted">This quiz is not currently available to start.</p>

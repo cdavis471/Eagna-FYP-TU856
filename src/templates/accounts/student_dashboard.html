@@ -21,7 +21,9 @@
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
-                    <span class="assessment-status">{{ item.status_label }}</span>
+                    <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                      {{ item.status_label }}
+                    </span>
                   {% endif %}
                 </div>
 
@@ -53,11 +55,13 @@
             </a>
           {% else %}
             <div class="card-link-wrapper card-link-wrapper-disabled">
-              <article class="card card-disabled dashboard-card-panel">
+              <article class="card card-disabled dashboard-card-panel{% if item.status_label == 'Not open yet' %} assessment-card--locked{% endif %}">
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
-                    <span class="assessment-status">{{ item.status_label }}</span>
+                    <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                      {{ item.status_label }}
+                    </span>
                   {% endif %}
                 </div>
 

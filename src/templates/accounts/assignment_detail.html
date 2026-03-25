@@ -7,14 +7,19 @@
 <!-- Begin the main content block rendered inside the base template -->
 {% block content %}
 <!-- Outer container for the assignment detail page using dashboard styling -->
-<div class="dashboard-container">
+<div class="dashboard-container assessment-detail-page assignment-detail-page">
   <!-- Section containing assignment overview and materials -->
   <section class="dashboard-section">
     <!-- Main heading showing assignment title and module information -->
-    <h1 class="section-title">
-      {{ assignment.title }} – {{ module.code }} {{ module.title }}
-    </h1>
-    <!-- Line showing when the assignment is due and its maximum mark -->
+    <div class="assessment-card-topline assessment-detail-header">
+      <div>
+        <h1 class="section-title">{{ assignment.title }}</h1>
+        <p class="muted">{{ module.code }} – {{ module.title }}</p>
+      </div>
+
+      <span class="assessment-badge assignment">Assignment</span>
+    </div>
+
     <p class="muted">
       Due: {{ assignment.due_datetime|date:"Y-m-d H:i" }} · Max mark: {{ assignment.max_mark }}
     </p>

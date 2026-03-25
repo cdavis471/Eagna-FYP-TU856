@@ -2563,6 +2563,180 @@ Module Detail - Final UI
 }
 
 /* 
+====================================
+Shared Assessment / Surface - Final UI
+====================================
+*/
+
+.assessment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.22rem 0.72rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+}
+
+.assessment-badge.assignment {
+  background: #07164d;
+  color: #ffffff;
+}
+
+.assessment-badge.quiz {
+  background: #3551b8;
+  color: #ffffff;
+}
+
+.assessment-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.22rem 0.72rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1;
+  background: #eef3ff;
+  color: #07164d;
+}
+
+.assessment-status--dark {
+  background: transparent;
+  color: #07164d;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.assessment-status--upcoming {
+  background: transparent;
+  color: #3551b8;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.assessment-card--locked {
+  border-style: dashed;
+}
+
+.card,
+.week-block,
+.announcement-card,
+.quiz-meta-card,
+.quiz-question-editor,
+.profile-summary-card,
+.portal-calendar-cell,
+.portal-embed-frame-wrap {
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
+
+.card-meta,
+.week-description-text,
+.week-files-title,
+.week-label,
+.profile-summary-label,
+.profile-metric--empty,
+.portal-calendar-more,
+.quiz-meta-card span,
+.quiz-fill-preview {
+  color: #3551b8;
+  font-weight: 600;
+}
+
+.card .muted,
+.week-block .muted,
+.quiz-question-editor .muted,
+.portal-embed-frame-wrap .muted,
+.assessment-detail-page .muted {
+  color: #3551b8;
+}
+
+.week-file-meta {
+  color: #07164d;
+  font-style: italic;
+}
+
+.quiz-question-editor .card-title,
+.quiz-meta-card strong,
+.profile-summary-value,
+.portal-calendar-date {
+  color: #07164d;
+}
+
+.assessment-detail-header {
+  align-items: flex-start;
+  margin-bottom: 0.9rem;
+}
+
+.assessment-detail-page .section-title {
+  margin-bottom: 0.2rem;
+}
+
+.assessment-detail-page .quiz-timer-banner {
+  background: #eef3ff;
+  color: #07164d;
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
+
+.portal-office-section .portal-app-card {
+  background: #07164d;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.22);
+}
+
+.portal-office-section .portal-app-card:hover {
+  background: #3551b8;
+  color: #ffffff;
+  border-color: #ffffff;
+  transform: none;
+  opacity: 1;
+}
+
+.portal-office-section .portal-app-label {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.portal-office-section .small-button {
+  background: #07164d;
+  color: #ffffff;
+  border: 2px solid #ffffff;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.22);
+}
+
+.portal-office-section .small-button:hover {
+  background: #3551b8;
+  color: #ffffff;
+  border-color: #ffffff;
+  transform: none;
+  opacity: 1;
+}
+
+.portal-calendar-item.assignment {
+  background: #07164d;
+  border-color: #07164d;
+}
+
+.portal-calendar-item.quiz {
+  background: #3551b8;
+  border-color: #3551b8;
+}
+
+.portal-calendar-item-type,
+.portal-calendar-item-title {
+  color: #ffffff;
+}
+
+.portal-calendar-item:hover {
+  opacity: 1;
+}
+
+/* 
 ===========================
 Responsive Rules - Final UI
 ===========================
@@ -2607,6 +2781,17 @@ Responsive Rules - Final UI
 
   .module-section-header {
     align-items: flex-start;
+  }
+  .portal-calendar-section {
+    overflow-x: auto;
+  }
+
+  .portal-calendar-grid {
+    min-width: 760px;
+  }
+
+  .quiz-meta-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -2678,5 +2863,33 @@ Responsive Rules - Final UI
 
   .announcement-actions .admin-inline-form .small-button {
     width: 100%;
+  }
+  .assessment-detail-header,
+  .portal-calendar-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .portal-office-section .portal-app-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-calendar-nav {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .quiz-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-assessment-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profile-metric {
+    align-self: flex-start;
   }
 }
