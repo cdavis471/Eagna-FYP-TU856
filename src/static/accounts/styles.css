@@ -2970,19 +2970,17 @@ Assessment Detail Pages - Final UI
 
 .assignment-overview-panel .assessment-meta-label,
 .assignment-overview-panel .week-title {
-  color: #3551b8;
-  font-size: 0.9rem;
-  font-weight: 700;
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 800;
   letter-spacing: 0.01em;
 }
 
 .assignment-overview-panel .assessment-meta-value,
 .assignment-description-panel .assessment-body-text {
   color: #ffffff;
-}
-
-.assignment-description-panel .assessment-body-text {
-  font-weight: 500;
+  font-size: 0.92rem;
+  font-weight: 400;
   line-height: 1.65;
 }
 
@@ -2992,6 +2990,7 @@ Assessment Detail Pages - Final UI
 }
 
 .assignment-materials-panel .week-title {
+  color: #ffffff;
   margin-bottom: 0.65rem;
 }
 
