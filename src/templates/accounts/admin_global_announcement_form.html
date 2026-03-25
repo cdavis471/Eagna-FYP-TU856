@@ -9,41 +9,62 @@
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
-  <section class="dashboard-section admin-back-row">
-    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+<div class="dashboard-container workflow-page admin-global-announcement-page">
+  <section class="dashboard-section">
+    <div class="assessment-hero-card workflow-hero-card">
+      <div class="workflow-panel-header">
+        <div>
+          <div class="assessment-detail-kicker">Admin Panel</div>
+          <h1 class="section-title">
+            {% if announcement %}Edit Global Announcement{% else %}Create Global Announcement{% endif %}
+          </h1>
+        </div>
+
+        <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">Back to dashboard</a>
+      </div>
+
+      <p class="assessment-body-text">
+        Publish a concise update that will be visible across the platform.
+      </p>
+    </div>
   </section>
 
+  {% if errors %}
+    <section class="dashboard-section">
+      <div class="assessment-surface workflow-alert-card">
+        <ul class="error-list">
+          {% for e in errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    </section>
+  {% endif %}
+
   <section class="dashboard-section">
-    <h1 class="section-title">
-      {% if announcement %}Edit Global Announcement{% else %}Create Global Announcement{% endif %}
-    </h1>
+    <div class="assessment-surface workflow-form-card">
+      <form method="post" class="workflow-form">
+        {% csrf_token %}
 
-    {% if errors %}
-      <ul class="error-list">
-        {% for e in errors %}
-          <li>{{ e }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+        <div class="workflow-form-grid">
+          <div class="form-group workflow-field--full">
+            <label for="id_title">Title</label>
+            <input type="text" id="id_title" name="title" value="{{ initial.title }}">
+          </div>
 
-    <form method="post" class="auth-container admin-form-shell">
-      {% csrf_token %}
+          <div class="form-group workflow-field--full">
+            <label for="id_content">Content</label>
+            <textarea id="id_content" name="content" rows="8" class="week-description-input">{{ initial.content }}</textarea>
+          </div>
+        </div>
 
-      <div class="form-group">
-        <label for="id_title">Title</label>
-        <input type="text" id="id_title" name="title" value="{{ initial.title }}">
-      </div>
-
-      <div class="form-group">
-        <label for="id_content">Content</label>
-        <textarea id="id_content" name="content" rows="8" class="week-description-input">{{ initial.content }}</textarea>
-      </div>
-
-      <button type="submit">
-        {% if announcement %}Save Announcement{% else %}Create Announcement{% endif %}
-      </button>
-    </form>
+        <div class="workflow-submit-row">
+          <button type="submit" class="small-button">
+            {% if announcement %}Save Announcement{% else %}Create Announcement{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
   </section>
 </div>
 {% endblock %}

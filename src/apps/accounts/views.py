@@ -4,7 +4,7 @@ from django.shortcuts import redirect, render, get_object_or_404  # Common short
 from django.urls import reverse  # Used to dynamically resolve URL patterns by their name
 from django.utils import timezone  # Provides timezone-aware datetime utilities compatible with Django settings
 from django.http import Http404, JsonResponse  # Exception used to immediately return a 404 Not Found response / Class for returning JSON responses in views
-from django.db.models import Count, Q  # ORM helpers: Count for aggregation and Q for complex query filters
+from django.db.models import Count, Q, Max  # ORM helpers: Count for aggregation and Q for complex query filters
 from django.views.decorators.http import require_http_methods  # Decorator to restrict allowed HTTP methods per view
 from datetime import datetime, timedelta, date  # Standard library datetime class used for parsing date and time input / timedelta for date arithmetic
 from collections import defaultdict  # Standard library class for creating dictionaries with default value types, used in some views for grouping data
@@ -557,13 +557,22 @@ def _parse_questions_payload(raw_payload, errors):
         errors.append("At least one question is required.")
         return []
 
-    valid_types = {choice[0] for choice in QuizQuestion.Type.choices}
+    valid_types = {
+        QuizQuestion.Type.MULTIPLE_CHOICE,
+        QuizQuestion.Type.MULTIPLE_SELECT,
+        QuizQuestion.Type.TRUE_FALSE,
+    }
     parsed_questions = []
 
     for index, item in enumerate(payload, start=1):
         prompt = (item.get("prompt") or "").strip()
         question_type = (item.get("question_type") or "").strip()
-        marks = _parse_decimal_value(item.get("marks", "1"), f"Question {index} marks", errors, minimum=Decimal("0.25"))
+        marks = _parse_decimal_value(
+            item.get("marks", "1"),
+            f"Question {index} marks",
+            errors,
+            minimum=Decimal("0.25"),
+        )
 
         if not prompt:
             errors.append(f"Question {index} prompt is required.")
@@ -578,73 +587,7 @@ def _parse_questions_payload(raw_payload, errors):
             "options": [],
         }
 
-        if question_type in {
-            QuizQuestion.Type.MULTIPLE_CHOICE,
-            QuizQuestion.Type.MULTIPLE_SELECT,
-            QuizQuestion.Type.FILL_BLANK,
-        }:
-            options = [
-                line.strip()
-                for line in (item.get("options_text") or "").splitlines()
-                if line.strip()
-            ]
-
-            if len(options) < 2:
-                errors.append(f"Question {index} must have at least two options.")
-
-            if question_type in {
-                QuizQuestion.Type.MULTIPLE_CHOICE,
-                QuizQuestion.Type.FILL_BLANK,
-            }:
-                try:
-                    correct_number = int(str(item.get("correct_option") or "").strip())
-                except ValueError:
-                    correct_number = None
-                    errors.append(f"Question {index} must have one correct option number.")
-
-                if correct_number is not None and not (1 <= correct_number <= len(options)):
-                    errors.append(f"Question {index} correct option number is out of range.")
-
-                normalized["options"] = [
-                    {
-                        "text": option_text,
-                        "is_correct": (position == (correct_number - 1)) if correct_number is not None else False,
-                    }
-                    for position, option_text in enumerate(options)
-                ]
-
-            elif question_type == QuizQuestion.Type.MULTIPLE_SELECT:
-                raw_correct_numbers = str(item.get("correct_options") or "")
-                parsed_numbers = []
-
-                for part in raw_correct_numbers.split(","):
-                    part = part.strip()
-                    if not part:
-                        continue
-                    try:
-                        parsed_numbers.append(int(part))
-                    except ValueError:
-                        errors.append(f"Question {index} multiple-select correct answers must be comma-separated numbers.")
-                        parsed_numbers = []
-                        break
-
-                parsed_numbers = sorted(set(parsed_numbers))
-
-                if not parsed_numbers:
-                    errors.append(f"Question {index} must have at least one correct option number.")
-
-                if any(number < 1 or number > len(options) for number in parsed_numbers):
-                    errors.append(f"Question {index} has a correct option number outside the available options.")
-
-                normalized["options"] = [
-                    {
-                        "text": option_text,
-                        "is_correct": ((position + 1) in parsed_numbers),
-                    }
-                    for position, option_text in enumerate(options)
-                ]
-
-        elif question_type == QuizQuestion.Type.TRUE_FALSE:
+        if question_type == QuizQuestion.Type.TRUE_FALSE:
             correct_true_false = (item.get("correct_true_false") or "").strip().lower()
             if correct_true_false not in {"true", "false"}:
                 errors.append(f"Question {index} must choose either True or False as the correct answer.")
@@ -653,7 +596,84 @@ def _parse_questions_payload(raw_payload, errors):
                 {"text": "True", "is_correct": correct_true_false == "true"},
                 {"text": "False", "is_correct": correct_true_false == "false"},
             ]
+            parsed_questions.append(normalized)
+            continue
 
+        raw_options = item.get("options")
+        options = []
+
+        if isinstance(raw_options, list):
+            for option_index, option in enumerate(raw_options, start=1):
+                text = (option.get("text") or "").strip()
+                if not text:
+                    errors.append(f"Question {index} option {option_index} cannot be empty.")
+                    continue
+
+                options.append(
+                    {
+                        "text": text,
+                        "is_correct": bool(option.get("is_correct")),
+                    }
+                )
+        else:
+
+            legacy_options = [
+                line.strip()
+                for line in (item.get("options_text") or "").splitlines()
+                if line.strip()
+            ]
+
+            if question_type == QuizQuestion.Type.MULTIPLE_CHOICE:
+                try:
+                    correct_number = int(str(item.get("correct_option") or "").strip())
+                except ValueError:
+                    correct_number = None
+
+                options = [
+                    {
+                        "text": option_text,
+                        "is_correct": (position == (correct_number - 1)) if correct_number is not None else False,
+                    }
+                    for position, option_text in enumerate(legacy_options)
+                ]
+
+            elif question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+                parsed_numbers = []
+                for part in str(item.get("correct_options") or "").split(","):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    try:
+                        parsed_numbers.append(int(part))
+                    except ValueError:
+                        errors.append(
+                            f"Question {index} multiple-select correct answers must be comma-separated numbers."
+                        )
+                        parsed_numbers = []
+                        break
+
+                parsed_numbers = sorted(set(parsed_numbers))
+                options = [
+                    {
+                        "text": option_text,
+                        "is_correct": ((position + 1) in parsed_numbers),
+                    }
+                    for position, option_text in enumerate(legacy_options)
+                ]
+
+        if len(options) < 2:
+            errors.append(f"Question {index} must have at least two options.")
+
+        if question_type == QuizQuestion.Type.MULTIPLE_CHOICE:
+            correct_count = sum(1 for option in options if option["is_correct"])
+            if correct_count != 1:
+                errors.append(f"Question {index} must have exactly one correct answer.")
+
+        if question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+            if not any(option["is_correct"] for option in options):
+                errors.append(f"Question {index} must have at least one correct answer.")
+
+        normalized["options"] = options
         parsed_questions.append(normalized)
 
     return parsed_questions
@@ -2065,22 +2085,52 @@ def module_detail(request, code):
             raise Http404("Module not found")
 
         role = "lecturer"
-
-        for wn in range(1, 31):
-            ModuleWeek.objects.get_or_create(
-                module=module,
-                week_number=wn,
-                defaults={"title": f"Week {wn}"},
-            )
-
         assessment_items = _build_lecturer_module_assessment_items(module)
 
-        weeks = (
+        requested_week_number = request.GET.get("week")
+        try:
+            requested_week_number = int(requested_week_number) if requested_week_number else None
+        except (TypeError, ValueError):
+            requested_week_number = None
+
+        all_weeks = list(
             module.weeks
             .all()
             .prefetch_related("files__parsed_document")
             .order_by("week_number")
         )
+
+        weeks = []
+        for week in all_weeks:
+            has_description = bool((week.description or "").strip())
+            has_files = bool(week.files.all())
+            if has_description or has_files:
+                weeks.append(week)
+
+        if requested_week_number is not None:
+            requested_week = next(
+                (week for week in all_weeks if week.week_number == requested_week_number),
+                None,
+            )
+            if requested_week and requested_week not in weeks:
+                weeks.append(requested_week)
+                weeks.sort(key=lambda week: week.week_number)
+
+        student_enrolments = sorted(
+            module.student_enrolments.select_related("student__user"),
+            key=lambda enrolment: (
+                (enrolment.student.user.get_full_name() or enrolment.student.user.username).lower(),
+                enrolment.student.user.username.lower(),
+            ),
+        )
+
+        enrolled_students = [
+            {
+                "name": enrolment.student.user.get_full_name() or enrolment.student.user.username,
+                "email": enrolment.student.user.username,
+            }
+            for enrolment in student_enrolments
+        ]
 
         context = {
             "user": user,
@@ -2092,6 +2142,8 @@ def module_detail(request, code):
             "weeks": weeks,
             "run_start": run_start,
             "run_end": run_end,
+            "enrolled_students": enrolled_students,
+            "enrolled_student_count": len(enrolled_students),
         }
 
     else:
@@ -2296,6 +2348,27 @@ def edit_week_description(request, code, week_number):
 
     return redirect("accounts:module_detail", code=module.code)
 
+@login_required
+@require_http_methods(["POST"])
+def add_module_week(request, code):
+    user: User = request.user
+    if not user.is_lecturer():
+        raise Http404("Not found")
+
+    lecturer = user.lecturer_profile
+    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+
+    next_week_number = (
+        module.weeks.aggregate(max_week=Max("week_number")).get("max_week") or 0
+    ) + 1
+
+    week, _ = ModuleWeek.objects.get_or_create(
+        module=module,
+        week_number=next_week_number,
+        defaults={"title": f"Week {next_week_number}"},
+    )
+
+    return redirect(f"{reverse('accounts:module_detail', args=[module.code])}?week={week.week_number}")
 
 @login_required
 @require_http_methods(["GET", "POST"])

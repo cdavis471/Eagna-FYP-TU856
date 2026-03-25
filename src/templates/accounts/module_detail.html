@@ -126,10 +126,10 @@
       <h2 class="section-title">Assignments &amp; Quizzes</h2>
       <div class="module-section-actions">
         <a href="{% url 'accounts:create_assignment' module.code %}" class="small-button">
-          + Create assignment
+          + Create Assignment
         </a>
         <a href="{% url 'accounts:create_quiz' module.code %}" class="small-button">
-          + Create quiz
+          + Create Quiz
         </a>
       </div>
     </div>
@@ -239,8 +239,17 @@
   <!-- Weekly Resources / Academic Calendar -->
   <section class="dashboard-section dashboard-card-section module-page-section module-calendar-section">
     <!-- Heading for the academic calendar and weekly resources area -->
-    <h2 class="section-title">Academic Calendar</h2>
-
+    <div class="module-section-header">
+      <h2 class="section-title">Academic Calendar</h2>
+      {% if role == "lecturer" %}
+        <div class="module-section-actions">
+          <form method="post" action="{% url 'accounts:add_module_week' module.code %}" class="admin-inline-form">
+            {% csrf_token %}
+            <button type="submit" class="small-button">+ Add Week</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
     <!-- Student-specific rendering of weekly resources -->
     {% if role == "student" %}
       <!-- Only render week blocks if a collection of weeks is available -->
@@ -329,7 +338,7 @@
                         rows="2"
                         class="week-description-input">{{ w.description }}</textarea>
               <!-- Button to submit and save the updated description -->
-              <button type="submit" class="small-button">Save description</button>
+              <button type="submit" class="small-button">Save Description</button>
             </form>
 
             <!-- Block showing the list of files already uploaded for this week -->
@@ -403,10 +412,37 @@
         {% endfor %}
       {% else %}
         <!-- Lecturer-facing message when there are no weeks configured at all -->
-        <p class="muted">No weeks configured for this module yet.</p>
+        <p class="muted">No weeks have been added to this module yet.</p>
       {% endif %}
     {% endif %}
   </section>
+  {% if role == "lecturer" %}
+    <section class="dashboard-section dashboard-card-section module-page-section module-students-section">
+      <div class="assessment-surface workflow-panel-shell module-students-card">
+        <div class="workflow-panel-header">
+          <div>
+            <div class="assessment-detail-kicker">Lecturer View</div>
+            <h2 class="workflow-panel-title">Enrolled Students</h2>
+          </div>
+        </div>
+
+        <p class="module-panel-count"># Currently Enrolled: {{ enrolled_student_count }}</p>
+
+        {% if enrolled_students %}
+          <div class="enrolled-students-list">
+            {% for student in enrolled_students %}
+              <div class="enrolled-student-row">
+                <span class="enrolled-student-name">{{ student.name }}</span>
+                <span class="enrolled-student-email">{{ student.email }}</span>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No students are currently enrolled on this module.</p>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
 </div>
 <!-- End of the main content block for the module detail page -->
 {% endblock %}

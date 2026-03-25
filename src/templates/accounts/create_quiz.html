@@ -127,12 +127,19 @@
 
   let questionCounter = 0;
 
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+  }
+
   function questionTypeOptions(selectedValue) {
     const types = [
       ["MULTIPLE_CHOICE", "Multiple choice"],
       ["MULTIPLE_SELECT", "Multiple select"],
       ["TRUE_FALSE", "True / False"],
-      ["FILL_BLANK", "Fill in the blank"],
     ];
 
     return types.map(([value, label]) => {
@@ -141,10 +148,88 @@
     }).join("");
   }
 
-  function buildSettingsMarkup(type, data = {}) {
+  function normalizeOptions(type, data = {}) {
     if (type === "TRUE_FALSE") {
-      const selectedValue = (data.correct_true_false || "true").toLowerCase();
-      return `
+      return [];
+    }
+
+    if (Array.isArray(data.options) && data.options.length) {
+      const options = data.options.map((option) => ({
+        text: option.text || "",
+        is_correct: Boolean(option.is_correct),
+      }));
+
+      if (options.length === 1) {
+        options.push({ text: "", is_correct: false });
+      }
+
+      if (!options.length) {
+        return [
+          { text: "", is_correct: type === "MULTIPLE_CHOICE" },
+          { text: "", is_correct: false },
+        ];
+      }
+
+      return options;
+    }
+
+    const legacyOptions = String(data.options_text || "")
+      .split("\n")
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    let options = legacyOptions.map((text) => ({
+      text,
+      is_correct: false,
+    }));
+
+    if (!options.length) {
+      options = [
+        { text: "", is_correct: type === "MULTIPLE_CHOICE" },
+        { text: "", is_correct: false },
+      ];
+    }
+
+    if (options.length === 1) {
+      options.push({ text: "", is_correct: false });
+    }
+
+    if (type === "MULTIPLE_CHOICE") {
+      const correctNumber = Number(data.correct_option || 1);
+      if (correctNumber >= 1 && correctNumber <= options.length) {
+        options = options.map((option, index) => ({
+          ...option,
+          is_correct: index === (correctNumber - 1),
+        }));
+      } else if (!options.some((option) => option.is_correct)) {
+        options[0].is_correct = true;
+      }
+    }
+
+    if (type === "MULTIPLE_SELECT") {
+      const selectedNumbers = String(data.correct_options || "")
+        .split(",")
+        .map((part) => Number(part.trim()))
+        .filter((value) => Number.isInteger(value) && value >= 1);
+
+      if (selectedNumbers.length) {
+        options = options.map((option, index) => ({
+          ...option,
+          is_correct: selectedNumbers.includes(index + 1),
+        }));
+      }
+    }
+
+    return options;
+  }
+
+  function renderQuestionSettings(card, type, data = {}) {
+    const settingsContainer = card.querySelector(".question-settings");
+
+    if (type === "TRUE_FALSE") {
+      const selectedValue = String(data.correct_true_false || "true").toLowerCase();
+
+      settingsContainer.innerHTML = `
         <div class="form-group">
           <label>Correct answer</label>
           <select class="question-correct-true-false">
@@ -153,31 +238,113 @@
           </select>
         </div>
       `;
+      return;
     }
 
-    const optionsText = data.options_text || "";
-    const singleCorrectTypes = ["MULTIPLE_CHOICE", "FILL_BLANK"];
-
-    return `
+    settingsContainer.innerHTML = `
       <div class="form-group">
-        <label>Options / word bank (one option per line)</label>
-        <textarea rows="5" class="week-description-input question-options-text">${optionsText}</textarea>
+        <label>Answer options</label>
+        <div class="quiz-builder-options"></div>
+        <button type="button" class="small-button add-option-button">+ Add answer</button>
+        <p class="quiz-builder-note">
+          Select the correct answer beside each option. Multiple select can have more than one correct answer.
+        </p>
       </div>
-
-      ${singleCorrectTypes.includes(type) ? `
-        <div class="form-group">
-          <label>Correct option number (starting at 1)</label>
-          <input type="number" min="1" class="question-correct-option" value="${data.correct_option || ""}">
-        </div>
-      ` : ""}
-
-      ${type === "MULTIPLE_SELECT" ? `
-        <div class="form-group">
-          <label>Correct option numbers (comma-separated, starting at 1)</label>
-          <input type="text" class="question-correct-options" value="${data.correct_options || ""}" placeholder="e.g. 1,3">
-        </div>
-      ` : ""}
     `;
+
+    const optionsContainer = settingsContainer.querySelector(".quiz-builder-options");
+    const addOptionButton = settingsContainer.querySelector(".add-option-button");
+    const radioName = `question_${card.dataset.questionIndex}_correct`;
+    let options = normalizeOptions(type, data);
+
+    function ensureMultipleChoiceSelection() {
+      if (type === "MULTIPLE_CHOICE" && options.length && !options.some((option) => option.is_correct)) {
+        options[0].is_correct = true;
+      }
+    }
+
+    function renderOptions() {
+      ensureMultipleChoiceSelection();
+
+      optionsContainer.innerHTML = options.map((option, index) => `
+        <div class="quiz-option-editor-row" data-option-index="${index}">
+          <label class="quiz-option-choice">
+            <input
+              type="${type === "MULTIPLE_CHOICE" ? "radio" : "checkbox"}"
+              class="quiz-option-correct"
+              ${type === "MULTIPLE_CHOICE" ? `name="${radioName}"` : ""}
+              ${option.is_correct ? "checked" : ""}
+            >
+            <span>${type === "MULTIPLE_CHOICE" ? "Correct" : "Include"}</span>
+          </label>
+
+          <input
+            type="text"
+            class="quiz-option-text"
+            value="${escapeHtml(option.text)}"
+            placeholder="Answer option ${index + 1}"
+          >
+
+          ${
+            index >= 2
+              ? `<button type="button" class="small-button quiz-option-remove">Remove</button>`
+              : `<span class="quiz-option-spacer"></span>`
+          }
+        </div>
+      `).join("");
+    }
+
+    optionsContainer.addEventListener("input", function (event) {
+      const row = event.target.closest(".quiz-option-editor-row");
+      if (!row || !event.target.classList.contains("quiz-option-text")) {
+        return;
+      }
+
+      const index = Number(row.dataset.optionIndex);
+      options[index].text = event.target.value;
+    });
+
+    optionsContainer.addEventListener("change", function (event) {
+      const row = event.target.closest(".quiz-option-editor-row");
+      if (!row || !event.target.classList.contains("quiz-option-correct")) {
+        return;
+      }
+
+      const index = Number(row.dataset.optionIndex);
+
+      if (type === "MULTIPLE_CHOICE") {
+        options = options.map((option, optionIndex) => ({
+          ...option,
+          is_correct: optionIndex === index,
+        }));
+        renderOptions();
+      } else {
+        options[index].is_correct = event.target.checked;
+      }
+    });
+
+    optionsContainer.addEventListener("click", function (event) {
+      if (!event.target.classList.contains("quiz-option-remove")) {
+        return;
+      }
+
+      const row = event.target.closest(".quiz-option-editor-row");
+      const index = Number(row.dataset.optionIndex);
+      options.splice(index, 1);
+
+      if (options.length < 2) {
+        options.push({ text: "", is_correct: false });
+      }
+
+      renderOptions();
+    });
+
+    addOptionButton.addEventListener("click", function () {
+      options.push({ text: "", is_correct: false });
+      renderOptions();
+    });
+
+    renderOptions();
   }
 
   function addQuestionCard(data = {}) {
@@ -197,31 +364,31 @@
 
       <div class="form-group">
         <label>Prompt</label>
-        <textarea rows="3" class="week-description-input question-prompt">${data.prompt || ""}</textarea>
+        <textarea rows="3" class="week-description-input question-prompt">${escapeHtml(data.prompt || "")}</textarea>
       </div>
 
-      <div class="form-group">
-        <label>Question type</label>
-        <select class="question-type">
-          ${questionTypeOptions(selectedType)}
-        </select>
-      </div>
+      <div class="workflow-form-grid workflow-form-grid--triple">
+        <div class="form-group">
+          <label>Question type</label>
+          <select class="question-type">
+            ${questionTypeOptions(selectedType)}
+          </select>
+        </div>
 
-      <div class="form-group">
-        <label>Marks</label>
-        <input type="number" step="0.25" min="0.25" class="question-marks" value="${data.marks || "1.00"}">
+        <div class="form-group">
+          <label>Marks</label>
+          <input type="number" step="0.25" min="0.25" class="question-marks" value="${escapeHtml(data.marks || "1.00")}">
+        </div>
       </div>
 
       <div class="question-settings"></div>
     `;
 
     questionBuilder.appendChild(card);
-
-    const settingsContainer = card.querySelector(".question-settings");
-    settingsContainer.innerHTML = buildSettingsMarkup(selectedType, data);
+    renderQuestionSettings(card, selectedType, data);
 
     card.querySelector(".question-type").addEventListener("change", function () {
-      settingsContainer.innerHTML = buildSettingsMarkup(this.value, {});
+      renderQuestionSettings(card, this.value, {});
     });
 
     card.querySelector(".remove-question-button").addEventListener("click", function () {
@@ -256,13 +423,10 @@
       if (questionType === "TRUE_FALSE") {
         payload.correct_true_false = card.querySelector(".question-correct-true-false").value;
       } else {
-        payload.options_text = card.querySelector(".question-options-text").value;
-
-        if (questionType === "MULTIPLE_SELECT") {
-          payload.correct_options = card.querySelector(".question-correct-options").value;
-        } else {
-          payload.correct_option = card.querySelector(".question-correct-option").value;
-        }
+        payload.options = [...card.querySelectorAll(".quiz-option-editor-row")].map((row) => ({
+          text: row.querySelector(".quiz-option-text").value,
+          is_correct: row.querySelector(".quiz-option-correct").checked,
+        }));
       }
 
       return payload;

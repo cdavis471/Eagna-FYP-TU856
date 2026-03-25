@@ -1,72 +1,27 @@
-/*
+/* 
 =============
 Colour System
 =============
 */
 
 :root {
-
-  --primary: #3551b8;
-  --primary-hover: #2d46a2;
-  --tertiary: #07164d;
-  --tertiary-deeper: #061241;
-  --secondary: #ffffff;
+  --primary: #3551b8;           
+  --tertiary: #07164d;          
+  --secondary: #ffffff;         
 
   --bg-main: var(--primary);
   --bg-header-footer: var(--tertiary);
-  --bg-card: var(--secondary);
+  --bg-card: #ffffff;
 
-  --text-on-dark: var(--secondary);
-  --text-on-light: var(--tertiary);
+  --text-on-dark: #ffffff;      
+  --text-on-light: #07164d;     
 
   --border-soft: #d1d5db;
-  --border-neutral-light: #e5e7eb;
-  --border-neutral-strong: #cbd5e1;
-  --border-danger: #fecaca;
-  --border-warning: #fde68a;
-  --border-success: #a7f3d0;
-
   --muted-dark: #6b7280;
   --muted-light: #cbd5f5;
-  --text-placeholder: #5d6f9d;
-  --text-neutral-strong: #374151;
-  --text-warning: #92400e;
-  --text-danger: #991b1b;
-  --text-danger-strong: #b91c1c;
-  --text-success: #166534;
-  --text-success-strong: #065f46;
-
-  --surface-hover: #eff6ff;
-  --surface-subtle: #f8fbff;
-  --surface-slate-soft: #f8fafc;
-  --surface-muted: #f3f4f6;
-  --surface-info: #dbeafe;
-  --surface-accent: #eef3ff;
-  --surface-purple: #ede9fe;
-  --surface-danger: #fef2f2;
-  --surface-danger-soft: #fff8f8;
-  --surface-danger-alt: #fee2e2;
-  --surface-warning: #fef3c7;
-  --surface-warning-soft: #fffbeb;
-  --surface-success: #ecfdf5;
-  --surface-success-strong: #dcfce7;
-
-  --accent-blue-strong: #1d4ed8;
-  --accent-purple: #6d28d9;
-  --accent-red: #ef4444;
-  --accent-orange: #f59e0b;
-
-
-  --surface-info-border: #bfdbfe;
-  --surface-purple-soft: #f5f3ff;
-  --surface-purple-border: #ddd6fe;
-  --surface-neutral-soft: #f9fafb;
-  --border-input-soft: #c9d4f4;
-  --text-danger-bright: #dc2626;
-
 }
 
-/*
+/* 
 =============
 Base + Layout
 =============
@@ -87,14 +42,76 @@ body {
   margin: 0;
   font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-weight: 400;
-  background-color: var(--bg-main);
-  color: var(--text-on-dark);
+  background-color: var(--bg-main);   
+  color: var(--text-on-dark);         
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
 
-/*
+/* 
+======
+Header
+======
+*/
+
+.site-header {
+  background: var(--bg-header-footer); 
+  color: var(--text-on-dark);          
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  position: relative;
+  z-index: 10;
+}
+
+.header-left,
+.header-center,
+.header-right {
+  display: flex;
+  align-items: center;
+}
+
+.header-left {
+  gap: 0.5rem;
+}
+
+.header-center {
+  flex: 1;
+  justify-content: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;        
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.brand-logo {
+  display: block;
+  width: auto;
+  max-height: 15vh;  
+  height: auto;          
+}
+
+.main-nav ul,
+.footer-nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+/* 
 ============
 Page Content
 ============
@@ -127,7 +144,7 @@ Page Content
   font-size: 0.95rem;
 }
 
-/*
+/* 
 =============
 Cards & Grids
 =============
@@ -137,12 +154,12 @@ Cards & Grids
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
-  align-items: stretch;
+  align-items: stretch;      
 }
 
 .card {
-  background: var(--bg-card);
-  color: var(--text-on-light);
+  background: var(--bg-card);   
+  color: var(--text-on-light);  
   border-radius: 0.9rem;
   padding: 1rem;
   border: 1px solid var(--border-soft);
@@ -150,20 +167,20 @@ Cards & Grids
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 170px;
+  min-height: 170px;            
 }
 
 .card-title {
   margin: 0 0 0.45rem;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--text-on-light);
+  color: var(--text-on-light);  
 }
 
 .card-meta {
   margin: 0.12rem 0;
   font-size: 0.9rem;
-  color: var(--muted-dark);
+  color: var(--muted-dark);     
 }
 
 .card-clickable {
@@ -192,7 +209,7 @@ Cards & Grids
   color: var(--muted-dark);
 }
 
-/*
+/* 
 =================
 Auth / Login Form
 =================
@@ -202,8 +219,8 @@ Auth / Login Form
   max-width: 420px;
   margin: 3.5rem auto;
   padding: 2rem 2.25rem;
-  background: var(--bg-card);
-  color: var(--text-on-light);
+  background: var(--bg-card);         
+  color: var(--text-on-light);        
   border-radius: 1rem;
   box-shadow: 0 10px 35px rgba(15, 23, 42, 0.45);
   border: 1px solid rgba(148, 163, 184, 0.9);
@@ -214,7 +231,7 @@ Auth / Login Form
   margin-bottom: 1.25rem;
   font-size: 1.4rem;
   text-align: center;
-  color: var(--text-on-light);
+  color: var(--text-on-light);        
 }
 
 .form-group {
@@ -247,7 +264,7 @@ Auth / Login Form
 .form-group input:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 1px rgba(53, 81, 184, 0.15);
-  background-color: var(--surface-neutral-soft);
+  background-color: #f9fafb;
 }
 
 button[type="submit"]:not(.auth-action-button):not(.logout-button) {
@@ -308,10 +325,10 @@ button[type="submit"]:not(.auth-action-button):not(.logout-button):hover {
   list-style: none;
   padding: 0.4rem 0.6rem;
   margin: 0 0 1rem;
-  background: var(--surface-danger);
+  background: #fef2f2;
   border-radius: 0.5rem;
-  border: 1px solid var(--border-danger);
-  color: var(--text-danger-strong);
+  border: 1px solid #fecaca;
+  color: #b91c1c;
   font-size: 0.9rem;
 }
 
@@ -323,7 +340,7 @@ button[type="submit"]:not(.auth-action-button):not(.logout-button):hover {
   padding: 0.75rem 1.2rem;
   border-radius: 0.75rem;
   text-decoration: none;
-  background: var(--primary);
+  background: var(--primary); 
   color: var(--text-on-dark);
   font-weight: 600;
   font-size: 0.95rem;
@@ -349,7 +366,7 @@ button[type="submit"]:not(.auth-action-button):not(.logout-button):hover {
 .form-group select:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 1px rgba(53, 81, 184, 0.15);
-  background-color: var(--surface-neutral-soft);
+  background-color: #f9fafb;
 }
 
 .hint {
@@ -418,15 +435,53 @@ button[type="submit"]:not(.auth-action-button):not(.logout-button):hover {
   opacity: 0.9;
 }
 
-/*
+/* 
+======
+Footer
+======
+*/
+
+.site-footer {
+  background: var(--bg-header-footer);  
+  color: var(--text-on-dark);           
+  padding: 1.25rem 1.5rem 1.5rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.6);
+}
+
+.footer-top {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.footer-image-placeholder {
+  width: 100%;
+  max-width: 600px;
+  height: 80px;
+  border-radius: 0.75rem;
+  border: 1px dashed rgba(209, 213, 219, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  color: #e5e7eb;
+  background: rgba(15, 23, 42, 0.4);
+}
+
+.footer-nav {
+  display: flex;
+  justify-content: center;
+}
+
+/* 
 ====================================
 Weekly Resources / Academic Calendar
 ====================================
 */
 
 .week-block {
-  background: var(--bg-card);
-  color: var(--text-on-light);
+  background: var(--bg-card);       
+  color: var(--text-on-light);      
   border-radius: 0.9rem;
   padding: 1rem;
   margin-bottom: 1rem;
@@ -438,7 +493,7 @@ Weekly Resources / Academic Calendar
   margin: 0 0 0.4rem;
   font-size: 1.05rem;
   font-weight: 600;
-  color: var(--text-on-light);
+  color: var(--text-on-light);      
 }
 
 .week-description-text {
@@ -517,9 +572,9 @@ Weekly Resources / Academic Calendar
   min-height: 2.45rem;
   padding: 0.68rem 1rem;
   border-radius: 0.85rem;
-  border: 2px solid var(--tertiary);
-  background: var(--tertiary);
-  color: var(--secondary);
+  border: 2px solid #07164d;
+  background: #07164d;
+  color: #ffffff;
   font-family: inherit;
   font-size: 0.94rem;
   font-weight: 700;
@@ -536,8 +591,8 @@ Weekly Resources / Academic Calendar
 }
 
 .small-button:hover {
-  background: var(--primary);
-  border-color: var(--tertiary);
+  background: #3551b8;
+  border-color: #07164d;
   box-shadow: 0 10px 22px rgba(7, 22, 77, 0.2);
   transform: translateY(-1px);
   opacity: 1;
@@ -569,27 +624,27 @@ File Parser / Document Viewer
 }
 
 .flash-message--success {
-  background: var(--surface-success);
-  color: var(--text-success-strong);
-  border: 1px solid var(--border-success);
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
 }
 
 .flash-message--error {
-  background: var(--surface-danger);
-  color: var(--text-danger);
-  border: 1px solid var(--border-danger);
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
 }
 
 .flash-message--warning {
-  background: var(--surface-warning-soft);
-  color: var(--text-warning);
-  border: 1px solid var(--border-warning);
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 
 .flash-message--info {
-  background: var(--surface-hover);
-  color: var(--accent-blue-strong);
-  border: 1px solid var(--surface-info-border);
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 .week-file-item {
@@ -610,18 +665,18 @@ File Parser / Document Viewer
 }
 
 .status-badge.ready {
-  background: var(--surface-success-strong);
-  color: var(--text-success);
+  background: #dcfce7;
+  color: #166534;
 }
 
 .status-badge.processing {
-  background: var(--surface-warning);
-  color: var(--text-warning);
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .status-badge.failed {
-  background: var(--surface-danger-alt);
-  color: var(--text-danger);
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 .parsed-modal.hidden {
@@ -645,7 +700,7 @@ File Parser / Document Viewer
   width: min(1000px, calc(100vw - 2rem));
   max-height: calc(100vh - 2rem);
   margin: 1rem auto;
-  background: var(--secondary);
+  background: #ffffff;
   color: var(--text-on-light);
   border-radius: 1rem;
   overflow: auto;
@@ -680,7 +735,7 @@ File Parser / Document Viewer
 }
 
 .parsed-page {
-  background: var(--secondary);
+  background: #ffffff;
 }
 
 .parsed-page-header {
@@ -694,7 +749,7 @@ File Parser / Document Viewer
 .parsed-page-break {
   margin: 1.5rem 0;
   border: 0;
-  border-top: 2px dashed var(--border-neutral-strong);
+  border-top: 2px dashed #cbd5e1;
 }
 
 .parsed-document-body h1,
@@ -737,7 +792,7 @@ File Parser / Document Viewer
 
 .parsed-document-body th,
 .parsed-document-body td {
-  border: 1px solid var(--border-neutral-strong);
+  border: 1px solid #cbd5e1;
   padding: 0.6rem;
   text-align: left;
   vertical-align: top;
@@ -753,7 +808,7 @@ File Parser / Document Viewer
   max-width: 100%;
   height: auto;
   border-radius: 0.75rem;
-  border: 1px solid var(--border-neutral-strong);
+  border: 1px solid #cbd5e1;
 }
 
 .parsed-image-preview {
@@ -777,6 +832,37 @@ Quizzes Functionality
   margin-bottom: 0.65rem;
 }
 
+.assessment-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.18rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.assessment-badge.assignment {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.assessment-badge.quiz {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.assessment-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.18rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #f3f4f6;
+  color: #374151;
+}
 
 .card-disabled {
   opacity: 0.82;
@@ -804,7 +890,7 @@ Quizzes Functionality
 }
 
 .quiz-question-editor {
-  background: var(--secondary);
+  background: #ffffff;
   color: var(--text-on-light);
   border: 1px solid var(--border-soft);
   border-radius: 0.9rem;
@@ -844,7 +930,7 @@ Quizzes Functionality
 }
 
 .quiz-meta-card {
-  background: var(--secondary);
+  background: #ffffff;
   color: var(--text-on-light);
   border-radius: 0.9rem;
   border: 1px solid var(--border-soft);
@@ -855,9 +941,9 @@ Quizzes Functionality
 }
 
 .quiz-timer-banner {
-  background: var(--surface-warning);
-  color: var(--text-warning);
-  border: 1px solid var(--accent-orange);
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
   border-radius: 0.75rem;
   padding: 0.75rem 1rem;
   margin-bottom: 1rem;
@@ -898,7 +984,7 @@ Quizzes Functionality
 .error-list {
   margin: 0 0 1rem 0;
   padding-left: 1.2rem;
-  color: var(--border-danger);
+  color: #fecaca;
 }
 
 /*
@@ -906,6 +992,15 @@ Quizzes Functionality
 User Profile
 ============
 */
+
+.user-link {
+  color: var(--text-on-dark);
+  text-decoration: none;
+}
+
+.user-link:hover {
+  text-decoration: underline;
+}
 
 .profile-summary-grid {
   display: grid;
@@ -985,29 +1080,29 @@ User Profile
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
-  background: var(--border-neutral-light);
-  color: var(--text-neutral-strong);
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .profile-metric--complete {
-  background: var(--surface-success-strong);
-  color: var(--text-success);
+  background: #dcfce7;
+  color: #166534;
 }
 
 .profile-metric--pending {
-  background: var(--surface-warning);
-  color: var(--text-warning);
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .profile-metric--empty {
-  background: var(--border-neutral-light);
-  color: var(--text-neutral-strong);
+  background: #e5e7eb;
+  color: #374151;
 }
 
 /*
 =============
 Notifications
-=============
+============= 
 */
 
 .sr-only {
@@ -1022,6 +1117,21 @@ Notifications
   border: 0;
 }
 
+.notification-shell {
+  position: relative;
+}
+
+.notification-button {
+  position: relative;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+}
+
+.notification-bell {
+  line-height: 1;
+}
+
 .notification-badge {
   position: absolute;
   top: -0.2rem;
@@ -1030,8 +1140,8 @@ Notifications
   height: 1.15rem;
   padding: 0 0.3rem;
   border-radius: 999px;
-  background: var(--accent-red);
-  color: var(--secondary);
+  background: #ef4444;
+  color: #ffffff;
   font-size: 0.68rem;
   font-weight: 700;
   display: inline-flex;
@@ -1049,7 +1159,7 @@ Notifications
   top: calc(100% + 0.6rem);
   right: 0;
   width: min(420px, calc(100vw - 2rem));
-  background: var(--secondary);
+  background: #ffffff;
   color: var(--text-on-light);
   border: 1px solid var(--border-soft);
   border-radius: 1rem;
@@ -1065,7 +1175,7 @@ Notifications
   gap: 0.75rem;
   padding: 0.9rem 1rem;
   border-bottom: 1px solid rgba(209, 213, 219, 0.7);
-  background: var(--surface-slate-soft);
+  background: #f8fafc;
 }
 
 .notification-unread-label {
@@ -1093,16 +1203,16 @@ Notifications
 }
 
 .notification-item:hover {
-  background: var(--surface-hover);
+  background: #eff6ff;
 }
 
 .notification-item--unread {
-  background: var(--surface-subtle);
+  background: #f8fbff;
 }
 
 .notification-item--read {
   opacity: 0.6;
-  background: var(--secondary);
+  background: #ffffff;
 }
 
 .notification-title {
@@ -1137,7 +1247,7 @@ Notifications
   width: 100%;
   border: 0;
   border-top: 1px solid rgba(209, 213, 219, 0.7);
-  background: var(--surface-slate-soft);
+  background: #f8fafc;
   color: var(--text-on-light);
   cursor: pointer;
   font: inherit;
@@ -1147,7 +1257,7 @@ Notifications
 }
 
 .notification-more-button:hover {
-  background: var(--surface-hover);
+  background: #eff6ff;
 }
 
 .notification-empty {
@@ -1235,7 +1345,7 @@ Portal Page
 
 .portal-calendar-cell {
   min-height: 150px;
-  background: var(--secondary);
+  background: #ffffff;
   color: var(--text-on-light);
   border: 1px solid var(--border-soft);
   border-radius: 0.9rem;
@@ -1269,13 +1379,13 @@ Portal Page
 }
 
 .portal-calendar-item.assignment {
-  background: var(--surface-hover);
-  border-color: var(--surface-info-border);
+  background: #eff6ff;
+  border-color: #bfdbfe;
 }
 
 .portal-calendar-item.quiz {
-  background: var(--surface-purple-soft);
-  border-color: var(--surface-purple-border);
+  background: #f5f3ff;
+  border-color: #ddd6fe;
 }
 
 .portal-calendar-item:hover {
@@ -1304,7 +1414,7 @@ Portal Page
 }
 
 .portal-embed-frame-wrap {
-  background: var(--secondary);
+  background: #ffffff;
   border: 1px solid var(--border-soft);
   border-radius: 1rem;
   overflow: hidden;
@@ -1316,7 +1426,7 @@ Portal Page
   width: 100%;
   min-height: 720px;
   border: 0;
-  background: var(--secondary);
+  background: #ffffff;
 }
 
 /*
@@ -1412,13 +1522,13 @@ Admin Dashboard
 }
 
 .admin-chip--student {
-  background: var(--surface-info);
-  color: var(--accent-blue-strong);
+  background: #dbeafe;
+  color: #1d4ed8;
 }
 
 .admin-chip--lecturer {
-  background: var(--surface-purple);
-  color: var(--accent-purple);
+  background: #ede9fe;
+  color: #6d28d9;
 }
 
 .admin-remove-button {
@@ -1432,7 +1542,7 @@ Announcements
 */
 
 .announcement-card {
-  background: var(--secondary);
+  background: #ffffff;
   color: var(--text-on-light);
   border: 1px solid var(--border-soft);
   border-radius: 0.95rem;
@@ -1484,7 +1594,7 @@ Login Intro Splash Screen
   overflow: hidden;
   background:
     radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.08), transparent 35%),
-    linear-gradient(180deg, var(--tertiary) 0%, var(--primary) 100%);
+    linear-gradient(180deg, #07164d 0%, #3551b8 100%);
   opacity: 1;
   visibility: visible;
   transition:
@@ -1654,7 +1764,7 @@ Login Form - Final UI
   font-size: 2rem;
   line-height: 1.1;
   font-weight: 700;
-  color: var(--tertiary);
+  color: #07164d;
   letter-spacing: 0.01em;
 }
 
@@ -1665,7 +1775,7 @@ Login Form - Final UI
 }
 
 .login-form-label {
-  color: var(--tertiary);
+  color: #07164d;
   font-weight: 700;
   font-size: 0.98rem;
   letter-spacing: 0.01em;
@@ -1681,9 +1791,9 @@ Login Form - Final UI
   min-height: 52px;
   padding: 0.9rem 1rem;
   border-radius: 0.9rem;
-  border: 1px solid var(--border-input-soft);
-  background: var(--secondary);
-  color: var(--tertiary);
+  border: 1px solid #c9d4f4;
+  background: #ffffff;
+  color: #07164d;
   font-size: 1rem;
   font-weight: 500;
   transition:
@@ -1695,7 +1805,7 @@ Login Form - Final UI
 .login-page .auth-container input[type="text"]::placeholder,
 .login-page .auth-container input[type="email"]::placeholder,
 .login-page .auth-container input[type="password"]::placeholder {
-  color: var(--text-placeholder);
+  color: #5d6f9d;
   opacity: 1;
 }
 
@@ -1703,15 +1813,15 @@ Login Form - Final UI
 .login-page .auth-container input[type="email"]:focus,
 .login-page .auth-container input[type="password"]:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: #3551b8;
   box-shadow: 0 0 0 4px rgba(53, 81, 184, 0.14);
 }
 
 .login-page .auth-container input:-webkit-autofill,
 .login-page .auth-container input:-webkit-autofill:hover,
 .login-page .auth-container input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--tertiary);
-  -webkit-box-shadow: 0 0 0 1000px var(--secondary) inset;
+  -webkit-text-fill-color: #07164d;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -1750,23 +1860,23 @@ Login Form - Final UI
 }
 
 .auth-action-button--primary {
-  background: var(--tertiary);
-  color: var(--secondary);
+  background: #07164d;
+  color: #ffffff;
   box-shadow: 0 8px 20px rgba(7, 22, 77, 0.2);
 }
 
 .auth-action-button--primary:hover {
-  background: var(--tertiary-deeper);
+  background: #061241;
 }
 
 .auth-action-button--secondary {
-  background: var(--primary);
-  color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
   box-shadow: 0 8px 20px rgba(53, 81, 184, 0.18);
 }
 
 .auth-action-button--secondary:hover {
-  background: var(--primary-hover);
+  background: #2d46a2;
 }
 
 .login-page .error-list {
@@ -1792,46 +1902,46 @@ Login Form - Final UI
 
 .login-page .auth-container {
   border-radius: 1.05rem;
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.32);
 }
 
 .login-page .auth-container h2 {
   font-size: 1.75rem;
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .login-page .form-group label {
-  color: var(--tertiary);
+  color: #07164d;
   font-weight: 700;
 }
 
 .login-page .form-group input[type="text"],
 .login-page .form-group input[type="password"],
 .login-page .form-group input[type="email"] {
-  border: 2px solid var(--tertiary);
-  color: var(--tertiary);
+  border: 2px solid #07164d;
+  color: #07164d;
 }
 
 .login-page .form-group input[type="text"]:focus,
 .login-page .form-group input[type="password"]:focus,
 .login-page .form-group input[type="email"]:focus {
-  border-color: var(--primary);
+  border-color: #3551b8;
   box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
-  background-color: var(--secondary);
+  background-color: #ffffff;
 }
 
 .login-page .form-group input[type="text"]::placeholder,
 .login-page .form-group input[type="password"]::placeholder,
 .login-page .form-group input[type="email"]::placeholder {
-  color: var(--text-placeholder);
+  color: #5d6f9d;
 }
 
 .login-page .form-group input:-webkit-autofill,
 .login-page .form-group input:-webkit-autofill:hover,
 .login-page .form-group input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--tertiary);
-  -webkit-box-shadow: 0 0 0 1000px var(--secondary) inset;
+  -webkit-text-fill-color: #07164d;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
   transition: background-color 5000s ease-in-out 0s;
 }
 
@@ -1854,7 +1964,7 @@ Registration Form - Final UI
   margin: 0 auto;
   padding: 2rem 1.75rem;
   border-radius: 1.15rem;
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.32);
 }
 
@@ -1864,7 +1974,7 @@ Registration Form - Final UI
   font-size: 2rem;
   line-height: 1.1;
   font-weight: 700;
-  color: var(--tertiary);
+  color: #07164d;
   letter-spacing: 0.01em;
 }
 
@@ -1886,7 +1996,7 @@ Registration Form - Final UI
 
 .registration-form-label,
 .registration-page .form-group label {
-  color: var(--tertiary);
+  color: #07164d;
   font-weight: 700;
   font-size: 0.98rem;
   letter-spacing: 0.01em;
@@ -1901,9 +2011,9 @@ Registration Form - Final UI
   width: 100%;
   padding: 0.9rem 1rem;
   border-radius: 0.9rem;
-  border: 2px solid var(--tertiary);
-  background: var(--secondary);
-  color: var(--tertiary);
+  border: 2px solid #07164d;
+  background: #ffffff;
+  color: #07164d;
   font-size: 1rem;
   font-weight: 500;
   transition:
@@ -1916,7 +2026,7 @@ Registration Form - Final UI
 .registration-page .auth-container input[type="email"]::placeholder,
 .registration-page .auth-container input[type="password"]::placeholder,
 .registration-page #module-search::placeholder {
-  color: var(--text-placeholder);
+  color: #5d6f9d;
   opacity: 1;
 }
 
@@ -1926,23 +2036,23 @@ Registration Form - Final UI
 .registration-page .auth-container select:focus,
 .registration-page #module-search:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: #3551b8;
   box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
-  background-color: var(--secondary);
+  background-color: #ffffff;
 }
 
 .registration-page .auth-container input:-webkit-autofill,
 .registration-page .auth-container input:-webkit-autofill:hover,
 .registration-page .auth-container input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--tertiary);
-  -webkit-box-shadow: 0 0 0 1000px var(--secondary) inset;
+  -webkit-text-fill-color: #07164d;
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset;
   transition: background-color 5000s ease-in-out 0s;
 }
 
 .registration-hint {
   display: block;
   margin-top: 0.4rem;
-  color: var(--tertiary);
+  color: #07164d;
   font-size: 0.86rem;
   line-height: 1.45;
   font-style: italic;
@@ -1950,7 +2060,7 @@ Registration Form - Final UI
 
 .registration-divider {
   height: 1px;
-  background: var(--tertiary);
+  background: #07164d;
   margin: 0.2rem 0;
 }
 
@@ -1989,30 +2099,30 @@ Registration Form - Final UI
 }
 
 .registration-page .auth-action-button--primary {
-  background: var(--tertiary);
-  color: var(--secondary);
+  background: #07164d;
+  color: #ffffff;
   box-shadow: 0 8px 20px rgba(7, 22, 77, 0.2);
 }
 
 .registration-page .auth-action-button--primary:hover {
-  background: var(--tertiary-deeper);
+  background: #061241;
 }
 
 .registration-page .auth-action-button--secondary {
-  background: var(--primary);
-  color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
   box-shadow: 0 8px 20px rgba(53, 81, 184, 0.18);
 }
 
 .registration-page .auth-action-button--secondary:hover {
-  background: var(--primary-hover);
+  background: #2d46a2;
 }
 
 .registration-page .dropdown {
   margin-top: 1rem;
-  border: 1px solid var(--primary);
+  border: 1px solid #3551b8;
   border-radius: 0;
-  background: var(--secondary);
+  background: #ffffff;
   box-shadow: 0 10px 26px rgba(7, 22, 77, 0.14);
   max-height: 280px;
   overflow-y: auto;
@@ -2020,7 +2130,7 @@ Registration Form - Final UI
 
 .registration-page .dropdown-item {
   padding: 0.8rem 1rem;
-  color: var(--tertiary);
+  color: #07164d;
   cursor: pointer;
   border-top: 1px solid rgba(7, 22, 77, 0.08);
   transition: background-color 0.12s ease, color 0.12s ease;
@@ -2031,18 +2141,18 @@ Registration Form - Final UI
 }
 
 .registration-page .dropdown-item:hover {
-  background: var(--surface-accent);
+  background: #eef3ff;
 }
 
 .registration-page .dropdown-item--disabled {
-  color: var(--text-placeholder);
+  color: #5d6f9d;
   cursor: default;
-  background: var(--secondary);
+  background: #ffffff;
 }
 
 .registration-page .dropdown-item--selected {
-  background: var(--surface-accent);
-  color: var(--primary);
+  background: #eef3ff;
+  color: #3551b8;
   font-weight: 700;
 }
 
@@ -2059,9 +2169,9 @@ Registration Form - Final UI
   gap: 0.45rem;
   padding: 0.55rem 0.75rem;
   border-radius: 0px;
-  background: var(--surface-accent);
-  color: var(--tertiary);
-  border: 1px solid var(--primary);
+  background: #eef3ff;
+  color: #07164d;
+  border: 1px solid #3551b8;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
@@ -2069,7 +2179,7 @@ Registration Form - Final UI
 
 .registration-page .module-chip .chip-x {
   font-weight: 700;
-  color: var(--text-danger-bright);
+  color: #dc2626;
 }
 
 .registration-page .message-list {
@@ -2099,7 +2209,7 @@ Registration Form - Final UI
   }
 }
 
-/*
+/* 
 ==========================
 Header / Footer - Final UI
 ==========================
@@ -2204,8 +2314,8 @@ Header / Footer - Final UI
 .main-nav a.site-nav-button,
 .footer-nav a.site-nav-button,
 .header-logout-form .logout-button {
-  background: var(--secondary);
-  color: var(--tertiary);
+  background: #ffffff;
+  color: #07164d;
   border: 1px solid rgba(7, 22, 77, 0.14);
   box-shadow: 0 4px 12px rgba(7, 22, 77, 0.16);
   cursor: pointer;
@@ -2213,27 +2323,27 @@ Header / Footer - Final UI
 
 .main-nav a.site-nav-button:hover,
 .footer-nav a.site-nav-button:hover {
-  background: var(--secondary);
-  color: var(--primary);
+  background: #ffffff;
+  color: #3551b8;
   text-decoration: none;
   transform: translateY(-1px);
 }
 
 .header-logout-form .logout-button:hover {
-  background: var(--secondary);
-  color: var(--primary);
+  background: #ffffff;
+  color: #3551b8;
   text-decoration: none;
   transform: none;
 }
 
 .main-nav a.site-nav-button:visited,
 .footer-nav a.site-nav-button:visited {
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .main-nav a.site-nav-button:hover:visited,
 .footer-nav a.site-nav-button:hover:visited {
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .user-link,
@@ -2242,19 +2352,19 @@ Header / Footer - Final UI
 }
 
 .user-chip {
-  background: var(--primary);
-  color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 4px 12px rgba(53, 81, 184, 0.22);
 }
 
 .user-chip:visited {
-  color: var(--secondary);
+  color: #ffffff;
 }
 
 .user-chip:hover {
-  background: var(--primary);
-  color: var(--tertiary);
+  background: #3551b8;
+  color: #07164d;
   text-decoration: none;
   transform: none;
 }
@@ -2271,8 +2381,8 @@ Header / Footer - Final UI
   padding: 0;
   border-radius: 999px;
   border: 1px solid rgba(7, 22, 77, 0.14);
-  background: var(--secondary);
-  color: var(--tertiary);
+  background: #ffffff;
+  color: #07164d;
   box-shadow: 0 4px 12px rgba(7, 22, 77, 0.16);
 }
 
@@ -2308,7 +2418,7 @@ Header / Footer - Final UI
   justify-content: flex-end;
 }
 
-/*
+/* 
 ===========================
 Dashboard Cards - Final UI
 ===========================
@@ -2335,7 +2445,7 @@ Dashboard Cards - Final UI
   min-height: 220px;
   height: 100%;
   padding: 1rem 1rem 0.95rem;
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
 }
 
@@ -2348,7 +2458,7 @@ Dashboard Cards - Final UI
   font-size: 0.94rem;
   font-weight: 600;
   line-height: 1.35;
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .dashboard-card-panel .card-meta + .card-meta {
@@ -2356,7 +2466,7 @@ Dashboard Cards - Final UI
 }
 
 .dashboard-card-panel.card-clickable:hover {
-  border-color: var(--tertiary);
+  border-color: #07164d;
 }
 
 .dashboard-announcement-card {
@@ -2365,7 +2475,7 @@ Dashboard Cards - Final UI
 
 .dashboard-announcement-card .announcement-content {
   margin-top: 0.45rem;
-  color: var(--primary);
+  color: #3551b8;
   font-weight: 500;
   line-height: 1.6;
 }
@@ -2374,7 +2484,7 @@ Dashboard Cards - Final UI
   min-height: 220px;
 }
 
-/*
+/* 
 ========================
 Module Detail - Final UI
 ========================
@@ -2423,22 +2533,22 @@ Module Detail - Final UI
 }
 
 .module-assessment-card .assessment-badge.assignment {
-  background: var(--tertiary);
-  color: var(--secondary);
+  background: #07164d;
+  color: #ffffff;
 }
 
 .module-assessment-card .assessment-badge.quiz {
-  background: var(--primary);
-  color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
 }
 
 .module-assessment-card .assessment-status--dark {
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .module-assessment-card .assessment-status--upcoming {
   background: transparent;
-  color: var(--primary);
+  color: #3551b8;
   padding-left: 0;
   padding-right: 0;
 }
@@ -2449,18 +2559,22 @@ Module Detail - Final UI
 
 .module-announcement-card .announcement-content {
   margin-top: 0.45rem;
-  color: var(--primary);
+  color: #3551b8;
   font-weight: 500;
   line-height: 1.6;
 }
 
 .module-calendar-section .module-week-card {
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
 }
 
+.week-file-meta {
+  color: #07164d;
+  font-style: italic;
+}
 
-/*
+/* 
 ======================================
 Shared Assessment / Surface - Final UI
 ======================================
@@ -2479,13 +2593,13 @@ Shared Assessment / Surface - Final UI
 }
 
 .assessment-badge.assignment {
-  background: var(--tertiary);
-  color: var(--secondary);
+  background: #07164d;
+  color: #ffffff;
 }
 
 .assessment-badge.quiz {
-  background: var(--primary);
-  color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
 }
 
 .assessment-status {
@@ -2497,20 +2611,20 @@ Shared Assessment / Surface - Final UI
   font-size: 0.78rem;
   font-weight: 700;
   line-height: 1;
-  background: var(--surface-accent);
-  color: var(--tertiary);
+  background: #eef3ff;
+  color: #07164d;
 }
 
 .assessment-status--dark {
   background: transparent;
-  color: var(--tertiary);
+  color: #07164d;
   padding-left: 0;
   padding-right: 0;
 }
 
 .assessment-status--upcoming {
   background: transparent;
-  color: var(--primary);
+  color: #3551b8;
   padding-left: 0;
   padding-right: 0;
 }
@@ -2527,7 +2641,7 @@ Shared Assessment / Surface - Final UI
 .profile-summary-card,
 .portal-calendar-cell,
 .portal-embed-frame-wrap {
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
 }
 
@@ -2540,7 +2654,7 @@ Shared Assessment / Surface - Final UI
 .portal-calendar-more,
 .quiz-meta-card span,
 .quiz-fill-preview {
-  color: var(--primary);
+  color: #3551b8;
   font-weight: 600;
 }
 
@@ -2549,11 +2663,11 @@ Shared Assessment / Surface - Final UI
 .quiz-question-editor .muted,
 .portal-embed-frame-wrap .muted,
 .assessment-detail-page .muted {
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .week-file-meta {
-  color: var(--tertiary);
+  color: #07164d;
   font-style: italic;
 }
 
@@ -2561,7 +2675,7 @@ Shared Assessment / Surface - Final UI
 .quiz-meta-card strong,
 .profile-summary-value,
 .portal-calendar-date {
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .assessment-detail-header {
@@ -2573,62 +2687,68 @@ Shared Assessment / Surface - Final UI
   margin-bottom: 0.2rem;
 }
 
+.assessment-detail-page .quiz-timer-banner {
+  background: #eef3ff;
+  color: #07164d;
+  border: 2px solid #07164d;
+  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
+}
 
 .portal-office-section .portal-app-card {
-  background: var(--tertiary);
-  color: var(--secondary);
-  border: 2px solid var(--secondary);
+  background: #07164d;
+  color: #ffffff;
+  border: 2px solid #ffffff;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.22);
 }
 
 .portal-office-section .portal-app-card:hover {
-  background: var(--primary);
-  color: var(--secondary);
-  border-color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
+  border-color: #ffffff;
   transform: none;
   opacity: 1;
 }
 
 .portal-office-section .portal-app-label {
-  color: var(--secondary);
+  color: #ffffff;
   font-weight: 700;
 }
 
 .portal-office-section .small-button {
-  background: var(--tertiary);
-  color: var(--secondary);
-  border: 2px solid var(--secondary);
+  background: #07164d;
+  color: #ffffff;
+  border: 2px solid #ffffff;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.22);
 }
 
 .portal-office-section .small-button:hover {
-  background: var(--primary);
-  color: var(--secondary);
-  border-color: var(--secondary);
+  background: #3551b8;
+  color: #ffffff;
+  border-color: #ffffff;
   transform: none;
   opacity: 1;
 }
 
 .portal-calendar-item.assignment {
-  background: var(--tertiary);
-  border-color: var(--tertiary);
+  background: #07164d;
+  border-color: #07164d;
 }
 
 .portal-calendar-item.quiz {
-  background: var(--primary);
-  border-color: var(--primary);
+  background: #3551b8;
+  border-color: #3551b8;
 }
 
 .portal-calendar-item-type,
 .portal-calendar-item-title {
-  color: var(--secondary);
+  color: #ffffff;
 }
 
 .portal-calendar-item:hover {
   opacity: 1;
 }
 
-/*
+/* 
 ==================================
 Assessment Detail Pages - Final UI
 ==================================
@@ -2640,9 +2760,9 @@ Assessment Detail Pages - Final UI
 
 .assessment-hero-card,
 .assessment-surface {
-  background: var(--secondary);
-  color: var(--tertiary);
-  border: 2px solid var(--tertiary);
+  background: #ffffff;
+  color: #07164d;
+  border: 2px solid #07164d;
   border-radius: 1rem;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
   padding: 1.15rem 1.2rem;
@@ -2666,18 +2786,18 @@ Assessment Detail Pages - Final UI
   margin-bottom: 0.35rem;
   font-size: 0.92rem;
   font-weight: 700;
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .assessment-detail-page .section-title {
   margin: 0;
-  color: var(--tertiary);
+  color: #07164d;
   font-size: 2rem;
   line-height: 1.08;
 }
 
 .assessment-detail-page .muted {
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .assessment-meta-grid {
@@ -2687,8 +2807,8 @@ Assessment Detail Pages - Final UI
 }
 
 .assessment-meta-card {
-  background: var(--secondary);
-  border: 2px solid var(--tertiary);
+  background: #ffffff;
+  border: 2px solid #07164d;
   border-radius: 0.9rem;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.1);
   padding: 0.9rem 1rem;
@@ -2702,18 +2822,18 @@ Assessment Detail Pages - Final UI
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .assessment-meta-value {
   font-size: 0.98rem;
   font-weight: 700;
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .assessment-body-text {
   margin: 0;
-  color: var(--primary);
+  color: #3551b8;
   font-weight: 500;
   line-height: 1.65;
 }
@@ -2731,35 +2851,35 @@ Assessment Detail Pages - Final UI
 
 .assessment-detail-page .week-title {
   margin: 0 0 0.5rem;
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .assessment-detail-page .week-files-title,
 .assessment-detail-page .card-meta,
 .assessment-detail-page .week-label,
 .assessment-detail-page .week-description-text {
-  color: var(--primary);
+  color: #3551b8;
   font-weight: 600;
 }
 
 .assessment-detail-page .week-block,
 .assessment-detail-page .quiz-meta-card,
 .assessment-detail-page .quiz-question-editor {
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
 }
 
 .assessment-detail-page .quiz-meta-card strong,
 .assessment-detail-page .quiz-question-editor .card-title,
 .assessment-detail-page .quiz-question-editor legend {
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .assessment-detail-page .quiz-meta-card span,
 .assessment-detail-page .quiz-question-editor .card-meta,
 .assessment-detail-page .quiz-option-row,
 .assessment-detail-page .quiz-fill-preview {
-  color: var(--primary);
+  color: #3551b8;
 }
 
 .assessment-file-list {
@@ -2780,7 +2900,7 @@ Assessment Detail Pages - Final UI
   padding: 0.8rem 0.9rem;
   border: 1px solid rgba(7, 22, 77, 0.12);
   border-radius: 0.85rem;
-  background: var(--surface-subtle);
+  background: #f8fbff;
 }
 
 .assessment-file-main {
@@ -2791,7 +2911,7 @@ Assessment Detail Pages - Final UI
 }
 
 .assessment-file-name {
-  color: var(--tertiary);
+  color: #07164d;
   font-weight: 700;
   text-decoration: none;
 }
@@ -2808,7 +2928,7 @@ Assessment Detail Pages - Final UI
 }
 
 .assessment-detail-page .week-file-meta {
-  color: var(--primary);
+  color: #3551b8;
   font-style: italic;
   margin-left: 0;
 }
@@ -2820,9 +2940,9 @@ Assessment Detail Pages - Final UI
 }
 
 .assessment-detail-page .quiz-timer-banner {
-  background: var(--surface-accent);
-  color: var(--tertiary);
-  border: 2px solid var(--tertiary);
+  background: #eef3ff;
+  color: #07164d;
+  border: 2px solid #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
 }
 
@@ -2839,8 +2959,8 @@ Assessment Detail Pages - Final UI
 }
 
 .assignment-overview-panel {
-  border: 2px solid var(--primary);
-  background: var(--tertiary);
+  border: 2px solid #3551b8;
+  background: #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.18);
 }
 
@@ -2850,7 +2970,7 @@ Assessment Detail Pages - Final UI
 
 .assignment-overview-panel .assessment-meta-label,
 .assignment-overview-panel .week-title {
-  color: var(--secondary);
+  color: #ffffff;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -2858,25 +2978,25 @@ Assessment Detail Pages - Final UI
 
 .assignment-overview-panel .assessment-meta-value,
 .assignment-description-panel .assessment-body-text {
-  color: var(--secondary);
+  color: #ffffff;
   font-size: 0.92rem;
   font-weight: 400;
   line-height: 1.65;
 }
 
 .assignment-materials-panel {
-  background: var(--tertiary);
-  border-color: var(--primary);
+  background: #07164d;
+  border-color: #3551b8;
 }
 
 .assignment-materials-panel .week-title {
-  color: var(--secondary);
+  color: #ffffff;
   margin-bottom: 0.65rem;
 }
 
 .assignment-material-row {
-  background: var(--secondary);
-  border: 2px solid var(--primary);
+  background: #ffffff;
+  border: 2px solid #3551b8;
   box-shadow: none;
 }
 
@@ -2885,14 +3005,14 @@ Assessment Detail Pages - Final UI
 }
 
 .assignment-materials-panel .assessment-file-name {
-  color: var(--tertiary);
+  color: #07164d;
 }
 
 .assignment-materials-panel .week-file-meta {
-  color: var(--tertiary);
+  color: #07164d;
 }
 
-/*
+/* 
 =================================
 Lecturer Workflow / Forms - Final UI
 =================================
@@ -2919,7 +3039,7 @@ Lecturer Workflow / Forms - Final UI
 
 .workflow-panel-title {
   margin: 0;
-  color: var(--tertiary);
+  color: #07164d;
   font-size: 1.45rem;
   line-height: 1.08;
 }
@@ -2927,7 +3047,7 @@ Lecturer Workflow / Forms - Final UI
 .workflow-panel-subtitle {
   margin: 0;
   max-width: 34rem;
-  color: var(--primary);
+  color: #3551b8;
   font-size: 0.95rem;
   line-height: 1.55;
   font-weight: 500;
@@ -2936,8 +3056,8 @@ Lecturer Workflow / Forms - Final UI
 .workflow-alert-card {
   max-width: 980px;
   margin: 0 auto;
-  border-color: var(--border-danger);
-  background: var(--surface-danger-soft);
+  border-color: #fecaca;
+  background: #fff8f8;
 }
 
 .workflow-alert-card .error-list {
@@ -2981,7 +3101,7 @@ Lecturer Workflow / Forms - Final UI
 .workflow-form label {
   display: block;
   margin-bottom: 0.35rem;
-  color: var(--tertiary);
+  color: #07164d;
   font-size: 0.96rem;
   font-weight: 700;
   letter-spacing: 0.01em;
@@ -3000,9 +3120,9 @@ Lecturer Workflow / Forms - Final UI
   min-height: 52px;
   padding: 0.85rem 1rem;
   border-radius: 0.9rem;
-  border: 2px solid var(--tertiary);
-  background: var(--secondary);
-  color: var(--tertiary);
+  border: 2px solid #07164d;
+  background: #ffffff;
+  color: #07164d;
   font-family: inherit;
   font-size: 1rem;
   font-weight: 500;
@@ -3020,7 +3140,7 @@ Lecturer Workflow / Forms - Final UI
 
 .workflow-form input::placeholder,
 .workflow-form textarea::placeholder {
-  color: var(--text-placeholder);
+  color: #5d6f9d;
   opacity: 1;
 }
 
@@ -3029,9 +3149,9 @@ Lecturer Workflow / Forms - Final UI
 .workflow-form textarea:focus,
 .workflow-form .week-description-input:focus {
   outline: none;
-  border-color: var(--primary);
+  border-color: #3551b8;
   box-shadow: 0 0 0 2px rgba(53, 81, 184, 0.14);
-  background-color: var(--secondary);
+  background-color: #ffffff;
 }
 
 .workflow-checkbox-row {
@@ -3039,9 +3159,9 @@ Lecturer Workflow / Forms - Final UI
   align-items: center;
   gap: 0.75rem;
   padding: 0.85rem 1rem;
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   border-radius: 0.9rem;
-  background: var(--surface-subtle);
+  background: #f8fbff;
 }
 
 .workflow-checkbox-row input {
@@ -3049,7 +3169,7 @@ Lecturer Workflow / Forms - Final UI
 }
 
 .workflow-checkbox-row span {
-  color: var(--tertiary);
+  color: #07164d;
   font-weight: 600;
 }
 
@@ -3076,14 +3196,14 @@ Lecturer Workflow / Forms - Final UI
 }
 
 .quiz-overview-panel {
-  border: 2px solid var(--primary);
-  background: var(--tertiary);
+  border: 2px solid #3551b8;
+  background: #07164d;
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.18);
 }
 
 .quiz-overview-panel .assessment-meta-label,
 .quiz-overview-panel .week-title {
-  color: var(--secondary);
+  color: #ffffff;
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: 0.01em;
@@ -3091,7 +3211,7 @@ Lecturer Workflow / Forms - Final UI
 
 .quiz-overview-panel .assessment-meta-value,
 .quiz-description-panel .assessment-body-text {
-  color: var(--secondary);
+  color: #ffffff;
   font-size: 0.92rem;
   font-weight: 400;
   line-height: 1.65;
@@ -3138,173 +3258,26 @@ Lecturer Workflow / Forms - Final UI
 .parsed-image-card .parsed-image-preview {
   width: 100%;
   margin-bottom: 0;
-  border: 2px solid var(--primary);
-  background: var(--surface-subtle);
+  border: 2px solid #3551b8;
+  background: #f8fbff;
 }
 
 .parsed-image-card .week-label {
   font-size: 0.92rem;
   font-weight: 700;
-  color: var(--tertiary);
+  color: #07164d;
   margin-bottom: 0.35rem;
 }
 
 .parsed-image-card .week-description-input {
   min-height: 140px;
-  border: 2px solid var(--tertiary);
+  border: 2px solid #07164d;
   border-radius: 0.9rem;
   padding: 0.85rem 1rem;
-  color: var(--tertiary);
+  color: #07164d;
 }
 
-/*
-=======================================
-Create Pages / Module Detail - Final UI
-=======================================
-*/
-
-.create-assignment-page .workflow-hero-card,
-.create-assignment-page .workflow-form-card,
-.create-quiz-page .workflow-hero-card,
-.create-quiz-page .workflow-form-card,
-.module-announcement-page .workflow-hero-card,
-.module-announcement-page .workflow-form-card,
-.admin-global-announcement-page .workflow-hero-card,
-.admin-global-announcement-page .workflow-form-card {
-  max-width: 920px;
-  margin: 0 auto;
-}
-
-.create-assignment-page .workflow-hero-card .section-title,
-.create-quiz-page .workflow-hero-card .section-title,
-.module-announcement-page .workflow-hero-card .section-title,
-.admin-global-announcement-page .workflow-hero-card .section-title {
-  color: var(--tertiary);
-}
-
-.create-assignment-page .workflow-form-card,
-.create-quiz-page .workflow-form-card,
-.module-announcement-page .workflow-form-card,
-.admin-global-announcement-page .workflow-form-card {
-  max-width: 920px;
-}
-
-.module-announcements-section .announcement-actions {
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.module-announcements-section .announcement-actions > a,
-.module-announcements-section .announcement-actions > .admin-inline-form {
-  flex: 1 1 7.5rem;
-  display: flex;
-}
-
-.module-announcements-section .announcement-actions .small-button,
-.module-announcements-section .announcement-actions .admin-inline-form .small-button {
-  width: 100%;
-}
-
-.module-students-card {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.module-panel-count {
-  margin: 0;
-  color: var(--primary);
-  font-weight: 600;
-  font-size: 0.96rem;
-}
-
-.enrolled-students-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
-.enrolled-student-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
-  align-items: center;
-  padding: 0.8rem 0.95rem;
-  border: 2px solid var(--tertiary);
-  border-radius: 0.9rem;
-  background: var(--secondary);
-  box-shadow: 0 10px 24px rgba(7, 22, 77, 0.1);
-}
-
-.enrolled-student-name {
-  color: var(--tertiary);
-  font-weight: 700;
-}
-
-.enrolled-student-email {
-  color: var(--primary);
-  font-size: 0.92rem;
-  word-break: break-word;
-  text-align: right;
-}
-
-.quiz-builder-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.2rem;
-}
-
-.quiz-option-editor-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: center;
-  padding: 0.8rem 0.9rem;
-  border: 2px solid var(--primary);
-  border-radius: 0.9rem;
-  background: var(--surface-subtle);
-}
-
-.quiz-option-choice {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0;
-  color: var(--tertiary);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.quiz-option-choice input {
-  width: auto !important;
-  margin: 0;
-}
-
-.quiz-option-text {
-  margin: 0;
-}
-
-.quiz-option-remove {
-  min-width: 110px;
-}
-
-.quiz-option-spacer {
-  display: block;
-  width: 110px;
-  height: 1px;
-}
-
-.quiz-builder-note {
-  margin: 0.15rem 0 0;
-  color: var(--primary);
-  font-size: 0.88rem;
-  font-weight: 500;
-}
-
-/*
+/* 
 ===========================
 Responsive Rules - Final UI
 ===========================
@@ -3375,16 +3348,6 @@ Responsive Rules - Final UI
   .workflow-form-grid--triple,
   .parsed-image-grid {
     grid-template-columns: 1fr;
-  }
-  .create-assignment-page .workflow-hero-card,
-  .create-assignment-page .workflow-form-card,
-  .create-quiz-page .workflow-hero-card,
-  .create-quiz-page .workflow-form-card,
-  .module-announcement-page .workflow-hero-card,
-  .module-announcement-page .workflow-form-card,
-  .admin-global-announcement-page .workflow-hero-card,
-  .admin-global-announcement-page .workflow-form-card {
-    max-width: 100%;
   }
 }
 
@@ -3457,6 +3420,12 @@ Responsive Rules - Final UI
   .announcement-actions .admin-inline-form .small-button {
     width: 100%;
   }
+  .assessment-detail-header,
+  .portal-calendar-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
 
   .portal-office-section .portal-app-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3527,22 +3496,5 @@ Responsive Rules - Final UI
 
   .workflow-panel-title {
     font-size: 1.3rem;
-  }
-  .enrolled-student-row,
-  .quiz-option-editor-row {
-    grid-template-columns: 1fr;
-  }
-
-  .enrolled-student-email {
-    text-align: left;
-  }
-
-  .quiz-option-spacer {
-    display: none;
-  }
-
-  .quiz-option-remove,
-  .quiz-builder-options .small-button {
-    width: 100%;
   }
 }
