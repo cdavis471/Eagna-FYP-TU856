@@ -214,27 +214,37 @@
       function closeMenu(menu) {
         menu.classList.remove("user-menu--open");
         const trigger = menu.querySelector("[data-user-menu-trigger]");
-        if (trigger) trigger.setAttribute("aria-expanded", "false");
+        if (trigger) {
+          trigger.setAttribute("aria-expanded", "false");
+        }
       }
 
       function openMenu(menu) {
         menus.forEach((item) => {
-          if (item !== menu) closeMenu(item);
+          if (item !== menu) {
+            closeMenu(item);
+          }
         });
+
         menu.classList.add("user-menu--open");
+
         const trigger = menu.querySelector("[data-user-menu-trigger]");
-        if (trigger) trigger.setAttribute("aria-expanded", "true");
+        if (trigger) {
+          trigger.setAttribute("aria-expanded", "true");
+        }
       }
 
       menus.forEach((menu) => {
         const trigger = menu.querySelector("[data-user-menu-trigger]");
         const dropdown = menu.querySelector("[data-user-menu-dropdown]");
         const form = menu.querySelector("[data-user-menu-form]");
+
         if (!trigger || !dropdown || !form) return;
 
         trigger.addEventListener("click", function (event) {
           event.preventDefault();
           event.stopPropagation();
+
           if (menu.classList.contains("user-menu--open")) {
             closeMenu(menu);
           } else {
@@ -242,16 +252,11 @@
           }
         });
 
-        menu.addEventListener("focusin", function () {
-          openMenu(menu);
-        });
-
-        menu.addEventListener("focusout", function () {
-          window.setTimeout(function () {
-            if (!menu.contains(document.activeElement)) {
-              closeMenu(menu);
-            }
-          }, 0);
+        trigger.addEventListener("keydown", function (event) {
+          if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
+            event.preventDefault();
+            openMenu(menu);
+          }
         });
 
         dropdown.addEventListener("click", function (event) {

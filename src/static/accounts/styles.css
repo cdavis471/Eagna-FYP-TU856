@@ -2397,10 +2397,10 @@ Header / Footer - Final UI
   color: var(--text-on-light);
   box-shadow: 0 18px 38px rgba(7, 22, 77, 0.22);
   display: none;
-  z-index: 30;
+  pointer-events: auto;
+  z-index: 40;
 }
 
-.user-menu:focus-within .user-menu-dropdown,
 .user-menu.user-menu--open .user-menu-dropdown {
   display: block;
 }
