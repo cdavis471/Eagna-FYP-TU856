@@ -2400,7 +2400,6 @@ Header / Footer - Final UI
   z-index: 30;
 }
 
-.user-menu:hover .user-menu-dropdown,
 .user-menu:focus-within .user-menu-dropdown,
 .user-menu.user-menu--open .user-menu-dropdown {
   display: block;

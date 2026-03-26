@@ -242,18 +242,6 @@
           }
         });
 
-        menu.addEventListener("mouseenter", function () {
-          if (window.matchMedia("(hover: hover)").matches) {
-            openMenu(menu);
-          }
-        });
-
-        menu.addEventListener("mouseleave", function () {
-          if (window.matchMedia("(hover: hover)").matches) {
-            closeMenu(menu);
-          }
-        });
-
         menu.addEventListener("focusin", function () {
           openMenu(menu);
         });
