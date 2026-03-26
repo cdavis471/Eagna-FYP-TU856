@@ -10,7 +10,8 @@
   <!-- Preconnect to Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic/index.css">
   <!-- Define the contents of the <title> element, allowing child templates to override -->
   <title>{% block title %}Eagna VLE{% endblock %}</title>
   <!-- Link to the main stylesheet for the accounts app using Django's static file system -->
@@ -20,7 +21,9 @@
   <!-- Extra head content block for child templates to inject additional meta tags or links -->
   {% block extra_head %}{% endblock %}
 </head>
-<body class="{% block body_class %}{% endblock %}">
+<body class="{% block body_class %}{% endblock %}"
+      data-colour-scheme="{% if user.is_authenticated %}{{ user.colour_scheme }}{% else %}default{% endif %}"
+      data-font-scheme="{% if user.is_authenticated %}{{ user.font_scheme }}{% else %}default{% endif %}">
   <!-- Site-wide header displayed at the top of every page -->
   <header class="site-header">
     <div class="header-left">
@@ -49,9 +52,7 @@
     <div class="header-right">
       {% if user.is_authenticated %}
         {% include "accounts/partials/notifications_dropdown.html" %}
-        <a href="{% url 'accounts:profile' %}" class="user-link user-chip">
-          {{ user.get_full_name|default:user.username }}
-        </a>
+        {% include "accounts/partials/user_preferences_dropdown.html" %}
         <form method="post" action="{% url 'accounts:logout' %}" class="header-logout-form">
           {% csrf_token %}
           <button type="submit" class="site-nav-button logout-button">Logout</button>
@@ -204,6 +205,86 @@
         closeParsedModal();
       }
     });
+  </script>
+  <script>
+    (function () {
+      const menus = Array.from(document.querySelectorAll("[data-user-menu]"));
+      if (!menus.length) return;
+
+      function closeMenu(menu) {
+        menu.classList.remove("user-menu--open");
+        const trigger = menu.querySelector("[data-user-menu-trigger]");
+        if (trigger) trigger.setAttribute("aria-expanded", "false");
+      }
+
+      function openMenu(menu) {
+        menus.forEach((item) => {
+          if (item !== menu) closeMenu(item);
+        });
+        menu.classList.add("user-menu--open");
+        const trigger = menu.querySelector("[data-user-menu-trigger]");
+        if (trigger) trigger.setAttribute("aria-expanded", "true");
+      }
+
+      menus.forEach((menu) => {
+        const trigger = menu.querySelector("[data-user-menu-trigger]");
+        const dropdown = menu.querySelector("[data-user-menu-dropdown]");
+        const form = menu.querySelector("[data-user-menu-form]");
+        if (!trigger || !dropdown || !form) return;
+
+        trigger.addEventListener("click", function (event) {
+          event.preventDefault();
+          event.stopPropagation();
+          if (menu.classList.contains("user-menu--open")) {
+            closeMenu(menu);
+          } else {
+            openMenu(menu);
+          }
+        });
+
+        menu.addEventListener("mouseenter", function () {
+          if (window.matchMedia("(hover: hover)").matches) {
+            openMenu(menu);
+          }
+        });
+
+        menu.addEventListener("mouseleave", function () {
+          if (window.matchMedia("(hover: hover)").matches) {
+            closeMenu(menu);
+          }
+        });
+
+        menu.addEventListener("focusin", function () {
+          openMenu(menu);
+        });
+
+        menu.addEventListener("focusout", function () {
+          window.setTimeout(function () {
+            if (!menu.contains(document.activeElement)) {
+              closeMenu(menu);
+            }
+          }, 0);
+        });
+
+        dropdown.addEventListener("click", function (event) {
+          event.stopPropagation();
+        });
+
+        form.addEventListener("change", function () {
+          form.submit();
+        });
+      });
+
+      document.addEventListener("click", function () {
+        menus.forEach(closeMenu);
+      });
+
+      document.addEventListener("keydown", function (event) {
+        if (event.key === "Escape") {
+          menus.forEach(closeMenu);
+        }
+      });
+    })();
   </script>
   {% block extra_scripts %}{% endblock %}
 </body>

@@ -11,6 +11,7 @@ Colour System
   --tertiary: #07164d;
   --tertiary-deeper: #061241;
   --secondary: #ffffff;
+  --font-body: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
   --bg-main: var(--primary);
   --bg-header-footer: var(--tertiary);
@@ -66,6 +67,84 @@ Colour System
 
 }
 
+body[data-font-scheme="open-dyslexic"] {
+  --font-body: "OpenDyslexic", "Comic Sans MS", "Trebuchet MS", sans-serif;
+}
+
+body[data-font-scheme="atkinson-hyperlegible"] {
+  --font-body: "Atkinson Hyperlegible Next", "Atkinson Hyperlegible", system-ui, sans-serif;
+}
+
+body[data-colour-scheme="protanopia"] {
+  --primary: #2f6db3;
+  --tertiary: #0d2f4f;
+  --secondary: #ffffff;
+  --bg-main: var(--primary);
+  --bg-header-footer: var(--tertiary);
+  --bg-card: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-light: var(--tertiary);
+  --border-soft: #c7d6e6;
+  --muted-dark: #45637f;
+  --muted-light: #d7e6f6;
+}
+
+body[data-colour-scheme="deuteranopia"] {
+  --primary: #5b63b7;
+  --tertiary: #22285b;
+  --secondary: #ffffff;
+  --bg-main: var(--primary);
+  --bg-header-footer: var(--tertiary);
+  --bg-card: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-light: var(--tertiary);
+  --border-soft: #d1d6ee;
+  --muted-dark: #58627d;
+  --muted-light: #dde2ff;
+}
+
+body[data-colour-scheme="tritanopia"] {
+  --primary: #a33f7f;
+  --tertiary: #4b1638;
+  --secondary: #ffffff;
+  --bg-main: var(--primary);
+  --bg-header-footer: var(--tertiary);
+  --bg-card: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-light: var(--tertiary);
+  --border-soft: #e0c7d6;
+  --muted-dark: #75556a;
+  --muted-light: #f2d9e7;
+}
+
+body[data-colour-scheme="achromatopsia"] {
+  --primary: #5f6672;
+  --tertiary: #1f2937;
+  --secondary: #ffffff;
+  --bg-main: var(--primary);
+  --bg-header-footer: var(--tertiary);
+  --bg-card: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-light: var(--tertiary);
+  --border-soft: #d1d5db;
+  --muted-dark: #6b7280;
+  --muted-light: #e5e7eb;
+}
+
+body[data-colour-scheme="high-contrast"] {
+  --primary: #000000;
+  --tertiary: #000000;
+  --secondary: #ffffff;
+  --bg-main: #000000;
+  --bg-header-footer: #000000;
+  --bg-card: #ffffff;
+  --text-on-dark: #ffffff;
+  --text-on-light: #000000;
+  --border-soft: #000000;
+  --muted-dark: #111827;
+  --muted-light: #ffffff;
+}
+
 /*
 =============
 Base + Layout
@@ -85,7 +164,7 @@ body {
 
 body {
   margin: 0;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: var(--font-body);
   font-weight: 400;
   background-color: var(--bg-main);
   color: var(--text-on-dark);
@@ -2286,6 +2365,117 @@ Header / Footer - Final UI
   font-size: 1rem;
 }
 
+.user-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.user-menu-trigger {
+  cursor: pointer;
+}
+
+.user-menu-trigger-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-menu-caret {
+  margin-left: 0.5rem;
+  font-size: 0.82rem;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 0.65rem);
+  right: 0;
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 0.95rem;
+  border-radius: 1rem;
+  border: 2px solid var(--tertiary);
+  background: var(--secondary);
+  color: var(--text-on-light);
+  box-shadow: 0 18px 38px rgba(7, 22, 77, 0.22);
+  display: none;
+  z-index: 30;
+}
+
+.user-menu:hover .user-menu-dropdown,
+.user-menu:focus-within .user-menu-dropdown,
+.user-menu.user-menu--open .user-menu-dropdown {
+  display: block;
+}
+
+.user-menu-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.4rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.85rem;
+  border: 2px solid var(--tertiary);
+  background: var(--secondary);
+  color: var(--tertiary);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.user-menu-link:hover {
+  color: var(--primary);
+  border-color: var(--primary);
+  text-decoration: none;
+}
+
+.user-menu-divider {
+  height: 1px;
+  background: rgba(7, 22, 77, 0.14);
+  margin: 0.9rem 0;
+}
+
+.user-menu-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.95rem;
+}
+
+.user-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.user-menu-section-title {
+  margin: 0;
+  color: var(--tertiary);
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.user-menu-option {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(7, 22, 77, 0.12);
+  background: #f8fbff;
+  color: var(--tertiary);
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.user-menu-option:hover {
+  border-color: var(--primary);
+}
+
+.user-menu-option input {
+  accent-color: var(--primary);
+  width: auto;
+  margin: 0;
+}
+
 .footer-top {
   display: flex;
   justify-content: center;
@@ -3544,5 +3734,15 @@ Responsive Rules - Final UI
   .quiz-option-remove,
   .quiz-builder-options .small-button {
     width: 100%;
+  }
+  .user-menu,
+  .user-menu-trigger {
+    width: 100%;
+  }
+
+  .user-menu-dropdown {
+    width: min(100%, calc(100vw - 2rem));
+    left: 0;
+    right: auto;
   }
 }

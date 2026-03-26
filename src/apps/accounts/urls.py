@@ -2,7 +2,7 @@ from django.urls import path  # Imports the path function for defining URL patte
 from django.contrib.auth.views import LogoutView  # Imports Django's built-in view for handling user logout
 from django.conf.urls.static import static  # Provides helper to serve static files in development (even if not used here directly)
 
-from .views import RoleBasedLoginView, dashboard, admin_dashboard, admin_add_lecturer, admin_add_module, admin_edit_enrollment, admin_create_global_announcement, admin_edit_global_announcement, admin_delete_global_announcement, user_profile, open_notification, portal, module_detail, create_module_announcement, edit_module_announcement, delete_module_announcement, add_module_week, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt  # Imports all view functions/classes referenced in this URL config
+from .views import RoleBasedLoginView, dashboard, admin_dashboard, admin_add_lecturer, admin_add_module, admin_edit_enrollment, admin_create_global_announcement, admin_edit_global_announcement, admin_delete_global_announcement, user_profile, open_notification, portal, module_detail, create_module_announcement, edit_module_announcement, delete_module_announcement, add_module_week, upload_week_file, edit_week_description, create_assignment, assignment_detail, submit_assignment, grade_submission, register_student, parsed_document_modal, edit_parsed_document_images, create_quiz, quiz_detail, start_quiz_attempt, save_quiz_progress, submit_quiz_attempt, update_accessibility_preferences  # Imports all view functions/classes referenced in this URL config
 
 app_name = "accounts"  # Namespaces these URLs under "accounts" so they can be reversed with the 'accounts:' prefix
 
@@ -114,6 +114,11 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
         "modules/<str:code>/announcements/<int:announcement_id>/delete/", 
         delete_module_announcement, 
         name="delete_module_announcement"
+    ),
+    path(
+        "preferences/accessibility/",
+        update_accessibility_preferences,
+        name="update_accessibility_preferences",
     ),
 ]
 

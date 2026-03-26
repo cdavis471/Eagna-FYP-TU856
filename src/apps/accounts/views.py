@@ -18,6 +18,7 @@ from .notifications import create_notification, notify_module_students, notify_m
 import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
 import calendar as pycalendar  # Standard library for calendar-related functions, used in some views for date calculations
+from django.utils.http import url_has_allowed_host_and_scheme
 # Temporary
 import traceback
 from django.http import HttpResponse
@@ -1929,6 +1930,37 @@ def admin_delete_global_announcement(request, announcement_id):
 
     messages.success(request, "Global announcement deleted successfully.")
     return redirect("accounts:admin_dashboard")
+
+@login_required
+@require_http_methods(["POST"])
+def update_accessibility_preferences(request):
+    user = request.user
+
+    colour_scheme = (request.POST.get("colour_scheme") or user.colour_scheme).strip()
+    font_scheme = (request.POST.get("font_scheme") or user.font_scheme).strip()
+
+    valid_colour_schemes = {choice[0] for choice in User.ColourScheme.choices}
+    valid_font_schemes = {choice[0] for choice in User.FontScheme.choices}
+
+    if colour_scheme not in valid_colour_schemes:
+        colour_scheme = User.ColourScheme.DEFAULT
+
+    if font_scheme not in valid_font_schemes:
+        font_scheme = User.FontScheme.DEFAULT
+
+    user.colour_scheme = colour_scheme
+    user.font_scheme = font_scheme
+    user.save(update_fields=["colour_scheme", "font_scheme"])
+
+    next_url = request.POST.get("next") or reverse("accounts:dashboard")
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("accounts:dashboard")
+
+    return redirect(next_url)
 
 @login_required
 def user_profile(request):

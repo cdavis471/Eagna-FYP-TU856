@@ -1,0 +1,73 @@
+﻿<div class="user-menu" data-user-menu>
+  <button
+    type="button"
+    class="user-chip user-menu-trigger"
+    data-user-menu-trigger
+    aria-haspopup="true"
+    aria-expanded="false">
+    <span class="user-menu-trigger-text">{{ user.get_full_name|default:user.username }}</span>
+    <span class="user-menu-caret" aria-hidden="true">▾</span>
+  </button>
+
+  <div class="user-menu-dropdown" data-user-menu-dropdown>
+    <a href="{% url 'accounts:profile' %}" class="user-menu-link">View Profile</a>
+
+    <form method="post"
+          action="{% url 'accounts:update_accessibility_preferences' %}"
+          class="user-menu-form"
+          data-user-menu-form>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+      <div class="user-menu-divider"></div>
+
+      <section class="user-menu-section">
+        <h3 class="user-menu-section-title">Colour Schemes</h3>
+
+        <label class="user-menu-option">
+          <input type="radio" name="colour_scheme" value="default" {% if user.colour_scheme == 'default' %}checked{% endif %}>
+          <span>Default</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="colour_scheme" value="protanopia" {% if user.colour_scheme == 'protanopia' %}checked{% endif %}>
+          <span>Protanopia</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="colour_scheme" value="deuteranopia" {% if user.colour_scheme == 'deuteranopia' %}checked{% endif %}>
+          <span>Deuteranopia</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="colour_scheme" value="tritanopia" {% if user.colour_scheme == 'tritanopia' %}checked{% endif %}>
+          <span>Tritanopia</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="colour_scheme" value="achromatopsia" {% if user.colour_scheme == 'achromatopsia' %}checked{% endif %}>
+          <span>Achromatopsia</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="colour_scheme" value="high-contrast" {% if user.colour_scheme == 'high-contrast' %}checked{% endif %}>
+          <span>High Contrast</span>
+        </label>
+      </section>
+
+      <div class="user-menu-divider"></div>
+
+      <section class="user-menu-section">
+        <h3 class="user-menu-section-title">Font Schemes</h3>
+
+        <label class="user-menu-option">
+          <input type="radio" name="font_scheme" value="default" {% if user.font_scheme == 'default' %}checked{% endif %}>
+          <span>Default</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="font_scheme" value="open-dyslexic" {% if user.font_scheme == 'open-dyslexic' %}checked{% endif %}>
+          <span>Open Dyslexic</span>
+        </label>
+        <label class="user-menu-option">
+          <input type="radio" name="font_scheme" value="atkinson-hyperlegible" {% if user.font_scheme == 'atkinson-hyperlegible' %}checked{% endif %}>
+          <span>Atkinson Hyperlegible</span>
+        </label>
+      </section>
+    </form>
+  </div>
+</div>

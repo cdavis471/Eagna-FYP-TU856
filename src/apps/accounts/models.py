@@ -13,10 +13,35 @@ class User(AbstractUser):  # Custom user model extending Django's AbstractUser
         LECTURER = "LECTURER", "Lecturer"  # Database value and human-readable label for lecturer role
         ADMIN = "ADMIN", "Admin"  # Database value and human-readable label for admin role
 
+    class ColourScheme(models.TextChoices):
+        DEFAULT = "default", "Default"
+        PROTANOPIA = "protanopia", "Protanopia"
+        DEUTERANOPIA = "deuteranopia", "Deuteranopia"
+        TRITANOPIA = "tritanopia", "Tritanopia"
+        ACHROMATOPSIA = "achromatopsia", "Achromatopsia"
+        HIGH_CONTRAST = "high-contrast", "High Contrast"
+
+    class FontScheme(models.TextChoices):
+        DEFAULT = "default", "Default"
+        OPEN_DYSLEXIC = "open-dyslexic", "Open Dyslexic"
+        ATKINSON_HYPERLEGIBLE = "atkinson-hyperlegible", "Atkinson Hyperlegible"
+
     role = models.CharField(  # Field storing whether this user is a student or lecturer
         max_length=20,  # Maximum length of the string stored for the role
         choices=Role.choices,  # Restricts allowed values to the Role enum choices
         default=Role.STUDENT,  # Default role if none is specified when creating a user
+    )
+
+    colour_scheme = models.CharField(
+        max_length=24,
+        choices=ColourScheme.choices,
+        default=ColourScheme.DEFAULT,
+    )
+
+    font_scheme = models.CharField(
+        max_length=32,
+        choices=FontScheme.choices,
+        default=FontScheme.DEFAULT,
     )
 
     def is_student(self):  # Helper method to check if user is a student
