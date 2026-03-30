@@ -11,7 +11,7 @@ class Command(BaseCommand):
         parser.add_argument("--last-name", default="User")
 
     def handle(self, *args, **options):
-        email = (options["email"] or "").strip()
+        email = (options["email"] or "").strip().lower()
         password = options["password"]
         first_name = (options["first_name"] or "").strip()
         last_name = (options["last_name"] or "").strip()
@@ -19,18 +19,20 @@ class Command(BaseCommand):
         if not email or "@" not in email:
             raise CommandError("Please provide a valid email address.")
 
-        user, created = User.objects.get_or_create(
-            username=email,
-            defaults={
-                "email": email,
-                "first_name": first_name,
-                "last_name": last_name,
-                "role": User.Role.ADMIN,
-                "is_active": True,
-            },
-        )
+        user = User.objects.filter(username__iexact=email).first()
+        created = user is None
 
-        if not created:
+        if created:
+            user = User(
+                username=email,
+                email=email,
+                first_name=first_name,
+                last_name=last_name,
+                role=User.Role.ADMIN,
+                is_active=True,
+            )
+        else:
+            user.username = email
             user.email = email
             user.first_name = first_name
             user.last_name = last_name

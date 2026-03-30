@@ -19,6 +19,7 @@ import re  # Regular expressions module, used for validating input
 import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
 import calendar as pycalendar  # Standard library for calendar-related functions, used in some views for date calculations
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.contrib.auth.forms import AuthenticationForm # Django's built-in authentication form, used in the login view for handling user login input and validation - used in this case to format input in checks.
 # Temporary
 import traceback
 from django.http import HttpResponse
@@ -1358,9 +1359,17 @@ def _validate_announcement_form(request):
 
     return title, content, errors
 
+class LowercaseUsernameAuthenticationForm(AuthenticationForm):
+    def clean(self):
+        username = self.cleaned_data.get("username")
+        if username:
+            self.cleaned_data["username"] = username.strip().lower()
+        return super().clean()
+
 class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’s built-in LoginView to add role-based redirects
     template_name = "accounts/login.html"  # Specifies the template to use when displaying the login form
     redirect_authenticated_user = True  # If a user is already authenticated, they will be redirected to the success URL instead of seeing the login form again
+    authentication_form = LowercaseUsernameAuthenticationForm
 
     def get_success_url(self):  # Overrides method to control where a user is redirected after successful login
         # Redirect based on role
@@ -1414,7 +1423,7 @@ def register_student(request):
                 "Student email must end with @mytudublin.ie."
             )
 
-        if email and User.objects.filter(username=email).exists():
+        if email and User.objects.filter(username__iexact=email).exists():
             errors.setdefault("email", []).append(
                 "An account already exists for this email address."
             )
@@ -1602,7 +1611,7 @@ def admin_add_lecturer(request):
     if request.method == "POST":
         first_name = (request.POST.get("first_name") or "").strip()
         last_name = (request.POST.get("last_name") or "").strip()
-        email = (request.POST.get("email") or "").strip()
+        email = (request.POST.get("email") or "").strip().lower()
         staff_id = (request.POST.get("staff_id") or "").strip()
         password1 = request.POST.get("password1") or ""
         password2 = request.POST.get("password2") or ""
