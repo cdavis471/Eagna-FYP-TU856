@@ -1,3 +1,7 @@
+import re  # Regular expressions module, used for validating input
+import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
+import calendar as pycalendar  # Standard library for calendar-related functions, used in some views for date calculations
+import os # Standard library for operating system interactions, used in file handling and path manipulations
 from django.contrib.auth.decorators import login_required  # Imports decorator to ensure some views are only accessible to authenticated users
 from django.contrib.auth.views import LoginView  # Imports Django’s built-in class-based login view for handling authentication
 from django.shortcuts import redirect, render, get_object_or_404  # Common shortcuts for redirects, rendering templates, and fetching objects or returning 404
@@ -14,16 +18,16 @@ from django.core.files.base import ContentFile  # Utility for creating file obje
 from django.db import transaction  # Provides atomic transaction management for database operations, ensuring data integrity
 from .document_parsing import build_rendered_html_from_blocks, parse_uploaded_office_file
 from .models import User, StudentProfile, LecturerProfile, Module, ModuleEnrollmentStudent, ModuleEnrollmentLecturer, Assignment, AssignmentSubmission, AssignmentGrade, AssignmentFile, SubmissionFile, ModuleWeek, ModuleWeekFile, ParsedDocument, ParsedDocumentImage, Quiz, QuizQuestion, QuizOption, QuizAttempt, QuizAnswer, Notification, GlobalAnnouncement, ModuleAnnouncement  # Imports all custom models referenced by these views
-from .notifications import create_notification, notify_module_students, notify_module_lecturers
-import re  # Regular expressions module, used for validating input
-import json # Standard library for working with JSON data, used in some views for parsing or returning JSON payloads
-import calendar as pycalendar  # Standard library for calendar-related functions, used in some views for date calculations
-from django.utils.http import url_has_allowed_host_and_scheme
+from .notifications import create_notification, notify_module_students, notify_module_lecturers # Imports notification helper functions for creating notifications and sending them to students or lecturers of a module
+from django.utils.http import url_has_allowed_host_and_scheme # Utility to validate that a URL is safe for redirects, preventing open redirect vulnerabilities
 from django.contrib.auth.forms import AuthenticationForm # Django's built-in authentication form, used in the login view for handling user login input and validation - used in this case to format input in checks.
+from django.contrib.auth.password_validation import validate_password # Django's built-in password validation function, used to validate password strength and compliance with configured validators
+from django.core.exceptions import ValidationError as DjangoValidationError # Exception class for handling validation errors, used in password validation and other input checks
+
 # Temporary
-import traceback
-from django.http import HttpResponse
-from django.utils.html import escape
+# import traceback
+# from django.http import HttpResponse
+# from django.utils.html import escape
 
 # Shared Navigation Menu Items (used in multiple views for consistent header/footer links)
 def _shared_nav_items():
@@ -1359,7 +1363,75 @@ def _validate_announcement_form(request):
 
     return title, content, errors
 
+# File Upload Validation for Student Submissions
+STUDENT_SUBMISSION_ALLOWED_EXTENSIONS = {
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".ppt",
+    ".pptx",
+    ".xls",
+    ".xlsx",
+    ".csv",
+    ".txt",
+    ".zip",
+    ".7z",
+    ".rar",
+    ".jpg",
+    ".jpeg",
+    ".png",
+}
+
+# To protect against potential security risks - block certain file types that could be executed on the server or cause issues when opened, including common web file formats and scripts that could be used for malicious purposes.
+STUDENT_SUBMISSION_BLOCKED_EXTENSIONS = {
+    ".html",
+    ".htm",
+    ".xhtml",
+    ".svg",
+    ".svgz",
+    ".xml",
+    ".js",
+    ".mjs",
+}
+
+# Set a maximum file size for student submissions to prevent excessively large uploads that could strain server resources or cause timeouts. 
+MAX_STUDENT_SUBMISSION_FILE_BYTES = 50 * 1024 * 1024  # 50 MB
+
+def _validate_student_submission_upload(uploaded_file) -> str | None:
+    name = getattr(uploaded_file, "name", "") or ""
+    _, ext = os.path.splitext(name)
+    ext = ext.lower()
+
+    size = getattr(uploaded_file, "size", 0) or 0
+
+    if not name:
+        return "One of the uploaded files is missing a filename."
+
+    if not ext:
+        return f"{name}: File uploads must have a valid extension."
+
+    if ext in STUDENT_SUBMISSION_BLOCKED_EXTENSIONS:
+        return f"{name}: This file type is not allowed."
+
+    if ext not in STUDENT_SUBMISSION_ALLOWED_EXTENSIONS:
+        return f"{name}: This file type is not allowed."
+
+    if size <= 0:
+        return f"{name}: The file is empty."
+
+    if size > MAX_STUDENT_SUBMISSION_FILE_BYTES:
+        return f"{name}: The file exceeds the 20 MB upload limit."
+
+    return None
+
+# Classes
+
 class LowercaseUsernameAuthenticationForm(AuthenticationForm):
+    error_messages = {
+        **AuthenticationForm.error_messages,
+        "invalid_login": "Please enter a valid email address and password. Please note that passwords are case-sensitive.",
+    }
+
     def clean(self):
         username = self.cleaned_data.get("username")
         if username:
@@ -1382,6 +1454,8 @@ class RoleBasedLoginView(LoginView):  # Custom login view that extends Django’
             return "/admin-dashboard/"
         return "/"  # fallback  # If neither role matches, fall back to redirecting to the site root
     
+# Views
+
 def register_student(request):
     # If someone is already logged in, don't let them register again
     if request.user.is_authenticated:
@@ -1432,7 +1506,15 @@ def register_student(request):
         if password1 and password2 and password1 != password2:
             errors.setdefault("password", []).append("Passwords do not match.")
 
-        pw_errors = _validate_password_strength(password1)
+        candidate_user = User(
+            username=email,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+        )
+
+        pw_errors = _validate_password_strength(password1, user=candidate_user)
+
         if pw_errors:
             errors.setdefault("password", []).extend(pw_errors)
 
@@ -1629,7 +1711,14 @@ def admin_add_lecturer(request):
         if password1 and password2 and password1 != password2:
             errors.append("Passwords do not match.")
 
-        password_errors = _validate_password_strength(password1)
+        candidate_user = User(
+            username=email,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+        )
+
+        password_errors = _validate_password_strength(password1, user=candidate_user)
         if password_errors:
             errors.extend(password_errors)
 
@@ -2028,10 +2117,16 @@ def open_notification(request, notification_id):
 
     notification.mark_as_read()
 
-    if notification.redirect_url:
-        return redirect(notification.redirect_url)
+    target_url = notification.redirect_url or reverse("accounts:dashboard")
 
-    return redirect("accounts:dashboard")
+    if not url_has_allowed_host_and_scheme(
+        target_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        target_url = reverse("accounts:dashboard")
+
+    return redirect(target_url)
 
 @login_required
 def portal(request):
@@ -2940,6 +3035,24 @@ def submit_assignment(request, code, assignment_id):
         module=module,
     )
 
+    uploaded_files = request.FILES.getlist("files")
+
+    validation_errors = [
+        error
+        for uploaded in uploaded_files
+        if (error := _validate_student_submission_upload(uploaded))
+    ]
+
+    if validation_errors:
+        for error in validation_errors:
+            messages.error(request, error)
+
+        return redirect(
+            "accounts:assignment_detail",
+            code=module.code,
+            assignment_id=assignment.id,
+        )
+
     submission, created = AssignmentSubmission.objects.get_or_create(
         assignment=assignment,
         student=student,
@@ -2954,7 +3067,7 @@ def submit_assignment(request, code, assignment_id):
     submission.submitted_at = now
     submission.save()
 
-    for uploaded in request.FILES.getlist("files"):
+    for uploaded in uploaded_files:
         SubmissionFile.objects.create(
             submission=submission,
             file=uploaded,
@@ -3081,16 +3194,21 @@ def edit_parsed_document_images(request, parsed_id):
     }
     return render(request, "accounts/edit_parsed_document_images.html", context)
 
-def _validate_password_strength(password: str) -> list[str]:
+def _validate_password_strength(password: str, user: User | None = None) -> list[str]:
     errors: list[str] = []
-    if len(password) < 8:
-        errors.append("Password must be at least 8 characters long.")
+
     if not re.search(r"[A-Z]", password):
         errors.append("Password must contain at least one uppercase letter.")
     if not re.search(r"\d", password):
         errors.append("Password must contain at least one number.")
     if not re.search(r"[^\w\s]", password):
         errors.append("Password must contain at least one special character (e.g. !, @, #).")
+
+    try:
+        validate_password(password, user=user)
+    except DjangoValidationError as exc:
+        errors.extend(exc.messages)
+
     return errors
 
 def _get_all_valid_courses() -> list[str]:

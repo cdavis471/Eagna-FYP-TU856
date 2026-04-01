@@ -80,6 +80,22 @@ DATABASES = {
 # --- Auth ---
 AUTH_USER_MODEL = "accounts.User"
 
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
+    },
+    {
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
+    },
+]
+
 # --- Internationalization ---
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "UTC"
@@ -103,9 +119,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "/login/"
 LOGIN_REDIRECT_URL = "/"
 
-# --- Optional production security toggles (enable once HTTPS is working) ---
-# SECURE_SSL_REDIRECT = True
-# SESSION_COOKIE_SECURE = True
-# CSRF_COOKIE_SECURE = True
-# SECURE_HSTS_SECONDS = 3600
-# SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+# --- Production Security Toggles ---
+ENABLE_HTTPS_SECURITY = env("DJANGO_ENABLE_HTTPS_SECURITY", "False").lower() in (
+    "1",
+    "true",
+    "yes",
+    "on",
+)
+
+SECURE_SSL_REDIRECT = ENABLE_HTTPS_SECURITY
+SESSION_COOKIE_SECURE = ENABLE_HTTPS_SECURITY
+CSRF_COOKIE_SECURE = ENABLE_HTTPS_SECURITY
+
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+SECURE_HSTS_SECONDS = 31536000 if ENABLE_HTTPS_SECURITY else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = ENABLE_HTTPS_SECURITY
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"

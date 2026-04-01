@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import io
 import os
-from html import escape
-from typing import Any
-
+import zipfile
 import mammoth
 import nh3
+from html import escape
+from typing import Any
 from bs4 import BeautifulSoup, NavigableString, Tag
 from mammoth.images import img_element
 from PIL import Image, UnidentifiedImageError
@@ -14,6 +14,9 @@ from pptx import Presentation
 from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
 
 SUPPORTED_EXTENSIONS = {".docx", ".pptx"}
+MAX_PARSED_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+MAX_OFFICE_ARCHIVE_MEMBERS = 2000
+MAX_OFFICE_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # 100 MB
 
 SAFE_TAGS = {
     "a",
@@ -50,19 +53,49 @@ SAFE_ATTRIBUTES = {
     "td": {"colspan", "rowspan"},
 }
 
-
 def validate_supported_upload(uploaded_file) -> str:
     name = getattr(uploaded_file, "name", "") or ""
     _, ext = os.path.splitext(name)
     ext = ext.lower()
+
+    size = getattr(uploaded_file, "size", 0) or 0
 
     if ext not in SUPPORTED_EXTENSIONS:
         raise ValueError(
             "Only .docx and .pptx files are allowed for weekly notes and lecturer assignment materials."
         )
 
+    if size <= 0:
+        raise ValueError("The uploaded file is empty.")
+
+    if size > MAX_PARSED_UPLOAD_BYTES:
+        raise ValueError("The uploaded file exceeds the 15 MB limit.")
+
     return ext
 
+def _validate_office_container(file_bytes: bytes, extension: str) -> None:
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
+            infos = archive.infolist()
+            names = set(archive.namelist())
+
+            if len(infos) > MAX_OFFICE_ARCHIVE_MEMBERS:
+                raise ValueError("The uploaded file is too complex to process safely.")
+
+            total_uncompressed = sum(info.file_size for info in infos)
+            if total_uncompressed > MAX_OFFICE_UNCOMPRESSED_BYTES:
+                raise ValueError("The uploaded file expands beyond the safe processing limit.")
+
+    except zipfile.BadZipFile as exc:
+        raise ValueError("The uploaded file is not a valid Office document.") from exc
+
+    required_entries = {
+        ".docx": {"[Content_Types].xml", "word/document.xml"},
+        ".pptx": {"[Content_Types].xml", "ppt/presentation.xml"},
+    }[extension]
+
+    if not required_entries.issubset(names):
+        raise ValueError("The uploaded file is not a valid Office document.")
 
 def parse_uploaded_office_file(uploaded_file) -> dict[str, Any]:
     extension = validate_supported_upload(uploaded_file)
@@ -73,6 +106,8 @@ def parse_uploaded_office_file(uploaded_file) -> dict[str, Any]:
 
     if not file_bytes:
         raise ValueError("The uploaded file is empty.")
+    
+    _validate_office_container(file_bytes, extension)
 
     if extension == ".docx":
         parsed = parse_docx_file(file_bytes)
@@ -81,7 +116,6 @@ def parse_uploaded_office_file(uploaded_file) -> dict[str, Any]:
 
     parsed["extension"] = extension.lstrip(".")
     return parsed
-
 
 def parse_docx_file(file_bytes: bytes) -> dict[str, Any]:
     captured_images: list[dict[str, Any]] = []
@@ -132,7 +166,6 @@ def parse_docx_file(file_bytes: bytes) -> dict[str, Any]:
         "warnings": [str(message) for message in getattr(result, "messages", [])],
     }
 
-
 def parse_pptx_file(file_bytes: bytes) -> dict[str, Any]:
     presentation = Presentation(io.BytesIO(file_bytes))
 
@@ -178,7 +211,6 @@ def parse_pptx_file(file_bytes: bytes) -> dict[str, Any]:
         "warnings": [],
     }
 
-
 def build_rendered_html_from_blocks(
     blocks: list[dict[str, Any]],
     image_lookup: dict[str, dict[str, str]],
@@ -216,7 +248,6 @@ def build_rendered_html_from_blocks(
             page_html.append('<hr class="parsed-page-break" aria-hidden="true">')
 
     return "".join(page_html)
-
 
 def _docx_html_to_blocks(html: str) -> list[dict[str, Any]]:
     soup = BeautifulSoup(html or "", "html.parser")
@@ -281,7 +312,6 @@ def _docx_html_to_blocks(html: str) -> list[dict[str, Any]]:
 
     return pages
 
-
 def _sorted_shapes(shapes) -> list[Any]:
     ordered: list[Any] = []
 
@@ -292,7 +322,6 @@ def _sorted_shapes(shapes) -> list[Any]:
             ordered.append(shape)
 
     return sorted(ordered, key=lambda shp: (getattr(shp, "top", 0), getattr(shp, "left", 0)))
-
 
 def _extract_pptx_shape_content(shape, slide_index: int, image_counter: int):
     elements: list[dict[str, Any]] = []
@@ -347,7 +376,6 @@ def _extract_pptx_shape_content(shape, slide_index: int, image_counter: int):
 
     return elements, image_counter, images
 
-
 def _text_frame_to_html(shape) -> str:
     text_frame = shape.text_frame
     paragraphs = [p for p in text_frame.paragraphs if (p.text or "").strip()]
@@ -390,7 +418,6 @@ def _text_frame_to_html(shape) -> str:
 
     return "".join(html_parts)
 
-
 def _paragraph_inline_html(paragraph) -> str:
     fragments: list[str] = []
     runs = list(getattr(paragraph, "runs", []))
@@ -420,7 +447,6 @@ def _paragraph_inline_html(paragraph) -> str:
 
     return "".join(fragments).strip()
 
-
 def _table_to_html(table) -> str:
     rows_html: list[str] = []
 
@@ -438,7 +464,6 @@ def _table_to_html(table) -> str:
         return ""
 
     return f"<table><tbody>{''.join(rows_html)}</tbody></table>"
-
 
 def _hydrate_image_placeholders(
     snippet: str,
@@ -464,7 +489,6 @@ def _hydrate_image_placeholders(
 
     return str(soup)
 
-
 def _sanitize_user_html(html: str) -> str:
     return nh3.clean(
         html or "",
@@ -473,7 +497,6 @@ def _sanitize_user_html(html: str) -> str:
         url_schemes={"http", "https", "mailto"},
         link_rel="noopener noreferrer",
     )
-
 
 def _best_picture_alt_text(shape, slide_index: int) -> str:
     try:
@@ -488,7 +511,6 @@ def _best_picture_alt_text(shape, slide_index: int) -> str:
 
     return f"Image from slide {slide_index}"
 
-
 def _extension_from_content_type(content_type: str) -> str:
     mapping = {
         "image/jpeg": "jpg",
@@ -502,7 +524,6 @@ def _extension_from_content_type(content_type: str) -> str:
         "image/x-wmf": "wmf",
     }
     return mapping.get((content_type or "").lower(), "png")
-
 
 def _normalise_image_blob(blob: bytes, extension: str, filename: str):
     extension = (extension or "png").lower()
