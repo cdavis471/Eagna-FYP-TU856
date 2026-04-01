@@ -64,7 +64,7 @@
           <ul class="week-files">
             {% for f in submission.files.all %}
               <li>
-                <a href="{{ f.file.url }}" target="_blank">
+                <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
                   {{ f.original_name|default:f.file.name }}
                 </a>
                 <span class="week-file-meta">

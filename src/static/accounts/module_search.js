@@ -51,14 +51,22 @@
     const container = byId("selected-modules");
     if (!container) return;
 
-    container.innerHTML = "";
+    container.replaceChildren();
     const selected = modules.filter(isSelected);
 
     selected.forEach((m) => {
       const chip = document.createElement("div");
       chip.className = "module-chip";
       chip.title = "Click to remove";
-      chip.innerHTML = `<span>${m.label}</span><span class="chip-x">×</span>`;
+
+      const label = document.createElement("span");
+      label.textContent = m.label;
+
+      const close = document.createElement("span");
+      close.className = "chip-x";
+      close.textContent = "×";
+
+      chip.append(label, close);
 
       chip.addEventListener("click", () => {
         setSelected(m, false);
@@ -85,7 +93,7 @@
     const course = getCourseValue();
 
     dropdown.hidden = false;
-    dropdown.innerHTML = "";
+    dropdown.replaceChildren();
 
     if (!course) {
       const item = document.createElement("div");

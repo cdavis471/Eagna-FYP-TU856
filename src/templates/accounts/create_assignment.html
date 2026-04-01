@@ -69,7 +69,27 @@
 
           <div class="form-group workflow-field--full">
             <label for="id_files">Attach files (optional, you can select multiple)</label>
-            <input type="file" id="id_files" name="files" multiple accept=".docx,.pptx">
+
+            <div class="upload-dropzone" data-upload-dropzone>
+              <input
+                type="file"
+                id="id_files"
+                name="files"
+                multiple
+                accept=".docx,.pptx"
+                class="upload-dropzone__input">
+
+              <label for="id_files" class="upload-dropzone__label">
+                <span class="upload-dropzone__title">Drag and drop assignment brief files here</span>
+                <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
+              </label>
+
+              <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
+            </div>
+
+            <p class="workflow-form-help">
+              Image descriptions for parsed assignment materials can be edited from the assignment detail page after creation.
+            </p>
           </div>
         </div>
 

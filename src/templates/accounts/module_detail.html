@@ -276,7 +276,7 @@
                 <!-- Loop through each file resource associated with this week -->
                 {% for f in w.files.all %}
                   <li class="week-file-item">
-                    <a href="{{ f.file.url }}" target="_blank">
+                    <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
                       {{ f.original_name|default:f.file.name }}
                     </a>
                     <span class="week-file-meta">
@@ -353,7 +353,7 @@
                   <!-- Loop through each weekly file -->
                   {% for f in w.files.all %}
                     <li class="week-file-item">
-                      <a href="{{ f.file.url }}" target="_blank">
+                      <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
                         {{ f.original_name|default:f.file.name }}
                       </a>
 
@@ -404,7 +404,21 @@
               <!-- CSRF token to secure file upload POST request -->
               {% csrf_token %}
               <!-- File input allowing the lecturer to choose a document to upload -->
-              <input type="file" name="file" class="week-upload-input" accept=".docx,.pptx">
+              <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+                <input
+                  type="file"
+                  id="week-file-{{ w.week_number }}"
+                  name="file"
+                  class="upload-dropzone__input"
+                  accept=".docx,.pptx">
+
+                <label for="week-file-{{ w.week_number }}" class="upload-dropzone__label">
+                  <span class="upload-dropzone__title">Drag and drop lecture material here</span>
+                  <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
+                </label>
+
+                <div class="upload-dropzone__files" data-upload-filelist>No file selected</div>
+              </div>
               <!-- Button to submit the chosen file to be stored as a weekly resource -->
               <button type="submit" class="small-button">Upload File</button>
             </form>

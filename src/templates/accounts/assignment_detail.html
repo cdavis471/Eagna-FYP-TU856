@@ -47,7 +47,7 @@
             {% for f in assignment.files.all %}
               <li class="assessment-file-row assignment-material-row">
                 <div class="assessment-file-main">
-                  <a href="{{ f.file.url }}" target="_blank" class="assessment-file-name">
+                  <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer" class="assessment-file-name">
                     {{ f.original_name|default:f.file.name }}
                   </a>
 
@@ -111,7 +111,7 @@
               <ul class="week-files">
                 {% for f in submission.files.all %}
                   <li>
-                    <a href="{{ f.file.url }}" target="_blank">
+                    <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
                       {{ f.original_name|default:f.file.name }}
                     </a>
                     <span class="week-file-meta">
@@ -149,7 +149,21 @@
               Upload one or more files. New uploads will be added to your submission and update the submitted time.
             </p>
 
-            <input type="file" name="files" multiple class="week-upload-input">
+            <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+              <input
+                type="file"
+                id="assignment-submission-files"
+                name="files"
+                multiple
+                class="upload-dropzone__input">
+
+              <label for="assignment-submission-files" class="upload-dropzone__label">
+                <span class="upload-dropzone__title">Drag and drop submission files here</span>
+                <span class="upload-dropzone__hint">or click to browse</span>
+              </label>
+
+              <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
+            </div>
             <button type="submit" class="small-button">Submit / Upload</button>
           </form>
         </div>
@@ -189,7 +203,7 @@
                   <ul class="week-files">
                     {% for f in s.files.all %}
                       <li>
-                        <a href="{{ f.file.url }}" target="_blank">
+                        <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
                           {{ f.original_name|default:f.file.name }}
                         </a>
                         <span class="week-file-meta">

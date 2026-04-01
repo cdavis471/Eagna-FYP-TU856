@@ -19,14 +19,6 @@
       </ul>
     {% endif %}
 
-    {% if messages %}
-      <ul class="message-list">
-        {% for message in messages %}
-          <li class="message message-{{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-
     <form method="post" class="registration-form" autocomplete="off">
       {% csrf_token %}
 
@@ -158,6 +150,8 @@
     </form>
   </div>
 </div>
+{% endblock %}
 
+{% block extra_scripts %}
 <script src="{% static 'accounts/module_search.js' %}" defer></script>
 {% endblock %}

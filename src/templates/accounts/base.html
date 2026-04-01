@@ -16,8 +16,8 @@
   <title>{% block title %}Eagna VLE{% endblock %}</title>
   <!-- Link to the main stylesheet for the accounts app using Django's static file system -->
   <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
-  <!-- Include the HTMX library from a CDN so templates can use HTMX attributes and features -->
-  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <!-- Include local HTMX library so templates can use HTMX attributes and features -->
+  <script src="{% static 'accounts/vendor/htmx.min.js' %}" defer></script>
   <!-- Extra head content block for child templates to inject additional meta tags or links -->
   {% block extra_head %}{% endblock %}
 </head>
@@ -69,28 +69,18 @@
       {% endfor %}
     </div>
   {% endif %}
+
   <!-- Main page content area where child templates inject their specific content -->
   <main class="page-content">
-  {% if messages %}
-    <div class="dashboard-section">
-      <ul class="error-list">
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-      </ul>
-    </div>
-  {% endif %}
 
   {% block content %}{% endblock %}
-</main>
+
+  </main>
 
   <!-- Site-wide footer shown at the bottom of every page -->
   <footer class="site-footer">
     <div class="footer-top">
-      <img
-        src="https://pxl01-tudublinie.terminalfour.net/prod01/tudublin-cdn-pxl/media/website/site-assets/images/tu-dublin-logo.svg"
-        alt="TU Dublin"
-        class="footer-logo">
+      <img src="{% static 'accounts/logos/tu-dublin-logo.svg' %}" alt="TU Dublin" class="footer-logo">
     </div>
 
     <div class="footer-nav">
@@ -106,179 +96,15 @@
     </div>
   </footer>
   <div id="parsed-modal" class="parsed-modal hidden" aria-hidden="true">
-    <div class="parsed-modal-backdrop" onclick="closeParsedModal()"></div>
-
+    <div class="parsed-modal-backdrop" id="parsed-modal-backdrop"></div>
     <div class="parsed-modal-panel" role="dialog" aria-modal="true" aria-labelledby="parsed-modal-title">
-      <button type="button" class="parsed-modal-close" onclick="closeParsedModal()">
+      <button type="button" class="parsed-modal-close" id="parsed-modal-close">
         Close
       </button>
-
       <div id="parsed-modal-body"></div>
     </div>
   </div>
-  <script>
-    (function () {
-      const shell = document.getElementById("notificationShell");
-      if (!shell) return;
-
-      const toggle = document.getElementById("notificationToggle");
-      const dropdown = document.getElementById("notificationDropdown");
-      const moreButton = document.getElementById("notificationMoreButton");
-
-      function closeDropdown() {
-        if (!dropdown) return;
-        dropdown.hidden = true;
-        toggle.setAttribute("aria-expanded", "false");
-
-        if (moreButton) {
-          dropdown.classList.remove("notification-dropdown--expanded");
-          moreButton.textContent = "View more";
-          moreButton.setAttribute("aria-expanded", "false");
-        }
-      }
-
-      function openDropdown() {
-        if (!dropdown) return;
-        dropdown.hidden = false;
-        toggle.setAttribute("aria-expanded", "true");
-      }
-
-      toggle.addEventListener("click", function (event) {
-        event.stopPropagation();
-
-        if (dropdown.hidden) {
-          openDropdown();
-        } else {
-          closeDropdown();
-        }
-      });
-
-      if (dropdown) {
-        dropdown.addEventListener("click", function (event) {
-          event.stopPropagation();
-        });
-      }
-
-      if (moreButton) {
-        moreButton.addEventListener("click", function (event) {
-          event.stopPropagation();
-
-          const expanded = dropdown.classList.toggle("notification-dropdown--expanded");
-          moreButton.textContent = expanded ? "View less" : "View more";
-          moreButton.setAttribute("aria-expanded", expanded ? "true" : "false");
-        });
-      }
-
-      document.addEventListener("click", function () {
-        closeDropdown();
-      });
-
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape") {
-          closeDropdown();
-        }
-      });
-    })();
-  </script>
-  <script>
-    function openParsedModal() {
-      const modal = document.getElementById("parsed-modal");
-      modal.classList.remove("hidden");
-      modal.setAttribute("aria-hidden", "false");
-    }
-
-    function closeParsedModal() {
-      const modal = document.getElementById("parsed-modal");
-      modal.classList.add("hidden");
-      modal.setAttribute("aria-hidden", "true");
-      document.getElementById("parsed-modal-body").innerHTML = "";
-    }
-
-    document.body.addEventListener("htmx:afterSwap", function (event) {
-      if (event.detail.target.id === "parsed-modal-body") {
-        openParsedModal();
-      }
-    });
-
-    document.addEventListener("keydown", function (event) {
-      if (event.key === "Escape") {
-        closeParsedModal();
-      }
-    });
-  </script>
-  <script>
-    (function () {
-      const menus = Array.from(document.querySelectorAll("[data-user-menu]"));
-      if (!menus.length) return;
-
-      function closeMenu(menu) {
-        menu.classList.remove("user-menu--open");
-        const trigger = menu.querySelector("[data-user-menu-trigger]");
-        if (trigger) {
-          trigger.setAttribute("aria-expanded", "false");
-        }
-      }
-
-      function openMenu(menu) {
-        menus.forEach((item) => {
-          if (item !== menu) {
-            closeMenu(item);
-          }
-        });
-
-        menu.classList.add("user-menu--open");
-
-        const trigger = menu.querySelector("[data-user-menu-trigger]");
-        if (trigger) {
-          trigger.setAttribute("aria-expanded", "true");
-        }
-      }
-
-      menus.forEach((menu) => {
-        const trigger = menu.querySelector("[data-user-menu-trigger]");
-        const dropdown = menu.querySelector("[data-user-menu-dropdown]");
-        const form = menu.querySelector("[data-user-menu-form]");
-
-        if (!trigger || !dropdown || !form) return;
-
-        trigger.addEventListener("click", function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-
-          if (menu.classList.contains("user-menu--open")) {
-            closeMenu(menu);
-          } else {
-            openMenu(menu);
-          }
-        });
-
-        trigger.addEventListener("keydown", function (event) {
-          if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
-            event.preventDefault();
-            openMenu(menu);
-          }
-        });
-
-        dropdown.addEventListener("click", function (event) {
-          event.stopPropagation();
-        });
-
-        form.addEventListener("change", function () {
-          form.submit();
-        });
-      });
-
-      document.addEventListener("click", function () {
-        menus.forEach(closeMenu);
-      });
-
-      document.addEventListener("keydown", function (event) {
-        if (event.key === "Escape") {
-          menus.forEach(closeMenu);
-        }
-      });
-    })();
-  </script>
+  <script src="{% static 'accounts/base.js' %}" defer></script>
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>
