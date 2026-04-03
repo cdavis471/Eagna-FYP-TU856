@@ -336,7 +336,7 @@ Auth / Login Form
   background-color: var(--surface-neutral-soft);
 }
 
-button[type="submit"]:not(.auth-action-button):not(.logout-button) {
+button[type="submit"]:not(.auth-action-button):not(.logout-button):not(.small-button) {
   width: 100%;
   padding: 0.75rem 1.2rem;
   border-radius: 0.75rem;
@@ -353,7 +353,7 @@ button[type="submit"]:not(.auth-action-button):not(.logout-button) {
     box-shadow 0.1s ease;
 }
 
-button[type="submit"]:not(.auth-action-button):not(.logout-button):hover {
+button[type="submit"]:not(.auth-action-button):not(.logout-button):not(.small-button):hover {
   box-shadow: 0 3px 8px rgba(15, 23, 42, 0.3);
   transform: translateY(-1px);
 }
@@ -3511,9 +3511,13 @@ Create Pages / Module Detail - Final UI
   display: flex;
   width: 100%;
   margin: 0;
+  align-items: stretch;
 }
 
 .module-announcement-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: 2.45rem;
   margin: 0;
@@ -3785,6 +3789,11 @@ Create Pages / Module Detail - Final UI
   color: var(--primary);
   border-color: var(--primary);
   text-decoration: none;
+}
+
+.workflow-hero-card > .return-link {
+  align-self: flex-start;
+  margin-bottom: 0.15rem;
 }
 
 /*

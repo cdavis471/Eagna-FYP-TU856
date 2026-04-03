@@ -72,6 +72,7 @@
 
                       {% if role == "lecturer" and f.parsed_document.images.all %}
                         <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}?next={{ request.get_full_path|urlencode }}"
+                          class="small-button">
                           Edit Image Descriptions
                         </a>
                       {% endif %}
@@ -227,6 +228,7 @@
 
                 <div class="workflow-submit-row workflow-submit-row--start">
                   <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}?next={{ request.get_full_path|urlencode }}"
+                    class="small-button">
                     {% if s.grade %}Edit Grade{% else %}Add Grade{% endif %}
                   </a>
                 </div>
