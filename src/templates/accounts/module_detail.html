@@ -363,7 +363,7 @@
                         rows="2"
                         class="week-description-input">{{ w.description }}</textarea>
 
-              <label class="week-label">Materials</label>
+              <label class="week-label">Upload Materials</label>
               <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
                 <input
                   type="file"
@@ -389,7 +389,7 @@
             </form>
 
             <div class="week-files-block">
-              <h4 class="week-files-title">Materials</h4>
+              <h4 class="week-files-title">Attached Materials</h4>
 
               {% if w.files.all %}
                 <ul class="week-files">
@@ -452,7 +452,7 @@
           </div>
         </div>
 
-        <p class="module-panel-count"># Currently Enrolled: {{ enrolled_student_count }}</p>
+        <p class="module-panel-count">Currently Enrolled: {{ enrolled_student_count }}</p>
 
         {% if enrolled_students %}
           <div class="enrolled-students-list">

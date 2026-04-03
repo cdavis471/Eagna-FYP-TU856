@@ -2313,7 +2313,7 @@ Header / Footer - Final UI
   justify-content: center;
   gap: 0.75rem;
   margin: 0;
-  padding: 0;
+  padding-top: 0.75rem;
 }
 
 .main-nav a.site-nav-button,
@@ -3266,7 +3266,7 @@ Lecturer Workflow / Forms - Final UI
 
 .workflow-panel-title {
   margin: 0;
-  color: var(--tertiary);
+  color: var(--secondary);
   font-size: 1.45rem;
   line-height: 1.08;
 }
@@ -3332,6 +3332,7 @@ Lecturer Workflow / Forms - Final UI
   font-size: 0.96rem;
   font-weight: 700;
   letter-spacing: 0.01em;
+  line-height: 2.75;
 }
 
 .workflow-form input[type="text"],
@@ -3460,6 +3461,19 @@ Lecturer Workflow / Forms - Final UI
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  background-color: var(--tertiary);
+}
+
+#add-question-button.small-button {
+  background: var(--secondary);
+  color: var(--tertiary);
+  border: 2px solid var(--primary);
+}
+
+#add-question-button.small-button:hover {
+  background: var(--primary);
+  color: var(--tertiary);
+  border: 2px solid var(--secondary);
 }
 
 .quiz-builder-header {
@@ -3627,7 +3641,7 @@ Create Pages / Module Detail - Final UI
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.75rem;
   align-items: center;
-  padding: 0.8rem 0.9rem;
+  padding: 1rem 1rem;
   border: 2px solid var(--primary);
   border-radius: 0.9rem;
   background: var(--surface-subtle);
@@ -3667,6 +3681,7 @@ Create Pages / Module Detail - Final UI
   color: var(--primary);
   font-size: 0.88rem;
   font-weight: 500;
+  line-height: 3;
 }
 
 .upload-dropzone {
@@ -3804,7 +3819,7 @@ Create Pages / Module Detail - Final UI
   color: var(--primary);
   font-size: 0.9rem;
   font-weight: 500;
-  line-height: 1.5;
+  line-height: 3;
 }
 
 .return-link {
@@ -3863,6 +3878,11 @@ General Features - Final UI
 
 .portal-app-card--more {
   width: 100%;
+}
+
+.upload-text-fix {
+  display: flex;
+  margin-top: 1rem;
 }
 
 /*

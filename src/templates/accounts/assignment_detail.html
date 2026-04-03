@@ -108,7 +108,7 @@
             </p>
 
             {% if submission.files.all %}
-              <h4 class="week-files-title">Submitted files</h4>
+              <h4 class="week-files-title">Submitted Files</h4>
               <ul class="week-files">
                 {% for f in submission.files.all %}
                   <li>
@@ -177,12 +177,11 @@
       <div class="assessment-surface workflow-panel-shell">
         <div class="workflow-panel-header">
           <div>
-            <h2 class="workflow-panel-title">Student<br>Submissions</h2>
+            <h2 class="workflow-panel-title">Student Submissions</h2>
+            <p class="workflow-panel-subtitle">
+              Review uploaded work and open the grading form for each student from this panel.
+            </p>
           </div>
-
-          <p class="workflow-panel-subtitle">
-            Review uploaded work and open the grading form for each student from this panel.
-          </p>
         </div>
 
         {% if submissions %}
@@ -199,7 +198,7 @@
                 </p>
 
                 {% if s.files.all %}
-                  <h4 class="week-files-title">Submitted files</h4>
+                  <h4 class="week-files-title">Submitted Files</h4>
                   <ul class="week-files">
                     {% for f in s.files.all %}
                       <li>

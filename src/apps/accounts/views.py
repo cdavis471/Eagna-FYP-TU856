@@ -1529,7 +1529,7 @@ def _build_lecturer_profile_modules(lecturer, next_url=None):
                         reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
                         next_url,
                     ),
-                    "metric": f"{submitted} marked / {unsubmitted} unmarked",
+                    "metric": f"{submitted} Submitted / {unsubmitted} Unsubmitted",
                     "metric_class": metric_class,
                     "sort_at": assignment.due_datetime,
                 }
@@ -1555,7 +1555,7 @@ def _build_lecturer_profile_modules(lecturer, next_url=None):
                         reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
                         next_url,
                     ),
-                    "metric": f"{attempted} attempted / {not_attempted} not attempted",
+                    "metric": f"{attempted} Attempted / {not_attempted} Not Attempted",
                     "metric_class": metric_class,
                     "sort_at": quiz.close_datetime,
                 }

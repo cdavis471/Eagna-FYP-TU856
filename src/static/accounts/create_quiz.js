@@ -130,9 +130,9 @@
 
     settingsContainer.innerHTML = `
       <div class="form-group">
-        <label>Answer options</label>
+        <label>Answer Options</label>
         <div class="quiz-builder-options"></div>
-        <button type="button" class="small-button add-option-button">+ Add answer</button>
+        <button type="button" class="small-button add-option-button">+ Add Answer</button>
         <p class="quiz-builder-note">
           Select the correct answer beside each option. Multiple select can have more than one correct answer.
         </p>
@@ -263,7 +263,7 @@
         </div>
 
         <div class="form-group">
-          <label>Marks</label>
+          <label>Marks - Weighted To Set % of Module</label>
           <input type="number" step="0.25" min="0.25" class="question-marks" value="${escapeHtml(data.marks || "1.00")}">
         </div>
       </div>
