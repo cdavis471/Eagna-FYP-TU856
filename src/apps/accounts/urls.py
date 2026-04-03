@@ -39,11 +39,12 @@ urlpatterns = [  # List of URL patterns that map URLs to views for this app
         upload_week_file,  # View handling the file upload logic for that week
         name="upload_week_file",  # Name used to reverse this route in templates and code
     ),
-    path(  # URL pattern to edit description text for a specific week of a module
-        "modules/<str:code>/weeks/<int:week_number>/description/",  # Path with module code and week number for description edits
-        edit_week_description,  # View that processes updating the week description
-        name="edit_week_description",  # Named route used for URL reversing in templates/forms
-    ),
+
+    #path(  # URL pattern to edit description text for a specific week of a module
+    #    "modules/<str:code>/weeks/<int:week_number>/description/",  # Path with module code and week number for description edits
+    #    edit_week_description,  # View that processes updating the week description
+    #    name="edit_week_description",  # Named route used for URL reversing in templates/forms
+    #),
 
     path(  # URL pattern for creating a new assignment within a module
         "modules/<str:code>/assignments/new/",  # Module code in URL, with 'new' indicating assignment creation
