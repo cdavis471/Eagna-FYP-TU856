@@ -3266,7 +3266,7 @@ Lecturer Workflow / Forms - Final UI
 
 .workflow-panel-title {
   margin: 0;
-  color: var(--secondary);
+  color: var(--tertiary);
   font-size: 1.45rem;
   line-height: 1.08;
 }
@@ -3645,6 +3645,7 @@ Create Pages / Module Detail - Final UI
   border: 2px solid var(--primary);
   border-radius: 0.9rem;
   background: var(--surface-subtle);
+  margin-bottom: 0.8rem;
 }
 
 .quiz-option-choice {
@@ -3883,6 +3884,22 @@ General Features - Final UI
 .upload-text-fix {
   display: flex;
   margin-top: 1rem;
+}
+
+.week-file-item .small-button {
+  color: var(--secondary);
+}
+
+.week-file-item .small-button:hover {
+  text-decoration: none;
+}
+
+.quiz-question-editor .workflow-form-grid {
+  display: block;
+}
+
+.quiz-builder-header .workflow-panel-title {
+  color: var(--secondary);
 }
 
 /*
