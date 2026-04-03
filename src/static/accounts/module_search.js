@@ -3,15 +3,22 @@
     return document.getElementById(id);
   }
 
+  function normalizeCourseCode(value) {
+    return (value || "")
+      .trim()
+      .toUpperCase()
+      .replace(/\s+/g, "");
+  }
+
   function getCourseValue() {
     const courseEl = byId("id_course");
-    return (courseEl?.value || "").trim();
+    return normalizeCourseCode(courseEl?.value || "");
   }
 
   function parseCourses(datasetCourses) {
     return (datasetCourses || "")
       .split(",")
-      .map((s) => s.trim())
+      .map((s) => normalizeCourseCode(s))
       .filter(Boolean);
   }
 

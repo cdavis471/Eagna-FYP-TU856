@@ -189,6 +189,91 @@ def _portal_module_queryset_for_user(user):
 
     return Module.objects.none()
 
+def _build_portal_week_context(user, today=None):
+    today = today or timezone.localdate()
+    week_start = today - timedelta(days=today.weekday())
+    week_end = week_start + timedelta(days=6)
+
+    modules = list(_portal_module_queryset_for_user(user))
+    rows = []
+
+    for module in modules:
+        items = []
+
+        new_assignments = (
+            module.assignments
+            .filter(created_at__date__gte=week_start, created_at__date__lte=week_end)
+            .order_by("-created_at")
+        )
+
+        for assignment in new_assignments:
+            items.append({
+                "kind_label": "Assignment",
+                "kind_class": "assignment",
+                "title": assignment.title,
+                "detail": f"Created {assignment.created_at|date:'Y-m-d H:i'}" if False else None,
+                "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                "sort_at": assignment.created_at,
+            })
+
+        new_quizzes = (
+            module.quizzes
+            .filter(created_at__date__gte=week_start, created_at__date__lte=week_end)
+            .order_by("-created_at")
+        )
+
+        if user.is_student():
+            new_quizzes = new_quizzes.filter(is_published=True)
+
+        for quiz in new_quizzes:
+            items.append({
+                "kind_label": "Quiz",
+                "kind_class": "quiz",
+                "title": quiz.title,
+                "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                "sort_at": quiz.created_at,
+            })
+
+        new_week_files = (
+            ModuleWeekFile.objects
+            .filter(
+                week__module=module,
+                uploaded_at__date__gte=week_start,
+                uploaded_at__date__lte=week_end,
+            )
+            .select_related("week")
+            .order_by("-uploaded_at")
+        )
+
+        seen_weeks = set()
+        for week_file in new_week_files:
+            key = week_file.week_id
+            if key in seen_weeks:
+                continue
+            seen_weeks.add(key)
+
+            items.append({
+                "kind_label": "Week",
+                "kind_class": "week",
+                "title": f"Week {week_file.week.week_number}",
+                "url": reverse("accounts:module_detail", args=[module.code]),
+                "sort_at": week_file.uploaded_at,
+            })
+
+        items.sort(key=lambda item: item["sort_at"], reverse=True)
+
+        if items:
+            rows.append({
+                "module_code": module.code,
+                "module_title": module.title,
+                "items": items,
+            })
+
+    return {
+        "week_start": week_start,
+        "week_end": week_end,
+        "portal_week_rows": rows,
+    }
 
 def _build_portal_calendar_context(user, year, month):
     today = timezone.localdate()
@@ -1424,6 +1509,22 @@ def _validate_student_submission_upload(uploaded_file) -> str | None:
 
     return None
 
+def _safe_back_url(request, fallback_name, *fallback_args):
+    fallback_url = reverse(fallback_name, args=fallback_args)
+
+    candidate = request.GET.get("next") or request.META.get("HTTP_REFERER")
+    if not candidate:
+        return fallback_url
+
+    if not url_has_allowed_host_and_scheme(
+        candidate,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return fallback_url
+
+    return candidate
+
 # Classes
 
 class LowercaseUsernameAuthenticationForm(AuthenticationForm):
@@ -2151,7 +2252,7 @@ def portal(request):
         "user": user,
         "nav_items": _shared_nav_items(),
         "office_tiles": _portal_office_tiles(),
-        "timetable_url": "https://timetables.tudublin.ie/",
+        "timetable_url": f"https://timetables.tudublin.ie/timetables?date={today.isoformat()}&view=week",
     }
 
     context.update(
@@ -2159,6 +2260,12 @@ def portal(request):
             user=user,
             year=selected_year,
             month=selected_month,
+        )
+    )
+    
+    context.update(
+        _build_portal_week_context(
+            user=user, today=today
         )
     )
 
@@ -2213,6 +2320,7 @@ def module_detail(request, code):
             "weeks": weeks,
             "run_start": run_start,
             "run_end": run_end,
+            "back_url": _safe_back_url(request, "accounts:dashboard"),
         }
 
     elif user.is_lecturer():
@@ -2280,6 +2388,7 @@ def module_detail(request, code):
             "run_end": run_end,
             "enrolled_students": enrolled_students,
             "enrolled_student_count": len(enrolled_students),
+            "back_url": _safe_back_url(request, "accounts:dashboard"),
         }
 
     else:
@@ -2323,6 +2432,7 @@ def create_module_announcement(request, code):
             "title": request.POST.get("title", ""),
             "content": request.POST.get("content", ""),
         },
+        "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
     }
     return render(request, "accounts/module_announcement_form.html", context)
 
@@ -2360,6 +2470,7 @@ def edit_module_announcement(request, code, announcement_id):
             "title": request.POST.get("title", announcement.title) if request.method == "POST" else announcement.title,
             "content": request.POST.get("content", announcement.content) if request.method == "POST" else announcement.content,
         },
+        "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
     }
     return render(request, "accounts/module_announcement_form.html", context)
 
@@ -2456,10 +2567,38 @@ def upload_week_file(request, code, week_number):
 
     return redirect("accounts:module_detail", code=module.code)
 
+# DEFUNCT
+#
+# @login_required
+# def edit_week_description(request, code, week_number):
+#
+#    user: User = request.user
+#    if not user.is_lecturer():
+#       raise Http404("Not found")
+#
+#    lecturer = user.lecturer_profile
+#    module = get_object_or_404(Module, code=code, lecturers=lecturer)
+#
+#    week, _ = ModuleWeek.objects.get_or_create(
+#        module=module,
+#       week_number=week_number,
+#        defaults={"title": f"Week {week_number}"},
+#    )
+#
+#    if request.method == "POST":
+#        was_visible = _week_is_viewable(week)
+#        description = request.POST.get("description", "").strip()
+#        week.description = description
+#        week.save()
+#
+#       if not was_visible:
+#           _notify_students_if_week_now_viewable(week)
+#
+#   return redirect("accounts:module_detail", code=module.code)
 
 @login_required
-def edit_week_description(request, code, week_number):
-
+@require_http_methods(["POST"])
+def save_module_week(request, code, week_number):
     user: User = request.user
     if not user.is_lecturer():
         raise Http404("Not found")
@@ -2473,15 +2612,57 @@ def edit_week_description(request, code, week_number):
         defaults={"title": f"Week {week_number}"},
     )
 
-    if request.method == "POST":
-        was_visible = _week_is_viewable(week)
-        description = request.POST.get("description", "").strip()
-        week.description = description
-        week.save()
+    description = request.POST.get("description", "").strip()
+    uploaded_files = request.FILES.getlist("files")
+    module_detail_url = reverse("accounts:module_detail", args=[module.code])
+    was_visible = _week_is_viewable(week)
 
-        if not was_visible:
-            _notify_students_if_week_now_viewable(week)
+    if not description:
+        messages.error(request, "A week description is required before saving.")
+        return redirect("accounts:module_detail", code=module.code)
 
+    if not week.files.exists() and not uploaded_files:
+        messages.error(request, "Please add at least one .docx or .pptx file before saving this week.")
+        return redirect("accounts:module_detail", code=module.code)
+
+    week.description = description
+    week.save(update_fields=["description"])
+
+    for uploaded in uploaded_files:
+        try:
+            parsed_payload = parse_uploaded_office_file(uploaded)
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("accounts:module_detail", code=module.code)
+        except Exception:
+            messages.error(
+                request,
+                "The file could not be translated into accessible HTML. Please upload a readable .docx or .pptx.",
+            )
+            return redirect("accounts:module_detail", code=module.code)
+
+        week_file = None
+        try:
+            with transaction.atomic():
+                week_file = ModuleWeekFile.objects.create(
+                    week=week,
+                    file=uploaded,
+                    original_name=uploaded.name,
+                    uploaded_by=user,
+                )
+                _persist_parsed_document(parsed_payload=parsed_payload, week_file=week_file)
+        except Exception:
+            if week_file and week_file.file:
+                week_file.file.delete(save=False)
+            messages.error(request, "The week file was not published because parsing/storage failed.")
+            return redirect("accounts:module_detail", code=module.code)
+
+        _notify_lecturers_parser_success(module, uploaded.name, module_detail_url)
+
+    if not was_visible and _week_is_viewable(week):
+        _notify_students_if_week_now_viewable(week)
+
+    messages.success(request, "Academic Week Saved Successfully!")
     return redirect("accounts:module_detail", code=module.code)
 
 @login_required
@@ -2644,6 +2825,7 @@ def create_assignment(request, code):
             "due_time": due_time_str,
             "max_mark": max_mark_str,
         },
+        "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
     }
     return render(request, "accounts/create_assignment.html", context)
 
@@ -2746,6 +2928,7 @@ def create_quiz(request, code):
             "is_published": (request.POST.get("is_published") == "on") if request.method == "POST" else True,
         },
         "initial_questions": initial_questions,
+        "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
     }
     return render(request, "accounts/create_quiz.html", context)
 
@@ -2782,6 +2965,7 @@ def quiz_detail(request, code, quiz_id):
             "role": "lecturer",
             "question_rows": question_rows,
             "attempts": attempts,
+            "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
         }
         return render(request, "accounts/quiz_detail.html", context)
 
@@ -2831,6 +3015,7 @@ def quiz_detail(request, code, quiz_id):
             "can_start_attempt": can_start_attempt,
             "question_rows": question_rows,
             "remaining_seconds": remaining_seconds,
+            "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
         }
         return render(request, "accounts/quiz_detail.html", context)
 
@@ -2981,6 +3166,7 @@ def assignment_detail(request, code, assignment_id):  # View that displays detai
             "assignment": assignment,  # The assignment being viewed
             "role": "student",  # Role string used by template to branch behavior
             "submission": submission,  # Student’s existing submission, if present
+            "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
         }
         template = "accounts/assignment_detail.html"  # Template used for both student and lecturer assignment detail views
 
@@ -3006,6 +3192,7 @@ def assignment_detail(request, code, assignment_id):  # View that displays detai
             "assignment": assignment,  # Assignment object
             "role": "lecturer",  # Role string used for template branching
             "submissions": submissions,  # All submissions for this assignment
+            "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
         }
         template = "accounts/assignment_detail.html"  # Use the assignment detail template for lecturer view as well
 
@@ -3166,6 +3353,43 @@ def parsed_document_modal(request, parsed_id):
         "can_edit_images": user.is_lecturer(),
     }
     return render(request, "accounts/partials/parsed_document_modal.html", context)
+
+@login_required
+@require_http_methods(["GET"])
+def global_announcement_modal(request, announcement_id):
+    announcement = get_object_or_404(GlobalAnnouncement, pk=announcement_id)
+
+    if request.user.is_admin():
+        raise Http404("Not found")
+
+    context = {
+        "announcement": announcement,
+        "scope_label": "Global Announcement",
+    }
+    return render(request, "accounts/partials/announcement_modal.html", context)
+
+
+@login_required
+@require_http_methods(["GET"])
+def module_announcement_modal(request, code, announcement_id):
+    module = get_object_or_404(Module, code=code)
+    announcement = get_object_or_404(ModuleAnnouncement, pk=announcement_id, module=module)
+
+    user = request.user
+    if user.is_student():
+        if not user.student_profile.modules.filter(pk=module.pk).exists():
+            raise Http404("Not found")
+    elif user.is_lecturer():
+        if not user.lecturer_profile.modules.filter(pk=module.pk).exists():
+            raise Http404("Not found")
+    else:
+        raise Http404("Not found")
+
+    context = {
+        "announcement": announcement,
+        "scope_label": f"{module.code} Announcement",
+    }
+    return render(request, "accounts/partials/announcement_modal.html", context)
 
 @login_required
 @require_http_methods(["GET", "POST"])

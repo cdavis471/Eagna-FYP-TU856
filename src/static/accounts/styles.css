@@ -2781,8 +2781,24 @@ Shared Assessment / Surface - Final UI
 }
 
 .portal-office-section .portal-app-card:hover {
-  background: var(--primary);
-  color: var(--secondary);
+  background: var(--secondary);
+  color: var(--tertiary);
+  border-color: var(--secondary);
+  transform: none;
+  opacity: 1;
+}
+
+.portal-office-section .portal-app-card:hover .portal-app-label {
+  color: var(--tertiary);
+}
+
+.portal-office-section .portal-app-card:hover .portal-app-image {
+  filter: brightness(0) saturate(100%) invert(8%) sepia(56%) saturate(2485%) hue-rotate(208deg) brightness(91%) contrast(110%);
+}
+
+.portal-office-section .small-button:hover {
+  background: var(--secondary);
+  color: var(--tertiary);
   border-color: var(--secondary);
   transform: none;
   opacity: 1;
@@ -2791,13 +2807,6 @@ Shared Assessment / Surface - Final UI
 .portal-office-section .portal-app-label {
   color: var(--secondary);
   font-weight: 700;
-}
-
-.portal-office-section .small-button {
-  background: var(--tertiary);
-  color: var(--secondary);
-  border: 2px solid var(--secondary);
-  box-shadow: 0 12px 30px rgba(7, 22, 77, 0.22);
 }
 
 .portal-office-section .small-button:hover {
@@ -3592,12 +3601,89 @@ Create Pages / Module Detail - Final UI
   line-height: 1.2;
 }
 
+.upload-dropzone__files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.upload-dropzone__file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 2px solid var(--primary);
+  background: var(--secondary);
+  color: var(--tertiary);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.upload-dropzone__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--secondary);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0;
+}
+
+.upload-dropzone__remove:hover {
+  background: var(--tertiary);
+}
+
 .workflow-form-help {
   margin: 0.25rem 0 0;
   color: var(--primary);
   font-size: 0.9rem;
   font-weight: 500;
   line-height: 1.5;
+}
+
+.return-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.6rem 0.95rem;
+  border-radius: 0.85rem;
+  border: 2px solid var(--tertiary);
+  background: var(--secondary);
+  color: var(--tertiary);
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  margin-bottom: 0.85rem;
+  box-shadow: 0 8px 20px rgba(7, 22, 77, 0.08);
+}
+
+.return-link:hover {
+  background: var(--surface-accent);
+  color: var(--primary);
+  border-color: var(--primary);
+  text-decoration: none;
+}
+
+/*
+===========================
+General Features - Final UI
+===========================
+*/
+
+.announcement-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 /*

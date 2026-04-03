@@ -10,6 +10,7 @@
 <div class="dashboard-container">
   <!-- Section showing the module header information such as code, title, and year -->
   <section class="dashboard-section">
+    <a href="{{ back_url }}" class="return-link">← Return</a>
     <!-- Main heading displaying the module code and title -->
     <h1 class="section-title">
       <!-- Insert the module code and title from the context -->
@@ -201,6 +202,13 @@
           <article class="announcement-card dashboard-card-panel dashboard-announcement-card module-announcement-card">
           <div class="assessment-card-topline">
             <div>
+              <button type="button"
+                      class="small-button"
+                      hx-get="{% url 'accounts:module_announcement_modal' module.code announcement.id %}"
+                      hx-target="#parsed-modal-body"
+                      hx-swap="innerHTML">
+                View
+              </button>
               <h3 class="card-title">{{ announcement.title }}</h3>
               <p class="card-meta">
                 {{ announcement.created_at|date:"Y-m-d H:i" }}
@@ -328,29 +336,46 @@
             <!-- Form allowing the lecturer to edit the textual description of this week -->
             <!-- Description editor -->
             <form method="post"
-                  action="{% url 'accounts:edit_week_description' module.code w.week_number %}">
-              <!-- CSRF token required to protect this POST request -->
+                  action="{% url 'accounts:save_module_week' module.code w.week_number %}"
+                  enctype="multipart/form-data"
+                  class="week-upload-form">
               {% csrf_token %}
-              <!-- Label describing the purpose of the description textarea -->
+
               <label class="week-label">Description</label>
-              <!-- Textarea where the lecturer can enter or update a short description for the week -->
               <textarea name="description"
                         rows="2"
                         class="week-description-input">{{ w.description }}</textarea>
-              <!-- Button to submit and save the updated description -->
-              <button type="submit" class="small-button">Save Description</button>
+
+              <label class="week-label">Materials</label>
+              <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+                <input
+                  type="file"
+                  id="week-file-{{ w.week_number }}"
+                  name="files"
+                  multiple
+                  class="upload-dropzone__input"
+                  accept=".docx,.pptx">
+
+                <label for="week-file-{{ w.week_number }}" class="upload-dropzone__label">
+                  <span class="upload-dropzone__title">Drag and drop lecture materials here</span>
+                  <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
+                </label>
+
+                <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
+              </div>
+
+              <p class="workflow-form-help">
+                A description and at least one attachment are required before this week can be saved.
+              </p>
+
+              <button type="submit" class="small-button">Save Week</button>
             </form>
 
-            <!-- Block showing the list of files already uploaded for this week -->
-            <!-- Files list -->
             <div class="week-files-block">
-              <!-- Subheading for the materials section -->
               <h4 class="week-files-title">Materials</h4>
-              <!-- If there are already files linked to this week, show them in a list -->
+
               {% if w.files.all %}
-                <!-- Unordered list containing all files for this week -->
                 <ul class="week-files">
-                  <!-- Loop through each weekly file -->
                   {% for f in w.files.all %}
                     <li class="week-file-item">
                       <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
@@ -390,38 +415,9 @@
                   {% endfor %}
                 </ul>
               {% else %}
-                <!-- Message indicating that this week currently has no uploaded materials -->
                 <p class="muted">No materials uploaded yet for this week.</p>
               {% endif %}
             </div>
-
-            <!-- Form that lets the lecturer upload a new file for this particular week -->
-            <!-- Upload form -->
-            <form method="post"
-                  action="{% url 'accounts:upload_week_file' module.code w.week_number %}"
-                  enctype="multipart/form-data"
-                  class="week-upload-form">
-              <!-- CSRF token to secure file upload POST request -->
-              {% csrf_token %}
-              <!-- File input allowing the lecturer to choose a document to upload -->
-              <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
-                <input
-                  type="file"
-                  id="week-file-{{ w.week_number }}"
-                  name="file"
-                  class="upload-dropzone__input"
-                  accept=".docx,.pptx">
-
-                <label for="week-file-{{ w.week_number }}" class="upload-dropzone__label">
-                  <span class="upload-dropzone__title">Drag and drop lecture material here</span>
-                  <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
-                </label>
-
-                <div class="upload-dropzone__files" data-upload-filelist>No file selected</div>
-              </div>
-              <!-- Button to submit the chosen file to be stored as a weekly resource -->
-              <button type="submit" class="small-button">Upload File</button>
-            </form>
           </div>
         {% endfor %}
       {% else %}

@@ -1,0 +1,20 @@
+﻿<div class="announcement-modal-body">
+  <div class="parsed-modal-topbar">
+    <div>
+      <h2 id="parsed-modal-title" class="section-title">{{ announcement.title }}</h2>
+      <p class="card-meta">
+        {{ scope_label }} · {{ announcement.created_at|date:"Y-m-d H:i" }}
+        {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
+          · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+        {% endif %}
+        {% if announcement.created_by %}
+          · {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
+        {% endif %}
+      </p>
+    </div>
+  </div>
+
+  <div class="assessment-surface">
+    <div class="announcement-content">{{ announcement.content|linebreaksbr }}</div>
+  </div>
+</div>

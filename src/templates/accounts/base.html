@@ -17,7 +17,7 @@
   <!-- Link to the main stylesheet for the accounts app using Django's static file system -->
   <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
   <!-- Include local HTMX library so templates can use HTMX attributes and features -->
-  <script src="{% static 'accounts/vendor/htmx.min.js' %}" defer></script>
+  <script src="{% static 'accounts/framework/htmx.min.js' %}" defer></script>
   <!-- Extra head content block for child templates to inject additional meta tags or links -->
   {% block extra_head %}{% endblock %}
 </head>

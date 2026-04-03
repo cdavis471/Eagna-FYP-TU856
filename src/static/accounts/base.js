@@ -177,77 +177,107 @@
 })();
 
 (function () {
-      const dropzones = Array.from(document.querySelectorAll("[data-upload-dropzone]"));
-      if (!dropzones.length) return;
+  const dropzones = Array.from(document.querySelectorAll("[data-upload-dropzone]"));
+  if (!dropzones.length) return;
 
-      function updateFileList(zone, input) {
-        const fileList = zone.querySelector("[data-upload-filelist]");
-        if (!fileList) return;
+  function emptyTextFor(input) {
+    return input.multiple ? "No files selected" : "No file selected";
+  }
 
-        const files = Array.from(input.files || []);
-        const emptyText = input.multiple ? "No files selected" : "No file selected";
+  function buildTransfer(files, input) {
+    const transfer = new DataTransfer();
+    const chosenFiles = input.multiple ? files : files.slice(0, 1);
+    chosenFiles.forEach((file) => transfer.items.add(file));
+    return transfer;
+  }
 
-        if (!files.length) {
-          fileList.textContent = emptyText;
-          return;
-        }
+  function setFiles(input, files) {
+    input.files = buildTransfer(files, input).files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
 
-        const nodes = files.map((file) => {
-          const span = document.createElement("span");
-          span.className = "upload-dropzone__file";
-          span.textContent = file.name;
-          return span;
+  function renderFileList(zone, input) {
+    const fileList = zone.querySelector("[data-upload-filelist]");
+    if (!fileList) return;
+
+    const files = Array.from(input.files || []);
+
+    if (!files.length) {
+      fileList.textContent = emptyTextFor(input);
+      return;
+    }
+
+    const nodes = files.map((file, index) => {
+      const chip = document.createElement("span");
+      chip.className = "upload-dropzone__file";
+
+      const name = document.createElement("span");
+      name.textContent = file.name;
+
+      chip.appendChild(name);
+
+      if (input.multiple) {
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "upload-dropzone__remove";
+        remove.setAttribute("aria-label", `Remove ${file.name}`);
+        remove.textContent = "×";
+
+        remove.addEventListener("click", function () {
+          const nextFiles = Array.from(input.files || []).filter((_, fileIndex) => fileIndex !== index);
+          setFiles(input, nextFiles);
         });
 
-        fileList.replaceChildren(...nodes);
+        chip.appendChild(remove);
       }
 
-      function assignFiles(input, files) {
-        if (typeof DataTransfer === "undefined") return;
+      return chip;
+    });
 
-        const transfer = new DataTransfer();
-        const chosenFiles = input.multiple ? files : files.slice(0, 1);
+    fileList.replaceChildren(...nodes);
+  }
 
-        chosenFiles.forEach((file) => transfer.items.add(file));
-        input.files = transfer.files;
-        input.dispatchEvent(new Event("change", { bubbles: true }));
-      }
+  function mergeDroppedFiles(input, droppedFiles) {
+    const existing = input.multiple ? Array.from(input.files || []) : [];
+    const combined = input.multiple ? existing.concat(droppedFiles) : droppedFiles.slice(0, 1);
+    setFiles(input, combined);
+  }
 
-      dropzones.forEach((zone) => {
-        const input = zone.querySelector(".upload-dropzone__input");
-        if (!input) return;
+  dropzones.forEach((zone) => {
+    const input = zone.querySelector(".upload-dropzone__input");
+    if (!input) return;
 
-        updateFileList(zone, input);
+    renderFileList(zone, input);
 
-        input.addEventListener("change", function () {
-          updateFileList(zone, input);
-        });
+    input.addEventListener("change", function () {
+      renderFileList(zone, input);
+    });
 
-        ["dragenter", "dragover"].forEach((eventName) => {
-          zone.addEventListener(eventName, function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            zone.classList.add("upload-dropzone--dragging");
-          });
-        });
-
-        ["dragleave", "dragend"].forEach((eventName) => {
-          zone.addEventListener(eventName, function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            zone.classList.remove("upload-dropzone--dragging");
-          });
-        });
-
-        zone.addEventListener("drop", function (event) {
-          event.preventDefault();
-          event.stopPropagation();
-          zone.classList.remove("upload-dropzone--dragging");
-
-          const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
-          if (!files.length) return;
-
-          assignFiles(input, files);
-        });
+    ["dragenter", "dragover"].forEach((eventName) => {
+      zone.addEventListener(eventName, function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        zone.classList.add("upload-dropzone--dragging");
       });
+    });
+
+    ["dragleave", "dragend"].forEach((eventName) => {
+      zone.addEventListener(eventName, function (event) {
+        event.preventDefault();
+        event.stopPropagation();
+        zone.classList.remove("upload-dropzone--dragging");
+      });
+    });
+
+    zone.addEventListener("drop", function (event) {
+      event.preventDefault();
+      event.stopPropagation();
+      zone.classList.remove("upload-dropzone--dragging");
+
+      const files = Array.from((event.dataTransfer && event.dataTransfer.files) || []);
+      if (!files.length) return;
+
+      mergeDroppedFiles(input, files);
+    });
+  });
 })();

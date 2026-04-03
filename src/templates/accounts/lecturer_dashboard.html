@@ -93,6 +93,15 @@
       <div class="card-grid dashboard-cards-grid dashboard-announcements-grid">
         {% for announcement in global_announcements %}
           <article class="announcement-card dashboard-card-panel dashboard-announcement-card">
+            <div class="announcement-actions">
+              <button type="button"
+                      class="small-button"
+                      hx-get="{% url 'accounts:global_announcement_modal' announcement.id %}"
+                      hx-target="#parsed-modal-body"
+                      hx-swap="innerHTML">
+                View
+              </button>
+            </div>
             <h3 class="card-title">{{ announcement.title }}</h3>
             <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
             <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>

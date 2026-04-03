@@ -1,15 +1,46 @@
 ﻿{% extends "accounts/base.html" %}
 {% load static %}
 
-{% block title %}Portal | Eagna{% endblock %}
+{% block title %}Tools | Eagna{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
   <section class="dashboard-section">
-    <h1 class="section-title">Portal</h1>
+    <h1 class="section-title">Tools</h1>
     <p class="muted">
-      Access Your Microsoft 365 Tools, Your Assessment Calendar & TU Dublin Timetable.
+      Access Your Latest Materials, Microsoft 365 Products, Your Assessment Calendar & Timetable.
     </p>
+  </section>
+
+  <section class="dashboard-section portal-week-section">
+    <div class="assessment-card-topline">
+      <h2 class="section-title">Your Week</h2>
+    </div>
+
+    <p class="muted">
+      Activity from {{ week_start|date:"Y-m-d" }} to {{ week_end|date:"Y-m-d" }} across your modules.
+    </p>
+
+    {% if portal_week_rows %}
+      {% for row in portal_week_rows %}
+        <div class="week-block">
+          <h3 class="week-title">{{ row.module_code }} · {{ row.module_title }}</h3>
+
+          <ul class="profile-assessment-list">
+            {% for item in row.items %}
+              <li class="profile-assessment-row">
+                <div class="profile-assessment-main">
+                  <span class="assessment-badge {{ item.kind_class }}">{{ item.kind_label }}</span>
+                  <a href="{{ item.url }}" class="profile-assessment-link">{{ item.title }}</a>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No new module activity this week.</p>
+    {% endif %}
   </section>
 
   <section class="dashboard-section portal-office-section">

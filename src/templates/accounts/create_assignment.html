@@ -11,6 +11,7 @@
     <div class="assessment-hero-card workflow-hero-card">
       <div class="assessment-detail-header">
         <div>
+          <a href="{{ back_url }}" class="return-link">← Return</a>
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
           <h1 class="section-title">Create Assignment</h1>
         </div>
@@ -53,22 +54,23 @@
           </div>
 
           <div class="form-group">
-            <label for="id_due_date">Due date</label>
+            <label for="id_due_date">Due Date</label>
             <input type="date" id="id_due_date" name="due_date" value="{{ initial.due_date }}">
           </div>
 
           <div class="form-group">
-            <label for="id_due_time">Due time</label>
-            <input type="time" id="id_due_time" name="due_time" value="{{ initial.due_time }}">
+            <label for="id_due_time">Due Time (24-Hour)</label>
+            <input type="time" id="id_due_time" name="due_time" value="{{ initial.due_time }}" step="60">
+            <p class="workflow-form-help">Use 24-hour Time - Example: 14:30 - For 2.30 PM</p>
           </div>
 
           <div class="form-group">
-            <label for="id_max_mark">Max mark</label>
+            <label for="id_max_mark">% of Module</label>
             <input type="number" step="0.01" id="id_max_mark" name="max_mark" value="{{ initial.max_mark }}">
           </div>
 
           <div class="form-group workflow-field--full">
-            <label for="id_files">Attach files (optional, you can select multiple)</label>
+            <label for="id_files">Attach Files - Optional / Can Select Multiple</label>
 
             <div class="upload-dropzone" data-upload-dropzone>
               <input
@@ -84,7 +86,7 @@
                 <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
               </label>
 
-              <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
+              <div class="upload-dropzone__files" data-upload-filelist>No Files Selected</div>
             </div>
 
             <p class="workflow-form-help">
@@ -94,7 +96,7 @@
         </div>
 
         <div class="workflow-submit-row">
-          <button type="submit" class="small-button">Create assignment</button>
+          <button type="submit" class="small-button">Create Assignment</button>
         </div>
       </form>
     </div>
