@@ -112,7 +112,7 @@
         <!-- Loop through each module object assigned to the student -->
         {% for m in modules %}
           <!-- Clickable card wrapper linking to the module detail page -->
-          <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
+          <a href="{% url 'accounts:module_detail' m.code %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
             <!-- Card container for a single module -->
             <article class="card card-clickable dashboard-card-panel dashboard-module-card">
               <!-- Display the module title/textual name -->

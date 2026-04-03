@@ -22,22 +22,81 @@
     </p>
 
     {% if portal_week_rows %}
-      {% for row in portal_week_rows %}
-        <div class="week-block">
-          <h3 class="week-title">{{ row.module_code }} · {{ row.module_title }}</h3>
+      <div class="portal-week-stack">
+        {% for row in portal_week_rows %}
+          <article class="assessment-surface portal-week-module-card">
+            <h3 class="portal-week-module-title">
+              <a href="{{ row.module_url }}" class="portal-week-module-link">
+                {{ row.module_code }} · {{ row.module_title }}
+              </a>
+            </h3>
 
-          <ul class="profile-assessment-list">
-            {% for item in row.items %}
-              <li class="profile-assessment-row">
-                <div class="profile-assessment-main">
-                  <span class="assessment-badge {{ item.kind_class }}">{{ item.kind_label }}</span>
-                  <a href="{{ item.url }}" class="profile-assessment-link">{{ item.title }}</a>
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
-        </div>
-      {% endfor %}
+            {% if row.assessment_items %}
+              <section class="portal-week-group">
+                <h4 class="portal-week-group-title">Assessments</h4>
+                <ul class="portal-week-item-list">
+                  {% for item in row.assessment_items %}
+                    <li class="portal-week-item">
+                      <a href="{{ item.url }}" class="portal-week-item-link">{{ item.title }}</a>
+
+                      {% if item.files %}
+                        <ul class="portal-week-file-list">
+                          {% for file in item.files %}
+                            <li>
+                              <a href="{{ file.url }}" target="_blank" rel="noopener noreferrer" class="portal-week-file-link">
+                                {{ file.name }}
+                              </a>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+
+            {% if row.learning_items %}
+              <section class="portal-week-group">
+                <h4 class="portal-week-group-title">Learning Materials</h4>
+                <ul class="portal-week-item-list">
+                  {% for item in row.learning_items %}
+                    <li class="portal-week-item">
+                      <a href="{{ item.url }}" class="portal-week-item-link">{{ item.title }}</a>
+
+                      {% if item.files %}
+                        <ul class="portal-week-file-list">
+                          {% for file in item.files %}
+                            <li>
+                              <a href="{{ file.url }}" target="_blank" rel="noopener noreferrer" class="portal-week-file-link">
+                                {{ file.name }}
+                              </a>
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+
+            {% if row.grade_items %}
+              <section class="portal-week-group">
+                <h4 class="portal-week-group-title">Grades</h4>
+                <ul class="portal-week-item-list">
+                  {% for item in row.grade_items %}
+                    <li class="portal-week-item">
+                      <a href="{{ item.url }}" class="portal-week-item-link">{{ item.title }}</a>
+                      <p class="portal-week-grade-meta">{{ item.summary }}</p>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </section>
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="muted">No new module activity this week.</p>
     {% endif %}

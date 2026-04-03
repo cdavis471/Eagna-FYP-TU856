@@ -21,7 +21,7 @@
         <!-- Loop through each ungraded submission linked to the lecturer's modules -->
         {% for s in ungraded_submissions %}
           <!-- Clickable wrapper that links to the corresponding assignment detail page -->
-          <a href="{% url 'accounts:assignment_detail' s.assignment.module.code s.assignment.id %}" class="card-link-wrapper">
+          <a href="{% url 'accounts:assignment_detail' s.assignment.module.code s.assignment.id %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
             <!-- Card representing a single ungraded submission -->
             <article class="card card-clickable dashboard-card-panel">
               <!-- Show the title of the assignment that was submitted -->
@@ -68,7 +68,7 @@
         <!-- Loop through each module associated with the lecturer -->
         {% for m in modules %}
           <!-- Clickable wrapper that links to the module detail view -->
-          <a href="{% url 'accounts:module_detail' m.code %}" class="card-link-wrapper">
+          <a href="{% url 'accounts:module_detail' m.code %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
             <!-- Card representing a single module taught by the lecturer -->
             <article class="card card-clickable dashboard-card-panel dashboard-module-card">
               <!-- Show the full title of the module -->

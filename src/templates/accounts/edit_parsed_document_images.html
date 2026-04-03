@@ -5,14 +5,13 @@
 {% block content %}
 <div class="dashboard-container workflow-page parsed-image-edit-page">
   <section class="dashboard-section">
+    <a href="{{ back_url }}" class="return-link">← Return</a>
     <div class="assessment-hero-card workflow-hero-card">
       <div class="workflow-panel-header">
         <div>
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
           <h1 class="section-title">Edit Image Descriptions</h1>
         </div>
-
-        <a href="{% url 'accounts:module_detail' module.code %}" class="small-button">Back to module</a>
       </div>
 
       <div class="assessment-surface">

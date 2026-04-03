@@ -4,12 +4,12 @@
 
     <div class="parsed-modal-actions">
       <a href="{{ source_file.file.url }}" target="_blank" rel="noopener noreferrer" class="small-button">
-        Download original
+        Download Original
       </a>
 
       {% if can_edit_images and parsed_document.images.all %}
         <a href="{% url 'accounts:edit_parsed_document_images' parsed_document.id %}" class="small-button">
-          Edit image descriptions
+          Edit Image Descriptions
         </a>
       {% endif %}
     </div>

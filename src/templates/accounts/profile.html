@@ -42,8 +42,8 @@
               {% endif %}
             </div>
 
-            <a href="{% url 'accounts:module_detail' module_row.code %}" class="small-button">
-              Open module
+            <a href="{% url 'accounts:module_detail' module_row.code %}?next={{ request.get_full_path|urlencode }}" class="small-button">
+              Open Module
             </a>
           </div>
 

@@ -8,6 +8,7 @@ from django.shortcuts import redirect, render, get_object_or_404  # Common short
 from django.urls import reverse  # Used to dynamically resolve URL patterns by their name
 from django.utils import timezone  # Provides timezone-aware datetime utilities compatible with Django settings
 from django.http import Http404, JsonResponse  # Exception used to immediately return a 404 Not Found response / Class for returning JSON responses in views
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit # Standard library utilities for parsing and constructing URLs, used in some views for handling redirect URLs and query parameters
 from django.db.models import Count, Q, Max  # ORM helpers: Count for aggregation and Q for complex query filters
 from django.views.decorators.http import require_http_methods  # Decorator to restrict allowed HTTP methods per view
 from datetime import datetime, timedelta, date  # Standard library datetime class used for parsing date and time input / timedelta for date arithmetic
@@ -189,7 +190,18 @@ def _portal_module_queryset_for_user(user):
 
     return Module.objects.none()
 
-def _build_portal_week_context(user, today=None):
+def _portal_file_links(file_objects):
+    links = []
+    for file_obj in file_objects:
+        links.append(
+            {
+                "name": file_obj.original_name or os.path.basename(file_obj.file.name),
+                "url": file_obj.file.url,
+            }
+        )
+    return links
+
+def _build_portal_week_context(user, today=None, next_url=None):
     today = today or timezone.localdate()
     week_start = today - timedelta(days=today.weekday())
     week_end = week_start + timedelta(days=6)
@@ -197,24 +209,37 @@ def _build_portal_week_context(user, today=None):
     modules = list(_portal_module_queryset_for_user(user))
     rows = []
 
+    student_profile = user.student_profile if user.is_student() else None
+    lecturer_profile = user.lecturer_profile if user.is_lecturer() else None
+
     for module in modules:
-        items = []
+        module_url = _append_next_param(
+            reverse("accounts:module_detail", args=[module.code]),
+            next_url,
+        )
+
+        assessment_items = []
+        learning_items = []
+        grade_items = []
 
         new_assignments = (
             module.assignments
             .filter(created_at__date__gte=week_start, created_at__date__lte=week_end)
+            .prefetch_related("files")
             .order_by("-created_at")
         )
 
         for assignment in new_assignments:
-            items.append({
-                "kind_label": "Assignment",
-                "kind_class": "assignment",
-                "title": assignment.title,
-                "detail": f"Created {assignment.created_at|date:'Y-m-d H:i'}" if False else None,
-                "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
-                "sort_at": assignment.created_at,
-            })
+            assessment_items.append(
+                {
+                    "title": assignment.title,
+                    "url": _append_next_param(
+                        reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                        next_url,
+                    ),
+                    "files": _portal_file_links(assignment.files.all()),
+                }
+            )
 
         new_quizzes = (
             module.quizzes
@@ -226,48 +251,154 @@ def _build_portal_week_context(user, today=None):
             new_quizzes = new_quizzes.filter(is_published=True)
 
         for quiz in new_quizzes:
-            items.append({
-                "kind_label": "Quiz",
-                "kind_class": "quiz",
-                "title": quiz.title,
-                "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
-                "sort_at": quiz.created_at,
-            })
-
-        new_week_files = (
-            ModuleWeekFile.objects
-            .filter(
-                week__module=module,
-                uploaded_at__date__gte=week_start,
-                uploaded_at__date__lte=week_end,
+            assessment_items.append(
+                {
+                    "title": quiz.title,
+                    "url": _append_next_param(
+                        reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                        next_url,
+                    ),
+                    "files": [],
+                }
             )
-            .select_related("week")
-            .order_by("-uploaded_at")
+
+        learning_weeks = (
+            ModuleWeek.objects
+            .filter(
+                module=module,
+                files__uploaded_at__date__gte=week_start,
+                files__uploaded_at__date__lte=week_end,
+            )
+            .prefetch_related("files")
+            .distinct()
+            .order_by("week_number")
         )
 
-        seen_weeks = set()
-        for week_file in new_week_files:
-            key = week_file.week_id
-            if key in seen_weeks:
-                continue
-            seen_weeks.add(key)
+        for week in learning_weeks:
+            learning_items.append(
+                {
+                    "title": (week.description or f"Week {week.week_number}").strip(),
+                    "url": module_url,
+                    "files": _portal_file_links(week.files.all()),
+                }
+            )
 
-            items.append({
-                "kind_label": "Week",
-                "kind_class": "week",
-                "title": f"Week {week_file.week.week_number}",
-                "url": reverse("accounts:module_detail", args=[module.code]),
-                "sort_at": week_file.uploaded_at,
-            })
+        if student_profile:
+            assignment_grades = (
+                AssignmentGrade.objects
+                .filter(
+                    submission__student=student_profile,
+                    submission__assignment__module=module,
+                    graded_at__date__gte=week_start,
+                    graded_at__date__lte=week_end,
+                )
+                .select_related("submission__assignment")
+                .order_by("-graded_at")
+            )
 
-        items.sort(key=lambda item: item["sort_at"], reverse=True)
+            for grade in assignment_grades:
+                assignment = grade.submission.assignment
+                grade_items.append(
+                    {
+                        "title": assignment.title,
+                        "url": _append_next_param(
+                            reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                            next_url,
+                        ),
+                        "summary": f"{grade.value}/{assignment.max_mark} · released {grade.graded_at.strftime('%Y-%m-%d %H:%M')}",
+                    }
+                )
 
-        if items:
-            rows.append({
-                "module_code": module.code,
-                "module_title": module.title,
-                "items": items,
-            })
+            quiz_attempts = (
+                QuizAttempt.objects
+                .filter(
+                    student=student_profile,
+                    quiz__module=module,
+                    submitted_at__isnull=False,
+                    submitted_at__date__gte=week_start,
+                    submitted_at__date__lte=week_end,
+                )
+                .exclude(status=QuizAttempt.Status.IN_PROGRESS)
+                .select_related("quiz")
+                .order_by("-submitted_at")
+            )
+
+            for attempt in quiz_attempts:
+                grade_items.append(
+                    {
+                        "title": attempt.quiz.title,
+                        "url": _append_next_param(
+                            reverse("accounts:quiz_detail", args=[module.code, attempt.quiz.id]),
+                            next_url,
+                        ),
+                        "summary": f"{attempt.weighted_score}/{attempt.quiz.max_mark} · released {attempt.submitted_at.strftime('%Y-%m-%d %H:%M')}",
+                    }
+                )
+
+        elif lecturer_profile:
+            assignment_grades = (
+                AssignmentGrade.objects
+                .filter(
+                    marker=lecturer_profile,
+                    submission__assignment__module=module,
+                    graded_at__date__gte=week_start,
+                    graded_at__date__lte=week_end,
+                )
+                .select_related("submission__assignment", "submission__student__user")
+                .order_by("-graded_at")
+            )
+
+            for grade in assignment_grades:
+                assignment = grade.submission.assignment
+                student_name = grade.submission.student.user.get_full_name() or grade.submission.student.user.username
+                grade_items.append(
+                    {
+                        "title": assignment.title,
+                        "url": _append_next_param(
+                            reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                            next_url,
+                        ),
+                        "summary": f"{student_name} · {grade.value}/{assignment.max_mark} · graded {grade.graded_at.strftime('%Y-%m-%d %H:%M')}",
+                    }
+                )
+
+            quiz_attempts = (
+                QuizAttempt.objects
+                .filter(
+                    quiz__module=module,
+                    submitted_at__isnull=False,
+                    submitted_at__date__gte=week_start,
+                    submitted_at__date__lte=week_end,
+                )
+                .exclude(status=QuizAttempt.Status.IN_PROGRESS)
+                .select_related("quiz", "student__user")
+                .order_by("-submitted_at")
+            )
+
+            for attempt in quiz_attempts:
+                student_name = attempt.student.user.get_full_name() or attempt.student.user.username
+                grade_items.append(
+                    {
+                        "title": attempt.quiz.title,
+                        "url": _append_next_param(
+                            reverse("accounts:quiz_detail", args=[module.code, attempt.quiz.id]),
+                            next_url,
+                        ),
+                        "summary": f"{student_name} · {attempt.weighted_score}/{attempt.quiz.max_mark} · submitted {attempt.submitted_at.strftime('%Y-%m-%d %H:%M')}",
+                    }
+                )
+
+        if assessment_items or learning_items or grade_items:
+            rows.append(
+                {
+                    "module_code": module.code,
+                    "module_title": module.title,
+                    "module_url": module_url,
+                    "assessment_items": assessment_items,
+                    "learning_items": learning_items,
+                    "grade_items": grade_items,
+                }
+            )
 
     return {
         "week_start": week_start,
@@ -275,7 +406,7 @@ def _build_portal_week_context(user, today=None):
         "portal_week_rows": rows,
     }
 
-def _build_portal_calendar_context(user, year, month):
+def _build_portal_calendar_context(user, year, month, next_url=None):
     today = timezone.localdate()
 
     first_of_month = date(year, month, 1)
@@ -321,9 +452,9 @@ def _build_portal_calendar_context(user, year, month):
                 "module_title": assignment.module.title,
                 "timestamp": assignment.due_datetime,
                 "date_value": assignment.due_datetime.date(),
-                "url": reverse(
-                    "accounts:assignment_detail",
-                    args=[assignment.module.code, assignment.id],
+                "url": _append_next_param(
+                    reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                    next_url,
                 ),
                 "date_text": "Due",
             }
@@ -339,9 +470,9 @@ def _build_portal_calendar_context(user, year, month):
                 "module_title": quiz.module.title,
                 "timestamp": quiz.close_datetime,
                 "date_value": quiz.close_datetime.date(),
-                "url": reverse(
-                    "accounts:quiz_detail",
-                    args=[quiz.module.code, quiz.id],
+                "url": _append_next_param(
+                    reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                    next_url,
                 ),
                 "date_text": "Closes",
             }
@@ -1017,7 +1148,7 @@ def _auto_submit_expired_attempt_if_needed(quiz, student):
         .first()
     )
 
-def _build_student_module_assessment_items(module, student, now):
+def _build_student_module_assessment_items(module, student, now, next_url=None):
     submitted_assignment_ids = set(
         AssignmentSubmission.objects.filter(
             assignment__module=module,
@@ -1034,7 +1165,10 @@ def _build_student_module_assessment_items(module, student, now):
                 "label": "Assignment",
                 "title": assignment.title,
                 "description": assignment.description,
-                "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                "url": _append_next_param(
+                    reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                    next_url,
+                ),
                 "is_clickable": True,
                 "date_label": "Due",
                 "date_value": assignment.due_datetime,
@@ -1054,7 +1188,10 @@ def _build_student_module_assessment_items(module, student, now):
                 "label": "Quiz",
                 "title": quiz.title,
                 "description": quiz.description,
-                "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                "url": _append_next_param(
+                    reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                    next_url,
+                ),
                 "is_clickable": state["is_clickable"],
                 "date_label": "Closes",
                 "date_value": quiz.close_datetime,
@@ -1069,7 +1206,7 @@ def _build_student_module_assessment_items(module, student, now):
     return sorted(items, key=lambda item: item["sort_at"])
 
 
-def _build_lecturer_module_assessment_items(module):
+def _build_lecturer_module_assessment_items(module, next_url=None):
     items = []
 
     assignments = (
@@ -1093,7 +1230,10 @@ def _build_lecturer_module_assessment_items(module):
                 "label": "Assignment",
                 "title": assignment.title,
                 "description": assignment.description,
-                "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+               "url": _append_next_param(
+                    reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                    next_url,
+                ),
                 "is_clickable": True,
                 "date_label": "Due",
                 "date_value": assignment.due_datetime,
@@ -1125,7 +1265,10 @@ def _build_lecturer_module_assessment_items(module):
                 "label": "Quiz",
                 "title": quiz.title,
                 "description": quiz.description,
-                "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                "url": _append_next_param(
+                    reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                    next_url,
+                ),
                 "is_clickable": True,
                 "date_label": "Closes",
                 "date_value": quiz.close_datetime,
@@ -1139,7 +1282,7 @@ def _build_lecturer_module_assessment_items(module):
 
     return sorted(items, key=lambda item: item["sort_at"])
 
-def _build_student_dashboard_items(student, modules_qs, now):
+def _build_student_dashboard_items(student, modules_qs, now, next_url=None):
     items = []
 
     upcoming_assignments = (
@@ -1161,7 +1304,10 @@ def _build_student_dashboard_items(student, modules_qs, now):
                 "description": assignment.description,
                 "module_title": assignment.module.title,
                 "module_code": assignment.module.code,
-                "url": reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                "url": _append_next_param(
+                    reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                    next_url,
+                ),
                 "is_clickable": True,
                 "date_label": "Due",
                 "date_value": assignment.due_datetime,
@@ -1196,7 +1342,10 @@ def _build_student_dashboard_items(student, modules_qs, now):
                 "description": quiz.description,
                 "module_title": quiz.module.title,
                 "module_code": quiz.module.code,
-                "url": reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                "url": _append_next_param(
+                    reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                    next_url,
+                ),
                 "is_clickable": state["is_clickable"],
                 "date_label": "Closes",
                 "date_value": quiz.close_datetime,
@@ -1215,7 +1364,7 @@ def _format_mark_display(value):
     return rendered.rstrip("0").rstrip(".") or "0"
 
 
-def _build_student_profile_modules(student):
+def _build_student_profile_modules(student, next_url=None):
     modules = list(
         student.modules
         .filter(is_active=True)
@@ -1279,7 +1428,10 @@ def _build_student_profile_modules(student):
                     "kind_label": "Assignment",
                     "kind_class": "assignment",
                     "title": assignment.title,
-                    "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                    "url": _append_next_param(
+                        reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                        next_url,
+                    ),
                     "metric": metric,
                     "metric_class": metric_class,
                     "sort_at": assignment.due_datetime,
@@ -1304,7 +1456,10 @@ def _build_student_profile_modules(student):
                     "kind_label": "Quiz",
                     "kind_class": "quiz",
                     "title": quiz.title,
-                    "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                    "url": _append_next_param(
+                        reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                        next_url,
+                    ),
                     "metric": metric,
                     "metric_class": metric_class,
                     "sort_at": quiz.close_datetime,
@@ -1324,7 +1479,7 @@ def _build_student_profile_modules(student):
     return module_rows
 
 
-def _build_lecturer_profile_modules(lecturer):
+def _build_lecturer_profile_modules(lecturer, next_url=None):
     modules = list(
         lecturer.modules
         .filter(is_active=True)
@@ -1377,7 +1532,10 @@ def _build_lecturer_profile_modules(lecturer):
                     "kind_label": "Assignment",
                     "kind_class": "assignment",
                     "title": assignment.title,
-                    "url": reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                    "url": _append_next_param(
+                        reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
+                        next_url,
+                    ),
                     "metric": f"{marked} marked / {unmarked} unmarked",
                     "metric_class": metric_class,
                     "sort_at": assignment.due_datetime,
@@ -1400,7 +1558,10 @@ def _build_lecturer_profile_modules(lecturer):
                     "kind_label": "Quiz",
                     "kind_class": "quiz",
                     "title": quiz.title,
-                    "url": reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                    "url": _append_next_param(
+                        reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
+                        next_url,
+                    ),
                     "metric": f"{marked} marked / {unmarked} unmarked",
                     "metric_class": metric_class,
                     "sort_at": quiz.close_datetime,
@@ -1512,7 +1673,7 @@ def _validate_student_submission_upload(uploaded_file) -> str | None:
 def _safe_back_url(request, fallback_name, *fallback_args):
     fallback_url = reverse(fallback_name, args=fallback_args)
 
-    candidate = request.GET.get("next") or request.META.get("HTTP_REFERER")
+    candidate = request.GET.get("next")
     if not candidate:
         return fallback_url
 
@@ -1524,6 +1685,24 @@ def _safe_back_url(request, fallback_name, *fallback_args):
         return fallback_url
 
     return candidate
+
+def _append_next_param(url, next_url):
+    if not next_url:
+        return url
+
+    parsed = urlsplit(url)
+    query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+    query["next"] = next_url
+
+    return urlunsplit(
+        (
+            parsed.scheme,
+            parsed.netloc,
+            parsed.path,
+            urlencode(query, doseq=True),
+            parsed.fragment,
+        )
+    )
 
 # Classes
 
@@ -1721,7 +1900,12 @@ def dashboard(request):
             .order_by("code")
         )
 
-        upcoming_items = _build_student_dashboard_items(student, modules_qs, now)
+        upcoming_items = _build_student_dashboard_items(
+            student,
+            modules_qs,
+            now,
+            request.get_full_path(),
+        )
 
         context = {
             "user": user,
@@ -2186,7 +2370,7 @@ def user_profile(request):
             {
                 "profile_role": "student",
                 "course": student.course or "N/A",
-                "module_rows": _build_student_profile_modules(student),
+                "module_rows": _build_student_profile_modules(student, request.get_full_path()),
             }
         )
 
@@ -2199,7 +2383,7 @@ def user_profile(request):
         context.update(
             {
                 "profile_role": "lecturer",
-                "module_rows": _build_lecturer_profile_modules(lecturer),
+                "module_rows": _build_lecturer_profile_modules(lecturer, request.get_full_path()),
             }
         )
 
@@ -2260,12 +2444,15 @@ def portal(request):
             user=user,
             year=selected_year,
             month=selected_month,
+            next_url=request.get_full_path(),
         )
     )
     
     context.update(
         _build_portal_week_context(
-            user=user, today=today
+            user=user,
+            today=today,
+            next_url=request.get_full_path(),
         )
     )
 
@@ -2300,7 +2487,12 @@ def module_detail(request, code):
 
         role = "student"
 
-        assessment_items = _build_student_module_assessment_items(module, student, now)
+        assessment_items = _build_student_module_assessment_items(
+            module,
+            student,
+            now,
+            request.get_full_path(),
+        )
 
         weeks = (
             module.weeks
@@ -2329,7 +2521,10 @@ def module_detail(request, code):
             raise Http404("Module not found")
 
         role = "lecturer"
-        assessment_items = _build_lecturer_module_assessment_items(module)
+        assessment_items = _build_lecturer_module_assessment_items(
+            module,
+            request.get_full_path(),
+        )
 
         requested_week_number = request.GET.get("week")
         try:
@@ -3334,6 +3529,7 @@ def grade_submission(request, code, assignment_id, submission_id):
             "value": request.POST.get("value", initial_value) if request.method == "POST" else initial_value,
             "feedback": request.POST.get("feedback", initial_feedback) if request.method == "POST" else initial_feedback,
         },
+        "back_url": _safe_back_url(request, "accounts:assignment_detail", module.code, assignment.id),
     }
 
     return render(request, "accounts/grade_submission.html", context)
@@ -3415,6 +3611,7 @@ def edit_parsed_document_images(request, parsed_id):
         "nav_items": _shared_nav_items(),
         "module": module,
         "parsed_document": parsed_document,
+        "back_url": _safe_back_url(request, "accounts:module_detail", module.code),
     }
     return render(request, "accounts/edit_parsed_document_images.html", context)
 

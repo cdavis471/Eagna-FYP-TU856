@@ -10,10 +10,10 @@
 <div class="dashboard-container assessment-detail-page assignment-detail-page">
   <!-- Section containing assignment overview and materials -->
   <section class="dashboard-section">
+    <a href="{{ back_url }}" class="return-link">← Return</a>
     <div class="assessment-hero-card assignment-overview-card">
       <div class="assessment-detail-header">
         <div>
-          <a href="{{ back_url }}" class="return-link">← Return</a>
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
           <h1 class="section-title">{{ assignment.title }}</h1>
         </div>
@@ -71,8 +71,7 @@
                       </button>
 
                       {% if role == "lecturer" and f.parsed_document.images.all %}
-                        <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}"
-                          class="small-button">
+                        <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}?next={{ request.get_full_path|urlencode }}"
                           Edit Image Descriptions
                         </a>
                       {% endif %}
@@ -227,8 +226,7 @@
                 {% endif %}
 
                 <div class="workflow-submit-row workflow-submit-row--start">
-                  <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}"
-                    class="small-button">
+                  <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}?next={{ request.get_full_path|urlencode }}"
                     {% if s.grade %}Edit Grade{% else %}Add Grade{% endif %}
                   </a>
                 </div>
