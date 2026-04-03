@@ -216,33 +216,43 @@
             </div>
           </div>
 
+          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+
           <div class="announcement-actions module-announcement-actions {% if role != 'lecturer' %}module-announcement-actions--student{% endif %}">
-            <button type="button"
-                    class="small-button module-announcement-action module-announcement-action--view"
-                    hx-get="{% url 'accounts:module_announcement_modal' module.code announcement.id %}"
-                    hx-target="#parsed-modal-body"
-                    hx-swap="innerHTML">
-              View
-            </button>
+            <div class="module-announcement-action-slot module-announcement-action-slot--view">
+              <button type="button"
+                      class="small-button module-announcement-action module-announcement-action--view"
+                      hx-get="{% url 'accounts:module_announcement_modal' module.code announcement.id %}"
+                      hx-target="#parsed-modal-body"
+                      hx-swap="innerHTML">
+                View
+              </button>
+            </div>
 
             {% if role == "lecturer" %}
-              <a href="{% url 'accounts:edit_module_announcement' module.code announcement.id %}?next={{ request.get_full_path|urlencode }}"
-                class="small-button module-announcement-action">
-                Edit
-              </a>
+              <form method="get"
+                    action="{% url 'accounts:edit_module_announcement' module.code announcement.id %}"
+                    class="admin-inline-form module-announcement-action-form">
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button type="submit" class="small-button module-announcement-action">
+                  Edit
+                </button>
+              </form>
 
               <form method="post"
                     action="{% url 'accounts:delete_module_announcement' module.code announcement.id %}"
                     class="admin-inline-form module-announcement-action-form">
                 {% csrf_token %}
-                <button type="submit" class="small-button admin-remove-button module-announcement-action">
+                <button type="submit" class="small-button module-announcement-action">
                   Delete
                 </button>
               </form>
+            {% else %}
+              <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
+              <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
             {% endif %}
           </div>
 
-          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
           </article>
       {% endfor %}
     </div>

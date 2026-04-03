@@ -3506,22 +3506,26 @@ Create Pages / Module Detail - Final UI
   align-items: stretch;
 }
 
-.module-announcement-actions--student {
-  justify-items: stretch;
-}
-
-.module-announcement-action,
-.module-announcement-action-form,
-.module-announcement-action-form .small-button {
-  width: 100%;
-}
-
+.module-announcement-action-slot,
 .module-announcement-action-form {
   display: flex;
+  width: 100%;
+  margin: 0;
+}
+
+.module-announcement-action {
+  width: 100%;
+  min-height: 2.45rem;
+  margin: 0;
+}
+
+.module-announcement-action-slot--spacer {
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .module-announcement-action--view {
-  grid-column: 1;
+  width: 100%;
 }
 
 .module-students-card {
