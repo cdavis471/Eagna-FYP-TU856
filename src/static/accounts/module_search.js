@@ -204,4 +204,5 @@
   }
 
   document.addEventListener("DOMContentLoaded", wireUp);
+  
 })();
