@@ -1,12 +1,12 @@
 ﻿{% extends "accounts/base.html" %}
 {% load static %}
 
-{% block title %}Tools | Eagna{% endblock %}
+{% block title %}Portal | Eagna{% endblock %}
 
 {% block content %}
 <div class="dashboard-container">
   <section class="dashboard-section">
-    <h1 class="section-title">Tools</h1>
+    <h1 class="section-title">Portal</h1>
     <p class="muted">
       Access Your Latest Materials, Microsoft 365 Products, Your Assessment Calendar & Timetable.
     </p>
@@ -42,11 +42,7 @@
                       {% if item.files %}
                         <ul class="portal-week-file-list">
                           {% for file in item.files %}
-                            <li>
-                              <a href="{{ file.url }}" target="_blank" rel="noopener noreferrer" class="portal-week-file-link">
-                                {{ file.name }}
-                              </a>
-                            </li>
+                            <li class="portal-week-file-text">{{ file.name }}</li>
                           {% endfor %}
                         </ul>
                       {% endif %}
@@ -67,11 +63,7 @@
                       {% if item.files %}
                         <ul class="portal-week-file-list">
                           {% for file in item.files %}
-                            <li>
-                              <a href="{{ file.url }}" target="_blank" rel="noopener noreferrer" class="portal-week-file-link">
-                                {{ file.name }}
-                              </a>
-                            </li>
+                            <li class="portal-week-file-text">{{ file.name }}</li>
                           {% endfor %}
                         </ul>
                       {% endif %}
@@ -110,8 +102,8 @@
       </a>
     </div>
 
-    <div class="portal-app-grid">
-      {% for tile in office_tiles %}
+    <div class="portal-app-grid portal-app-grid--primary">
+      {% for tile in office_tiles_primary %}
         <a
           href="{{ tile.url }}"
           target="_blank"
@@ -126,18 +118,32 @@
       {% endfor %}
     </div>
 
+    <div class="portal-app-grid portal-app-grid--more">
+      <a
+        href="{{ office_tile_more.url }}"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="portal-app-card portal-app-card--more">
+        <img
+          src="{% static office_tile_more.image %}"
+          alt="{{ office_tile_more.label }}"
+          class="portal-app-image">
+        <span class="portal-app-label">{{ office_tile_more.label }}</span>
+      </a>
+    </div>
+
   </section>
 
-  <section class="dashboard-section portal-calendar-section">
+  <section class="dashboard-section portal-calendar-section" id="portal-assessment-calendar">
     <div class="assessment-card-topline portal-calendar-header">
       <h2 class="section-title">Assessment Calendar</h2>
 
       <div class="portal-calendar-nav">
-        <a href="?year={{ prev_year }}&month={{ prev_month }}" class="small-button">
+        <a href="?year={{ prev_year }}&month={{ prev_month }}#portal-assessment-calendar" class="small-button">
           ← Previous
         </a>
         <span class="portal-calendar-month">{{ calendar_month_label }}</span>
-        <a href="?year={{ next_year }}&month={{ next_month }}" class="small-button">
+        <a href="?year={{ next_year }}&month={{ next_month }}#portal-assessment-calendar" class="small-button">
           Next →
         </a>
       </div>

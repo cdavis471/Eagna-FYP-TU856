@@ -643,6 +643,15 @@ button.small-button {
   margin-top: 0;
 }
 
+.week-upload-form button.small-button {
+  width: 100%;
+}
+
+.module-announcement-actions button.small-button,
+.module-announcement-actions .module-announcement-action {
+  width: 100%;
+}
+
 /*
 =============================
 File Parser / Document Viewer
@@ -753,14 +762,13 @@ File Parser / Document Viewer
   overflow: auto;
   box-shadow: 0 20px 40px rgba(15, 23, 42, 0.45);
   padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
 }
 
 .parsed-modal-close {
-  width: auto;
-  margin-top: 0;
+  align-self: flex-start;
   margin-bottom: 1rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 0.75rem;
 }
 
 .parsed-modal-topbar {
@@ -1250,6 +1258,44 @@ Notifications
   padding: 1rem;
   color: var(--muted-dark);
   font-size: 0.9rem;
+}
+
+.notification-dropdown-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.notification-read-all-form {
+  margin: 0;
+}
+
+.notification-read-all-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 2px solid var(--tertiary);
+  background: var(--secondary);
+  color: var(--tertiary);
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.notification-read-all-button:hover {
+  background: var(--surface-accent);
+  color: var(--primary);
+  border-color: var(--primary);
 }
 
 /*
@@ -2908,24 +2954,17 @@ Shared Assessment / Surface - Final UI
 }
 
 .portal-week-file-list {
-  list-style: none;
-  margin: 0;
+  list-style: disc;
+  margin: 0.15rem 0 0 1.15rem;
   padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem 0.75rem;
+  display: block;
 }
 
-.portal-week-file-link {
+.portal-week-file-text {
   color: var(--primary);
   font-size: 0.9rem;
   font-weight: 600;
-  text-decoration: none;
-}
-
-.portal-week-file-link:hover {
-  color: var(--tertiary);
-  text-decoration: underline;
+  line-height: 1.55;
 }
 
 .portal-week-grade-meta {
@@ -3512,6 +3551,7 @@ Create Pages / Module Detail - Final UI
   width: 100%;
   margin: 0;
   align-items: stretch;
+  min-width: 0;
 }
 
 .module-announcement-action {
@@ -3808,6 +3848,23 @@ General Features - Final UI
   gap: 1rem;
 }
 
+.portal-app-grid--primary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.portal-app-grid--more {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.portal-app-card--more {
+  width: 100%;
+}
+
 /*
 ===========================
 Responsive Rules - Final UI
@@ -3864,6 +3921,10 @@ Responsive Rules - Final UI
 
   .quiz-meta-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-app-grid--primary {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -4066,6 +4127,10 @@ Responsive Rules - Final UI
 
   .module-announcement-actions {
     grid-template-columns: 1fr;
+  }
+
+  .portal-app-grid--primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   
 }

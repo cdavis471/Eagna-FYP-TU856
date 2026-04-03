@@ -121,8 +121,7 @@
 </div>
 {% endblock %}
 
-{{ initial_questions|json_script:"initial-quiz-questions" }}
-
 {% block extra_scripts %}
+{{ initial_questions|json_script:"initial-quiz-questions" }}
 <script src="{% static 'accounts/create_quiz.js' %}" defer></script>
 {% endblock %}

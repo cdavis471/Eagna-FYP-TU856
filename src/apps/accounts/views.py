@@ -125,11 +125,7 @@ def _build_admin_enrollment_rows():
     return rows
 
 def _portal_office_tiles():
-    """
-    Starter launch URLs for Office365 links.
-    Replace any of these later if TU Dublin uses tenant-specific entry points.
-    """
-    return [
+    primary_tiles = [
         {
             "label": "Teams",
             "url": "https://teams.microsoft.com/",
@@ -139,11 +135,6 @@ def _portal_office_tiles():
             "label": "OneDrive",
             "url": "https://www.microsoft365.com/launch/onedrive",
             "image": "accounts/images/onedrive.png",
-        },
-        {
-            "label": "SharePoint",
-            "url": "https://www.microsoft365.com/launch/sharepoint",
-            "image": "accounts/images/sharepoint.png",
         },
         {
             "label": "OneNote",
@@ -165,13 +156,15 @@ def _portal_office_tiles():
             "url": "https://www.microsoft365.com/launch/powerpoint",
             "image": "accounts/images/powerpoint.png",
         },
-        {
-            "label": "More",
-            "url": "https://www.microsoft365.com/apps",
-            "image": "accounts/images/more.png",
-        },
     ]
 
+    more_tile = {
+        "label": "More",
+        "url": "https://www.microsoft365.com/apps",
+        "image": "accounts/images/more.png",
+    }
+
+    return primary_tiles, more_tile
 
 def _portal_module_queryset_for_user(user):
     if user.is_student():
@@ -1491,23 +1484,23 @@ def _build_lecturer_profile_modules(lecturer, next_url=None):
     if not modules:
         return []
 
-    assignment_marked_counts = dict(
-        AssignmentGrade.objects.filter(
-            submission__assignment__module__in=modules,
+    assignment_submitted_counts = dict(
+        AssignmentSubmission.objects.filter(
+            assignment__module__in=modules,
         )
-        .values("submission__assignment_id")
-        .annotate(marked_count=Count("submission__student", distinct=True))
-        .values_list("submission__assignment_id", "marked_count")
+        .values("assignment_id")
+        .annotate(submitted_count=Count("student", distinct=True))
+        .values_list("assignment_id", "submitted_count")
     )
 
-    quiz_marked_counts = dict(
+    quiz_attempted_counts = dict(
         QuizAttempt.objects.filter(
             quiz__module__in=modules,
             submitted_at__isnull=False,
         )
         .values("quiz_id")
-        .annotate(marked_count=Count("student", distinct=True))
-        .values_list("quiz_id", "marked_count")
+        .annotate(attempted_count=Count("student", distinct=True))
+        .values_list("quiz_id", "attempted_count")
     )
 
     module_rows = []
@@ -1517,12 +1510,12 @@ def _build_lecturer_profile_modules(lecturer, next_url=None):
         items = []
 
         for assignment in module.assignments.all().order_by("due_datetime", "title"):
-            marked = assignment_marked_counts.get(assignment.id, 0)
-            unmarked = max(total_students - marked, 0)
+            submitted = assignment_submitted_counts.get(assignment.id, 0)
+            unsubmitted = max(total_students - submitted, 0)
 
-            if total_students > 0 and marked == total_students:
+            if total_students > 0 and submitted == total_students:
                 metric_class = "profile-metric--complete"
-            elif marked > 0:
+            elif submitted > 0:
                 metric_class = "profile-metric--pending"
             else:
                 metric_class = "profile-metric--empty"
@@ -1536,19 +1529,19 @@ def _build_lecturer_profile_modules(lecturer, next_url=None):
                         reverse("accounts:assignment_detail", args=[module.code, assignment.id]),
                         next_url,
                     ),
-                    "metric": f"{marked} marked / {unmarked} unmarked",
+                    "metric": f"{submitted} marked / {unsubmitted} unmarked",
                     "metric_class": metric_class,
                     "sort_at": assignment.due_datetime,
                 }
             )
 
         for quiz in module.quizzes.all().order_by("close_datetime", "title"):
-            marked = quiz_marked_counts.get(quiz.id, 0)
-            unmarked = max(total_students - marked, 0)
+            attempted = quiz_attempted_counts.get(quiz.id, 0)
+            not_attempted = max(total_students - attempted, 0)
 
-            if total_students > 0 and marked == total_students:
+            if total_students > 0 and attempted == total_students:
                 metric_class = "profile-metric--complete"
-            elif marked > 0:
+            elif attempted > 0:
                 metric_class = "profile-metric--pending"
             else:
                 metric_class = "profile-metric--empty"
@@ -1562,7 +1555,7 @@ def _build_lecturer_profile_modules(lecturer, next_url=None):
                         reverse("accounts:quiz_detail", args=[module.code, quiz.id]),
                         next_url,
                     ),
-                    "metric": f"{marked} marked / {unmarked} unmarked",
+                    "metric": f"{attempted} attempted / {not_attempted} not attempted",
                     "metric_class": metric_class,
                     "sort_at": quiz.close_datetime,
                 }
@@ -2414,6 +2407,28 @@ def open_notification(request, notification_id):
     return redirect(target_url)
 
 @login_required
+@require_http_methods(["POST"])
+def read_all_notifications(request):
+    Notification.objects.filter(
+        recipient=request.user,
+        is_read=False,
+    ).update(
+        is_read=True,
+        read_at=timezone.now(),
+    )
+
+    next_url = request.POST.get("next") or reverse("accounts:dashboard")
+
+    if not url_has_allowed_host_and_scheme(
+        next_url,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        next_url = reverse("accounts:dashboard")
+
+    return redirect(next_url)
+
+@login_required
 def portal(request):
     _rollover_modules_if_due()
     user: User = request.user
@@ -2432,10 +2447,13 @@ def portal(request):
         selected_year = today.year
         selected_month = today.month
 
+    office_tiles_primary, office_tile_more = _portal_office_tiles()
+
     context = {
         "user": user,
         "nav_items": _shared_nav_items(),
-        "office_tiles": _portal_office_tiles(),
+        "office_tiles_primary": office_tiles_primary,
+        "office_tile_more": office_tile_more,
         "timetable_url": f"https://timetables.tudublin.ie/timetables?date={today.isoformat()}&view=week",
     }
 
@@ -2918,7 +2936,7 @@ def create_assignment(request, code):
         try:
             max_mark_val = float(max_mark_str)
         except ValueError:
-            errors.append("Max mark must be a number.")
+            errors.append("% of Module must be a number.")
             max_mark_val = 100.0
 
         uploaded_files = request.FILES.getlist("files")
@@ -3058,7 +3076,7 @@ def create_quiz(request, code):
         )
         max_mark = _parse_decimal_value(
             request.POST.get("max_mark", "100"),
-            "Max mark",
+            "% of Module",
             errors,
             minimum=Decimal("1.00"),
         )

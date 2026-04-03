@@ -2,7 +2,14 @@
 const addQuestionButton = document.getElementById("add-question-button");
 const createQuizForm = document.getElementById("create-quiz-form");
 const questionsPayloadInput = document.getElementById("id_questions_payload");
-const initialQuestions = JSON.parse(document.getElementById("initial-quiz-questions").textContent || "[]");
+const initialQuestionsElement = document.getElementById("initial-quiz-questions");
+const initialQuestions = initialQuestionsElement
+  ? JSON.parse(initialQuestionsElement.textContent || "[]")
+  : [];
+
+if (!questionBuilder || !addQuestionButton || !createQuizForm || !questionsPayloadInput) {
+  return;
+}
 
 let questionCounter = 0;
 

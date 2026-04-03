@@ -20,11 +20,21 @@
       <div class="notification-dropdown-header">
         <strong>Notifications</strong>
 
-        {% if header_notification_unread_count %}
-          <span class="notification-unread-label">
-            {{ header_notification_unread_count }} unread
-          </span>
-        {% endif %}
+        <div class="notification-dropdown-header-actions">
+          {% if header_notification_unread_count %}
+            <span class="notification-unread-label">
+              {{ header_notification_unread_count }} unread
+            </span>
+
+            <form method="post"
+                  action="{% url 'accounts:read_all_notifications' %}"
+                  class="notification-read-all-form">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit" class="notification-read-all-button">Read All</button>
+            </form>
+          {% endif %}
+        </div>
       </div>
 
       {% if header_notifications_initial or header_notifications_extra %}
