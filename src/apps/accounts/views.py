@@ -839,14 +839,13 @@ def _previous_offering_queryset_for_student(student: StudentProfile):
         .prefetch_related("lecturer_enrolments__lecturer__user")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("year_number", "academic_year__start_date", "placement__module__code")
+        .order_by("placement__year_number", "academic_year__start_date", "placement__module__code")
     )
 
     if current_year:
         qs = qs.exclude(academic_year=current_year, is_current=True)
 
     return qs
-
 
 def _previous_offering_queryset_for_lecturer(lecturer: LecturerProfile):
     current_year = _get_current_academic_year()
@@ -858,14 +857,13 @@ def _previous_offering_queryset_for_lecturer(lecturer: LecturerProfile):
         .select_related("placement__module", "placement__course", "academic_year")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("year_number", "academic_year__start_date", "placement__module__code")
+        .order_by("placement__year_number", "academic_year__start_date", "placement__module__code")
     )
 
     if current_year:
         qs = qs.exclude(academic_year=current_year, is_current=True)
 
     return qs
-
 
 def _group_offerings_by_year_number(offerings):
     grouped = defaultdict(list)
