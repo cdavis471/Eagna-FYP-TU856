@@ -2773,7 +2773,7 @@ def register_student(request):
 
         selected_modules = []
         if module_ids:
-            
+
             selected_modules = list(
                 Module.objects.filter(
                     pk__in=set(module_ids) & valid_module_ids,
@@ -4850,6 +4850,19 @@ def offering_assignment_detail(request, offering_id, assignment_id):
         return redirect("accounts:login")
 
     return render(request, template, context)
+
+@login_required
+def assignment_detail(request, code, assignment_id):
+    offering, assignment = _get_accessible_current_offering_assignment_for_user(
+        request.user,
+        code,
+        assignment_id,
+    )
+    return redirect(
+        "accounts:offering_assignment_detail",
+        offering_id=offering.id,
+        assignment_id=assignment.id,
+    )
 
 @login_required
 def quiz_detail(request, code, quiz_id):
