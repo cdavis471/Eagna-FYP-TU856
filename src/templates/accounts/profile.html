@@ -29,7 +29,6 @@
 
   <section class="dashboard-section">
     <h2 class="section-title">Modules</h2>
-
     {% if module_rows %}
       {% for module_row in module_rows %}
         <div class="week-block">
@@ -37,12 +36,16 @@
             <div>
               <h3 class="week-title">{{ module_row.code }} – {{ module_row.title }}</h3>
 
+              <p class="card-meta">
+                {{ module_row.academic_year_label }} · Year {{ module_row.year_number }}
+              </p>
+
               {% if profile_role == "lecturer" %}
                 <p class="card-meta">Enrolled students: {{ module_row.student_count }}</p>
               {% endif %}
             </div>
 
-            <a href="{% url 'accounts:module_detail' module_row.code %}?next={{ request.get_full_path|urlencode }}" class="small-button">
+            <a href="{{ module_row.url }}" class="small-button">
               Open Module
             </a>
           </div>
@@ -76,5 +79,70 @@
       <p class="muted">No modules are currently assigned.</p>
     {% endif %}
   </section>
+
+  <section class="dashboard-section">
+    <h2 class="section-title">Previous Years</h2>
+
+    {% if previous_year_groups %}
+      {% for group in previous_year_groups %}
+        <div class="week-block">
+          <h3 class="week-title">Year {{ group.year_number }}</h3>
+
+          {% if group.module_rows %}
+            {% for module_row in group.module_rows %}
+              <div class="week-block">
+                <div class="assessment-card-topline">
+                  <div>
+                    <h3 class="week-title">{{ module_row.code }} – {{ module_row.title }}</h3>
+
+                    <p class="card-meta">
+                      {{ module_row.academic_year_label }} · Year {{ module_row.year_number }}
+                    </p>
+
+                    {% if profile_role == "lecturer" %}
+                      <p class="card-meta">Enrolled students: {{ module_row.student_count }}</p>
+                    {% endif %}
+                  </div>
+
+                  <a href="{{ module_row.url }}" class="small-button">
+                    Open Module
+                  </a>
+                </div>
+
+                {% if module_row.items %}
+                  <ul class="profile-assessment-list">
+                    {% for item in module_row.items %}
+                      <li class="profile-assessment-row">
+                        <div class="profile-assessment-main">
+                          <span class="assessment-badge {{ item.kind_class }}">
+                            {{ item.kind_label }}
+                          </span>
+
+                          <a href="{{ item.url }}" class="profile-assessment-link">
+                            {{ item.title }}
+                          </a>
+                        </div>
+
+                        <span class="profile-metric {{ item.metric_class }}">
+                          {{ item.metric }}
+                        </span>
+                      </li>
+                    {% endfor %}
+                  </ul>
+                {% else %}
+                  <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+                {% endif %}
+              </div>
+            {% endfor %}
+          {% else %}
+            <p class="muted">No historical modules recorded for this year.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No previous-year modules are available yet.</p>
+    {% endif %}
+  </section>
+
 </div>
 {% endblock %}

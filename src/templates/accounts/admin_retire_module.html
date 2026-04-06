@@ -1,0 +1,160 @@
+﻿{% extends "accounts/base_admin.html" %}
+
+{% block title %}Retire Module | Eagna{% endblock %}
+{% block admin_header_title %}Retire Module{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section admin-back-row">
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+  </section>
+
+  <section class="dashboard-section">
+    <h1 class="section-title">Retire Module</h1>
+    <p class="muted">
+      Search for a module, then make it unavailable right now and/or unavailable in the next academic year rollover.
+    </p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="week-block">
+      {% if errors %}
+        <ul class="error-list">
+          {% for e in errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <form method="get" class="admin-stacked-form admin-form-shell">
+        <div class="form-group">
+          <label for="id_module_query">Search Module</label>
+          <input type="text"
+                 id="id_module_query"
+                 name="module_query"
+                 value="{{ module_query }}"
+                 placeholder="Search by module code or title">
+        </div>
+
+        <button type="submit">Search Module</button>
+      </form>
+    </div>
+  </section>
+
+  {% if module_query %}
+    <section class="dashboard-section">
+      <div class="week-block">
+        <h2 class="week-title">Search Results</h2>
+
+        {% if search_results %}
+          <div class="card-grid">
+            {% for module in search_results %}
+              <article class="card dashboard-card-panel">
+                <h3 class="card-title">{{ module.code }} – {{ module.title }}</h3>
+
+                <div class="announcement-actions">
+                  <a href="{% url 'accounts:admin_retire_module' %}?module_query={{ module_query|urlencode }}&module_id={{ module.id }}"
+                     class="small-button">
+                    Select Module
+                  </a>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted">No modules matched that search.</p>
+        {% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if selected_module and selected_summary %}
+    <section class="dashboard-section">
+      <div class="week-block">
+        <div class="assessment-card-topline">
+          <div>
+            <h2 class="week-title">{{ selected_module.code }} – {{ selected_module.title }}</h2>
+            <p class="card-meta">
+              {% if selected_summary.current_year %}
+                Current Academic Year: {{ selected_summary.current_year.label }}
+              {% else %}
+                No current academic year is set.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+
+        <div class="admin-entity-summary">
+          <h3 class="week-title">Placements</h3>
+
+          {% if selected_summary.placements %}
+            <ul class="week-files">
+              {% for placement in selected_summary.placements %}
+                <li>
+                  {{ placement.course.code }} · Year {{ placement.year_number }}
+                  — Available now:
+                  {% if placement.available_now %}Yes{% else %}No{% endif %}
+                  — Available next rollover:
+                  {% if placement.available_next_rollover %}Yes{% else %}No{% endif %}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="muted">No placements exist for this module yet.</p>
+          {% endif %}
+        </div>
+
+        <div class="admin-entity-summary">
+          <h3 class="week-title">Current Offerings</h3>
+
+          {% if selected_summary.current_offerings %}
+            <ul class="week-files">
+              {% for offering in selected_summary.current_offerings %}
+                <li>
+                  {{ offering.placement.course.code }} · Year {{ offering.placement.year_number }}
+                  — Current:
+                  {% if offering.is_current %}Yes{% else %}No{% endif %}
+                  — Read only:
+                  {% if offering.is_read_only %}Yes{% else %}No{% endif %}
+                  — Students: {{ offering.student_count }}
+                  — Lecturers: {{ offering.lecturer_count }}
+                </li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="muted">No current offerings exist for this module.</p>
+          {% endif %}
+        </div>
+
+        <form method="post" class="admin-stacked-form admin-form-shell">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="retire_module">
+          <input type="hidden" name="module_id" value="{{ selected_module.id }}">
+          <input type="hidden" name="module_query" value="{{ module_query }}">
+
+          <div class="form-group">
+            <label class="quiz-checkbox-row">
+              <input type="checkbox" name="retire_now">
+              <span>Unavailable right now</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="quiz-checkbox-row">
+              <input type="checkbox" name="retire_next_rollover">
+              <span>Unavailable in next Academic Year rollover</span>
+            </label>
+          </div>
+
+          <p class="muted">
+            “Unavailable right now” will archive current offerings of this module into read-only history.
+            “Unavailable in next rollover” prevents new offerings from being created during the next year transition.
+          </p>
+
+          <button type="submit">Apply Retirement Options</button>
+        </form>
+      </div>
+    </section>
+  {% endif %}
+</div>
+{% endblock %}

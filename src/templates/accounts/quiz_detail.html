@@ -7,6 +7,11 @@
 <div class="dashboard-container assessment-detail-page quiz-detail-page">
   <section class="dashboard-section">
     <a href="{{ back_url }}" class="return-link">← Return</a>
+    {% if read_only %}
+      <div class="flash-message flash-message--info">
+        This is a previous academic year. Content is read-only.
+      </div>
+    {% endif %}
     <div class="assessment-hero-card quiz-overview-card">
       <div class="assessment-detail-header">
         <div>
@@ -60,11 +65,10 @@
           <div>
             <h2 class="workflow-panel-title">Question Bank</h2>
           </div>
-
-          <p class="workflow-panel-subtitle">
-            Review the question structure, answer options, and marks awarded per question.
-          </p>
         </div>
+        <p class="workflow-panel-subtitle">
+          Review the question structure, answer options, and marks awarded per question.
+        </p>
 
         <div class="quiz-question-stack">
           {% for row in question_rows %}
@@ -96,12 +100,10 @@
           <div>
             <h2 class="workflow-panel-title">Student Attempts</h2>
           </div>
-
-          <p class="workflow-panel-subtitle">
-            Track each attempt, whether it is still in progress, and the weighted score returned.
-          </p>
         </div>
-
+        <p class="workflow-panel-subtitle">
+          Track each attempt, whether it is still in progress, and the weighted score returned.
+        </p>
         {% if attempts %}
           <div class="assessment-submissions-grid">
             {% for attempt in attempts %}
@@ -136,7 +138,7 @@
     </section>
 
   {% elif role == "student" %}
-    {% if active_attempt %}
+    {% if active_attempt and not read_only %}
       <section class="dashboard-section">
         <div class="assessment-surface workflow-panel-shell">
           <div class="workflow-panel-header">
@@ -156,9 +158,9 @@
           </p>
 
           <form method="post"
-                action="{% url 'accounts:submit_quiz_attempt' module.code quiz.id %}"
+                action="{% url 'accounts:offering_submit_quiz_attempt' offering.id quiz.id %}"
                 id="quiz-attempt-form"
-                data-save-url="{% url 'accounts:save_quiz_progress' module.code quiz.id %}"
+                data-save-url="{% url 'accounts:offering_save_quiz_progress' offering.id quiz.id %}"
                 data-remaining-seconds="{{ remaining_seconds }}">
             {% csrf_token %}
 
@@ -243,9 +245,9 @@
             </div>
           </div>
 
-          {% if can_start_attempt %}
+          {% if can_start_attempt and not read_only %}
             <div class="workflow-submit-row workflow-submit-row--start">
-              <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+              <form method="post" action="{% url 'accounts:offering_start_quiz_attempt' offering.id quiz.id %}">
                 {% csrf_token %}
                 <button type="submit" class="small-button">Start another attempt</button>
               </form>
@@ -314,9 +316,11 @@
             </span>
           </p>
 
-          {% if can_start_attempt %}
+          {% if read_only %}
+            <p class="muted">This quiz belongs to a previous academic year, so attempts are read-only.</p>
+          {% elif can_start_attempt %}
             <div class="workflow-submit-row workflow-submit-row--start">
-              <form method="post" action="{% url 'accounts:start_quiz_attempt' module.code quiz.id %}">
+              <form method="post" action="{% url 'accounts:offering_start_quiz_attempt' offering.id quiz.id %}">
                 {% csrf_token %}
                 <button type="submit" class="small-button">Start quiz</button>
               </form>

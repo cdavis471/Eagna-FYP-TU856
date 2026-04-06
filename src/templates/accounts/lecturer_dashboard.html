@@ -21,7 +21,7 @@
         <!-- Loop through each ungraded submission linked to the lecturer's modules -->
         {% for s in ungraded_submissions %}
           <!-- Clickable wrapper that links to the corresponding assignment detail page -->
-          <a href="{% url 'accounts:assignment_detail' s.assignment.module.code s.assignment.id %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
+          <a href="{% url 'accounts:offering_assignment_detail' s.assignment.offering.id s.assignment.id %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
             <!-- Card representing a single ungraded submission -->
             <article class="card card-clickable dashboard-card-panel">
               <!-- Show the title of the assignment that was submitted -->
@@ -59,31 +59,28 @@
   <!-- Your Modules -->
   <!-- Semantic section element for the lecturer's modules list -->
   <section class="dashboard-section dashboard-card-section dashboard-modules-section">
-    <!-- Heading for the "Your Modules" section -->
     <h2 class="section-title">Your Modules</h2>
-    <!-- Check if the lecturer has any modules assigned -->
-    {% if modules %}
-      <!-- Grid layout displaying each module as a clickable card -->
+    {% if current_module_rows %}
       <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
-        <!-- Loop through each module associated with the lecturer -->
-        {% for m in modules %}
-          <!-- Clickable wrapper that links to the module detail view -->
-          <a href="{% url 'accounts:module_detail' m.code %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
-            <!-- Card representing a single module taught by the lecturer -->
+        {% for row in current_module_rows %}
+          <a href="{{ row.url }}" class="card-link-wrapper">
             <article class="card card-clickable dashboard-card-panel dashboard-module-card">
-              <!-- Show the full title of the module -->
-              <h3 class="card-title">{{ m.title }}</h3>
-              <!-- Metadata row showing only the module code -->
+
+              <h3 class="card-title">{{ row.title }}</h3>
+
               <p class="card-meta">
-                <!-- Module code identifier such as TU856 -->
-                <span>{{ m.code }}</span>
+                <span>{{ row.code }}</span>
               </p>
+
+              <p class="card-meta">
+                Number of Students: {{ row.student_count }}
+              </p>
+
             </article>
           </a>
         {% endfor %}
       </div>
     {% else %}
-      <!-- Message shown when no modules have yet been assigned to this lecturer -->
       <p class="muted">No modules are currently assigned.</p>
     {% endif %}
   </section>
@@ -112,6 +109,47 @@
       <p class="muted">No global announcements have been posted yet.</p>
     {% endif %}
   </section>
+  
+  <section class="dashboard-section dashboard-card-section dashboard-modules-section">
+    <h2 class="section-title">Previous Years</h2>
+
+    {% if previous_year_groups %}
+      {% for group in previous_year_groups %}
+        <div class="week-block">
+          <h3 class="week-title">Year {{ group.year_number }}</h3>
+
+          {% if group.rows %}
+            <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
+              {% for row in group.rows %}
+                <a href="{{ row.url }}" class="card-link-wrapper">
+                  <article class="card card-clickable dashboard-card-panel dashboard-module-card">
+                    <h3 class="card-title">{{ row.title }}</h3>
+
+                    <p class="card-meta">
+                      <span>{{ row.code }}</span>
+                    </p>
+
+                    <p class="card-meta">
+                      Number of Students: {{ row.student_count }}
+                    </p>
+
+                    <p class="card-meta">
+                      {{ row.academic_year_label }}
+                    </p>
+                  </article>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">No historical modules recorded for this year.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No previous-year modules are available yet.</p>
+    {% endif %}
+  </section>
+
 </div>
 <!-- End of the main content block for this template -->
 {% endblock %}

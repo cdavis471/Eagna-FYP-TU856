@@ -123,15 +123,15 @@
         <div id="module-helper" class="registration-hint" aria-live="polite"></div>
 
         <select id="id_module_ids" name="module_ids" multiple hidden required>
-          {% for m in modules %}
+          {% for row in module_rows %}
             <option
-              value="{{ m.id }}"
-              data-courses="{{ m.allowed_courses|join:',' }}"
-              {% if form_data.module_ids and m.id|stringformat:'s' in form_data.module_ids %}
+              value="{{ row.id }}"
+              data-courses="{{ row.course_codes|join:',' }}"
+              {% if form_data.module_ids and row.id|stringformat:'s' in form_data.module_ids %}
                 selected
               {% endif %}
             >
-              {{ m.code }} – {{ m.title }}
+              {{ row.label }}
             </option>
           {% endfor %}
         </select>

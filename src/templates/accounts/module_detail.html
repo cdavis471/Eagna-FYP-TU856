@@ -1,22 +1,22 @@
-<!-- Inherit the common layout and structure from the accounts base template -->
 {% extends "accounts/base.html" %}
 
-<!-- Set the HTML title for this page using the module code and title -->
 {% block title %}{{ module.code }} – {{ module.title }} | Eagna{% endblock %}
 
-<!-- Begin the main content block that will be injected into the base template -->
 {% block content %}
-<!-- Outer container that wraps all of the module detail content -->
 <div class="dashboard-container">
-  <!-- Section showing the module header information such as code, title, and year -->
   <section class="dashboard-section">
     <a href="{{ back_url }}" class="return-link">← Return</a>
-    <!-- Main heading displaying the module code and title -->
+
+    {% if read_only %}
+      <div class="flash-message flash-message--info">
+        This is a previous academic year. Content is read-only.
+      </div>
+    {% endif %}
+
     <h1 class="section-title">
-      <!-- Insert the module code and title from the context -->
       {{ module.code }} – {{ module.title }}
     </h1>
-    <!-- Subtext showing academic year information -->
+
     <p class="muted">
       {% if run_start and run_end %}
         Academic Period: {{ run_start|date:"Y-m-d" }} → {{ run_end|date:"Y-m-d" }}
@@ -25,61 +25,125 @@
       {% endif %}
     </p>
   </section>
-  <!-- Branch into the student-specific view if the role is "student" -->
-  {% if role == "student" %}
-  <!-- Student view: list of assignments and quizzes for this module -->
-  <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
-    <h2 class="section-title">Assignments &amp; Quizzes</h2>
 
-    {% if assessment_items %}
-      <div class="card-grid dashboard-cards-grid module-assessments-grid">
-        {% for item in assessment_items %}
-          {% if item.is_clickable %}
+  {% if role == "student" %}
+    <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
+      <h2 class="section-title">Assignments &amp; Quizzes</h2>
+
+      {% if assessment_items %}
+        <div class="card-grid dashboard-cards-grid module-assessments-grid">
+          {% for item in assessment_items %}
+            {% if item.is_clickable %}
+              <a href="{{ item.url }}" class="card-link-wrapper">
+                <article class="card card-clickable dashboard-card-panel module-assessment-card">
+                  <div class="assessment-card-topline">
+                    <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                    {% if item.status_label %}
+                      <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                        {{ item.status_label }}
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <h3 class="card-title">{{ item.title }}</h3>
+
+                  <p class="card-meta">
+                    {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
+                  </p>
+
+                  <p class="card-meta">
+                    Percentage of Module: {{ item.max_mark }}%
+                  </p>
+
+                  {% if item.detail_line %}
+                    <p class="card-meta">{{ item.detail_line }}</p>
+                  {% endif %}
+
+                  {% if item.description %}
+                    <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                  {% endif %}
+
+                  {% if item.file_names %}
+                    <ul class="week-files">
+                      {% for file_name in item.file_names %}
+                        <li>{{ file_name }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                </article>
+              </a>
+            {% else %}
+              <div class="card-link-wrapper card-link-wrapper-disabled">
+                <article class="card card-disabled dashboard-card-panel module-assessment-card{% if item.status_label == 'Not open yet' %} module-assessment-card--locked{% endif %}">
+                  <div class="assessment-card-topline">
+                    <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                    {% if item.status_label %}
+                      <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                        {{ item.status_label }}
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <h3 class="card-title">{{ item.title }}</h3>
+
+                  <p class="card-meta">
+                    {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
+                  </p>
+
+                  <p class="card-meta">
+                    Max mark: {{ item.max_mark }}
+                  </p>
+
+                  {% if item.detail_line %}
+                    <p class="card-meta">{{ item.detail_line }}</p>
+                  {% endif %}
+
+                  {% if item.description %}
+                    <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                  {% endif %}
+
+                  {% if item.file_names %}
+                    <ul class="week-files">
+                      {% for file_name in item.file_names %}
+                        <li>{{ file_name }}</li>
+                      {% endfor %}
+                    </ul>
+                  {% endif %}
+                </article>
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+      {% endif %}
+    </section>
+
+  {% elif role == "lecturer" %}
+    <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
+      <div class="module-section-header">
+        <h2 class="section-title">Assignments &amp; Quizzes</h2>
+        {% if not read_only %}
+          <div class="module-section-actions">
+            <a href="{% url 'accounts:offering_create_assignment' offering.id %}?next={{ request.get_full_path|urlencode }}" class="small-button">
+              + Create Assignment
+            </a>
+            <a href="{% url 'accounts:offering_create_quiz' offering.id %}?next={{ request.get_full_path|urlencode }}" class="small-button">
+              + Create Quiz
+            </a>
+          </div>
+        {% endif %}
+      </div>
+
+      {% if assessment_items %}
+        <div class="card-grid dashboard-cards-grid module-assessments-grid">
+          {% for item in assessment_items %}
             <a href="{{ item.url }}" class="card-link-wrapper">
               <article class="card card-clickable dashboard-card-panel module-assessment-card">
                 <div class="assessment-card-topline">
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
                   {% if item.status_label %}
-                    <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
-                      {{ item.status_label }}
-                    </span>
-                  {% endif %}
-                </div>
-
-                <h3 class="card-title">{{ item.title }}</h3>
-
-                <p class="card-meta">
-                  {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
-                </p>
-
-                <p class="card-meta">
-                  Percentage of Module: {{ item.max_mark }}%
-                </p>
-
-                {% if item.detail_line %}
-                  <p class="card-meta">{{ item.detail_line }}</p>
-                {% endif %}
-
-                {% if item.description %}
-                  <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
-                {% endif %}
-
-                {% if item.file_names %}
-                  <ul class="week-files">
-                    {% for file_name in item.file_names %}
-                      <li>{{ file_name }}</li>
-                    {% endfor %}
-                  </ul>
-                {% endif %}
-              </article>
-            </a>
-          {% else %}
-            <div class="card-link-wrapper card-link-wrapper-disabled">
-              <article class="card card-disabled dashboard-card-panel module-assessment-card{% if item.status_label == 'Not open yet' %} module-assessment-card--locked{% endif %}">
-                <div class="assessment-card-topline">
-                  <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
-                  {% if item.status_label %}
-                    <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                    <span class="assessment-status{% if item.status_label == 'Closed' or item.status_label == 'Submitted' %} assessment-status--dark{% endif %}">
                       {{ item.status_label }}
                     </span>
                   {% endif %}
@@ -111,85 +175,22 @@
                   </ul>
                 {% endif %}
               </article>
-            </div>
-          {% endif %}
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="muted">No assignments or quizzes are currently defined for this module.</p>
-    {% endif %}
-  </section>
-  <!-- Branch into the lecturer-specific view if the role is "lecturer" instead -->
-  {% elif role == "lecturer" %}
-  <!-- Lecturer view: assignments and quizzes with creation controls -->
-  <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
-    <div class="module-section-header">
-      <h2 class="section-title">Assignments &amp; Quizzes</h2>
-      <div class="module-section-actions">
-        <a href="{% url 'accounts:create_assignment' module.code %}?next={{ request.get_full_path|urlencode }}" class="small-button">
-          + Create Assignment
-        </a>
-        <a href="{% url 'accounts:create_quiz' module.code %}?next={{ request.get_full_path|urlencode }}" class="small-button">
-          + Create Quiz
-        </a>
-      </div>
-    </div>
-
-    {% if assessment_items %}
-      <div class="card-grid dashboard-cards-grid module-assessments-grid">
-        {% for item in assessment_items %}
-          <a href="{{ item.url }}" class="card-link-wrapper">
-            <article class="card card-clickable dashboard-card-panel module-assessment-card">
-              <div class="assessment-card-topline">
-                <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
-                {% if item.status_label %}
-                  <span class="assessment-status{% if item.status_label == 'Closed' or item.status_label == 'Submitted' %} assessment-status--dark{% endif %}">
-                    {{ item.status_label }}
-                  </span>
-                {% endif %}
-              </div>
-
-              <h3 class="card-title">{{ item.title }}</h3>
-
-              <p class="card-meta">
-                {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
-              </p>
-
-              <p class="card-meta">
-                Max mark: {{ item.max_mark }}
-              </p>
-
-              {% if item.detail_line %}
-                <p class="card-meta">{{ item.detail_line }}</p>
-              {% endif %}
-
-              {% if item.description %}
-                <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
-              {% endif %}
-
-              {% if item.file_names %}
-                <ul class="week-files">
-                  {% for file_name in item.file_names %}
-                    <li>{{ file_name }}</li>
-                  {% endfor %}
-                </ul>
-              {% endif %}
-            </article>
-          </a>
-        {% endfor %}
-      </div>
-    {% else %}
-      <p class="muted">No assignments or quizzes are currently defined for this module.</p>
-    {% endif %}
-  </section>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+      {% endif %}
+    </section>
   {% endif %}
+
   <section class="dashboard-section dashboard-card-section module-page-section module-announcements-section">
     <div class="module-section-header">
       <h2 class="section-title">Module Announcements</h2>
 
-      {% if role == "lecturer" %}
+      {% if role == "lecturer" and not read_only %}
         <div class="module-section-actions">
-          <a href="{% url 'accounts:create_module_announcement' module.code %}?next={{ request.get_full_path|urlencode }}" class="small-button">
+          <a href="{% url 'accounts:offering_create_module_announcement' offering.id %}?next={{ request.get_full_path|urlencode }}" class="small-button">
             + Create Announcement
           </a>
         </div>
@@ -200,105 +201,91 @@
       <div class="card-grid dashboard-cards-grid module-announcements-grid">
         {% for announcement in module_announcements %}
           <article class="announcement-card dashboard-card-panel dashboard-announcement-card module-announcement-card">
-            
-          <div class="assessment-card-topline">
-            <div>
-              <h3 class="card-title">{{ announcement.title }}</h3>
-              <p class="card-meta">
-                {{ announcement.created_at|date:"Y-m-d H:i" }}
-                {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
-                  · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
-                {% endif %}
-                {% if announcement.created_by %}
-                  · {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
-                {% endif %}
-              </p>
-            </div>
-          </div>
-
-          <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
-
-          <div class="announcement-actions module-announcement-actions {% if role != 'lecturer' %}module-announcement-actions--student{% endif %}">
-            <div class="module-announcement-action-slot module-announcement-action-slot--view">
-              <button type="button"
-                      class="small-button module-announcement-action module-announcement-action--view"
-                      hx-get="{% url 'accounts:module_announcement_modal' module.code announcement.id %}"
-                      hx-target="#parsed-modal-body"
-                      hx-swap="innerHTML">
-                View
-              </button>
+            <div class="assessment-card-topline">
+              <div>
+                <h3 class="card-title">{{ announcement.title }}</h3>
+                <p class="card-meta">
+                  {{ announcement.created_at|date:"Y-m-d H:i" }}
+                  {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
+                    · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+                  {% endif %}
+                  {% if announcement.created_by %}
+                    · {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
+                  {% endif %}
+                </p>
+              </div>
             </div>
 
-            {% if role == "lecturer" %}
-              <form method="get"
-                    action="{% url 'accounts:edit_module_announcement' module.code announcement.id %}"
-                    class="admin-inline-form module-announcement-action-form">
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button type="submit" class="small-button module-announcement-action">
-                  Edit
-                </button>
-              </form>
+            <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
 
-              <form method="post"
-                    action="{% url 'accounts:delete_module_announcement' module.code announcement.id %}"
-                    class="admin-inline-form module-announcement-action-form">
-                {% csrf_token %}
-                <button type="submit" class="small-button module-announcement-action">
-                  Delete
+            <div class="announcement-actions module-announcement-actions {% if role != 'lecturer' or read_only %}module-announcement-actions--student{% endif %}">
+              <div class="module-announcement-action-slot module-announcement-action-slot--view">
+                <button type="button"
+                        class="small-button module-announcement-action module-announcement-action--view"
+                        hx-get="{% url 'accounts:offering_module_announcement_modal' offering.id announcement.id %}"
+                        hx-target="#parsed-modal-body"
+                        hx-swap="innerHTML">
+                  View
                 </button>
-              </form>
-            {% else %}
-              <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
-              <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
-            {% endif %}
-          </div>
+              </div>
 
+              {% if role == "lecturer" and not read_only %}
+                <form method="get"
+                      action="{% url 'accounts:offering_edit_module_announcement' offering.id announcement.id %}"
+                      class="admin-inline-form module-announcement-action-form">
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="small-button module-announcement-action">
+                    Edit
+                  </button>
+                </form>
+
+                <form method="post"
+                      action="{% url 'accounts:offering_delete_module_announcement' offering.id announcement.id %}"
+                      class="admin-inline-form module-announcement-action-form">
+                  {% csrf_token %}
+                  <button type="submit" class="small-button module-announcement-action">
+                    Delete
+                  </button>
+                </form>
+              {% else %}
+                <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
+                <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
+              {% endif %}
+            </div>
           </article>
-      {% endfor %}
-    </div>
+        {% endfor %}
+      </div>
     {% else %}
       <p class="muted">No module announcements have been posted yet.</p>
     {% endif %}
   </section>
-  <!-- Section that displays weekly teaching resources / academic calendar view -->
-  <!-- Weekly Resources / Academic Calendar -->
+
   <section class="dashboard-section dashboard-card-section module-page-section module-calendar-section">
-    <!-- Heading for the academic calendar and weekly resources area -->
     <div class="module-section-header">
       <h2 class="section-title">Academic Calendar</h2>
-      {% if role == "lecturer" %}
+      {% if role == "lecturer" and not read_only %}
         <div class="module-section-actions">
-          <form method="post" action="{% url 'accounts:add_module_week' module.code %}" class="admin-inline-form">
+          <form method="post" action="{% url 'accounts:offering_add_module_week' offering.id %}" class="admin-inline-form">
             {% csrf_token %}
             <button type="submit" class="small-button">+ Add Week</button>
           </form>
         </div>
       {% endif %}
     </div>
-    <!-- Student-specific rendering of weekly resources -->
+
     {% if role == "student" %}
-      <!-- Only render week blocks if a collection of weeks is available -->
       {% if weeks %}
-        <!-- Loop over each week object associated with this module -->
         {% for w in weeks %}
-          <!-- Container for the information and materials for a single week -->
           <div class="week-block module-week-card">
-            <!-- Week heading showing number -->
             <h3 class="week-title">
-              <!-- Display the week number -->
               Week {{ w.week_number }}
             </h3>
-            <!-- Optional paragraph of descriptive text for the week if provided -->
             {% if w.description %}
-              <!-- Text description explaining the focus or content of this week -->
               <p class="week-description-text">{{ w.description }}</p>
             {% endif %}
 
-            <!-- If any files are attached to this week, list them for students to access -->
             {% if w.files.all %}
-              <!-- Unordered list of learning materials/files for the week -->
               <ul class="week-files">
-                <!-- Loop through each file resource associated with this week -->
                 {% for f in w.files.all %}
                   <li class="week-file-item">
                     <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
@@ -327,66 +314,65 @@
                 {% endfor %}
               </ul>
             {% else %}
-              <!-- Message shown when a week has no materials yet -->
               <p class="muted">No materials uploaded for this week yet.</p>
             {% endif %}
           </div>
         {% endfor %}
       {% else %}
-        <!-- Student-facing message when no weekly resources have been configured -->
         <p class="muted">No weekly resources have been added yet.</p>
       {% endif %}
-    <!-- Lecturer-specific rendering of weekly configuration and uploads -->
+
     {% elif role == "lecturer" %}
-      <!-- Only render week blocks if there are weeks configured for this module -->
       {% if weeks %}
-        <!-- Loop through each week for which the lecturer can manage content -->
         {% for w in weeks %}
-          <!-- Container grouping description, files, and upload controls for a week -->
           <div class="week-block module-week-card">
-            <!-- Heading displaying the week number  -->
             <h3 class="week-title">
-              <!-- Show week number -->
               Week {{ w.week_number }}
             </h3>
 
-            <!-- Form allowing the lecturer to edit the textual description of this week -->
-            <!-- Description editor -->
-            <form method="post"
-                  action="{% url 'accounts:save_module_week' module.code w.week_number %}"
-                  enctype="multipart/form-data"
-                  class="week-upload-form">
-              {% csrf_token %}
+            {% if not read_only %}
+              <form method="post"
+                    action="{% url 'accounts:offering_save_module_week' offering.id w.week_number %}"
+                    enctype="multipart/form-data"
+                    class="week-upload-form">
+                {% csrf_token %}
 
-              <label class="week-label">Description</label>
-              <textarea name="description"
-                        rows="2"
-                        class="week-description-input">{{ w.description }}</textarea>
+                <label class="week-label">Description</label>
+                <textarea name="description"
+                          rows="2"
+                          class="week-description-input">{{ w.description }}</textarea>
 
-              <label class="week-label">Upload Materials</label>
-              <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
-                <input
-                  type="file"
-                  id="week-file-{{ w.week_number }}"
-                  name="files"
-                  multiple
-                  class="upload-dropzone__input"
-                  accept=".docx,.pptx">
+                <label class="week-label">Upload Materials</label>
+                <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+                  <input
+                    type="file"
+                    id="week-file-{{ w.week_number }}"
+                    name="files"
+                    multiple
+                    class="upload-dropzone__input"
+                    accept=".docx,.pptx">
 
-                <label for="week-file-{{ w.week_number }}" class="upload-dropzone__label">
-                  <span class="upload-dropzone__title">Drag and drop lecture materials here</span>
-                  <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
-                </label>
+                  <label for="week-file-{{ w.week_number }}" class="upload-dropzone__label">
+                    <span class="upload-dropzone__title">Drag and drop lecture materials here</span>
+                    <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
+                  </label>
 
-                <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
-              </div>
+                  <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
+                </div>
 
-              <p class="workflow-form-help">
-                A description and at least one attachment are required before this week can be saved.
-              </p>
+                <p class="workflow-form-help">
+                  A description and at least one attachment are required before this week can be saved.
+                </p>
 
-              <button type="submit" class="small-button">Save Week</button>
-            </form>
+                <button type="submit" class="small-button">Save Week</button>
+              </form>
+            {% else %}
+              {% if w.description %}
+                <p class="week-description-text">{{ w.description }}</p>
+              {% else %}
+                <p class="muted">No description has been added for this week.</p>
+              {% endif %}
+            {% endif %}
 
             <div class="week-files-block">
               <h4 class="week-files-title">Attached Materials</h4>
@@ -417,7 +403,7 @@
 
                           {% if f.parsed_document.images.all %}
                             <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}?next={{ request.get_full_path|urlencode }}"
-                              class="small-button">
+                               class="small-button">
                               Edit Image Descriptions
                             </a>
                           {% endif %}
@@ -438,11 +424,11 @@
           </div>
         {% endfor %}
       {% else %}
-        <!-- Lecturer-facing message when there are no weeks configured at all -->
         <p class="muted">No weeks have been added to this module yet.</p>
       {% endif %}
     {% endif %}
   </section>
+
   {% if role == "lecturer" %}
     <section class="dashboard-section dashboard-card-section module-page-section module-students-section">
       <div class="assessment-surface workflow-panel-shell module-students-card">
@@ -470,5 +456,4 @@
     </section>
   {% endif %}
 </div>
-<!-- End of the main content block for the module detail page -->
 {% endblock %}

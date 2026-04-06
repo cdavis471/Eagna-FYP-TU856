@@ -11,6 +11,11 @@
   <!-- Section containing assignment overview and materials -->
   <section class="dashboard-section">
     <a href="{{ back_url }}" class="return-link">← Return</a>
+    {% if read_only %}
+      <div class="flash-message flash-message--info">
+        This is a previous academic year. Content is read-only.
+      </div>
+    {% endif %}
     <div class="assessment-hero-card assignment-overview-card">
       <div class="assessment-detail-header">
         <div>
@@ -139,35 +144,41 @@
 
         <div class="assessment-surface">
           <h3 class="week-title">Submit Work</h3>
-
-          <form method="post"
-                action="{% url 'accounts:submit_assignment' module.code assignment.id %}"
-                enctype="multipart/form-data"
-                class="week-upload-form">
-            {% csrf_token %}
-
+          {% if read_only %}
             <p class="muted">
-              Upload one or more files. New uploads will be added to your submission and update the submitted time.
+              This assignment belongs to a previous academic year, so submissions are read-only.
             </p>
+          {% else %}
+            <form method="post"
+                  action="{% url 'accounts:offering_submit_assignment' offering.id assignment.id %}"
+                  enctype="multipart/form-data"
+                  class="week-upload-form">
+              {% csrf_token %}
 
-            <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
-              <input
-                type="file"
-                id="assignment-submission-files"
-                name="files"
-                multiple
-                class="upload-dropzone__input">
+              <p class="muted">
+                Upload one or more files. New uploads will be added to your submission and update the submitted time.
+              </p>
 
-              <label for="assignment-submission-files" class="upload-dropzone__label">
-                <span class="upload-dropzone__title">Drag and drop submission files here</span>
-                <span class="upload-dropzone__hint">or click to browse</span>
-              </label>
+              <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+                <input
+                  type="file"
+                  id="assignment-submission-files"
+                  name="files"
+                  multiple
+                  class="upload-dropzone__input">
 
-              <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
-            </div>
-            <button type="submit" class="small-button">Submit / Upload</button>
-          </form>
+                <label for="assignment-submission-files" class="upload-dropzone__label">
+                  <span class="upload-dropzone__title">Drag and drop submission files here</span>
+                  <span class="upload-dropzone__hint">or click to browse</span>
+                </label>
+
+                <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
+              </div>
+              <button type="submit" class="small-button">Submit / Upload</button>
+            </form>
+          {% endif %}
         </div>
+
       </div>
     </section>
 
@@ -178,11 +189,11 @@
         <div class="workflow-panel-header">
           <div>
             <h2 class="workflow-panel-title">Student Submissions</h2>
-            <p class="workflow-panel-subtitle">
-              Review uploaded work and open the grading form for each student from this panel.
-            </p>
           </div>
         </div>
+        <p class="workflow-panel-subtitle">
+          Review uploaded work and open the grading form for each student from this panel.
+        </p>
 
         {% if submissions %}
           <div class="assessment-submissions-grid">
@@ -224,12 +235,15 @@
                   </p>
                 {% endif %}
 
-                <div class="workflow-submit-row workflow-submit-row--start">
-                  <a href="{% url 'accounts:grade_submission' module.code assignment.id s.id %}?next={{ request.get_full_path|urlencode }}"
-                    class="small-button">
-                    {% if s.grade %}Edit Grade{% else %}Add Grade{% endif %}
-                  </a>
-                </div>
+                {% if not read_only %}
+                  <div class="workflow-submit-row workflow-submit-row--start">
+                    <a href="{% url 'accounts:offering_grade_submission' offering.id assignment.id s.id %}?next={{ request.get_full_path|urlencode }}"
+                      class="small-button">
+                      {% if s.grade %}Edit Grade{% else %}Add Grade{% endif %}
+                    </a>
+                  </div>
+                {% endif %}
+                
               </div>
             {% endfor %}
           </div>

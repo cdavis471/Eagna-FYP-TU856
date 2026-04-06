@@ -3903,6 +3903,48 @@ General Features - Final UI
 }
 
 /*
+======================
+Admin Panel - Final UI
+======================
+*/
+
+.admin-entity-summary {
+  margin-top: 0.9rem;
+  margin-bottom: 0.9rem;
+  padding: 0.9rem 1rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border-soft);
+  background: var(--bg-card);
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.admin-status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.admin-status-pill--active {
+  background: var(--surface-success);
+  color: var(--text-success-strong);
+}
+
+.admin-status-pill--completed {
+  background: var(--surface-info);
+  color: var(--accent-blue-strong);
+}
+
+.admin-status-pill--locked {
+  background: var(--surface-danger-soft);
+  color: var(--text-danger-strong);
+}
+
+/*
 ===========================
 Responsive Rules - Final UI
 ===========================

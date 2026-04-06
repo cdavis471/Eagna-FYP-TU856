@@ -1,0 +1,73 @@
+﻿{% extends "accounts/base.html" %}
+{% load static %}
+
+{% block title %}Join Modules | Eagna{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section">
+    <a href="{% url 'accounts:dashboard' %}" class="return-link">← Return</a>
+    <h1 class="section-title">Join Current-Year Modules</h1>
+    <p class="muted">
+      Course: {{ course_code }} · Year {{ student.current_year }}
+    </p>
+    <p class="muted">
+      Select any current-year modules you still need to join. Existing enrolments are kept.
+    </p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="week-block">
+      <form method="post" class="registration-form" autocomplete="off">
+        {% csrf_token %}
+
+        <div class="form-group" hidden>
+          <label for="id_course">Course</label>
+          <input type="text" id="id_course" name="course" value="{{ course_code }}" readonly>
+        </div>
+
+        <div class="form-group">
+          <label for="module-search" class="registration-form-label">MODULES</label>
+
+          <input
+            type="text"
+            id="module-search"
+            placeholder="Search Modules (Code or Title)"
+            autocomplete="off"
+          >
+
+          <div id="module-dropdown" class="dropdown" hidden></div>
+
+          <div id="selected-modules" class="selected-modules"></div>
+
+          <div id="module-helper" class="registration-hint" aria-live="polite"></div>
+
+          <select id="id_module_ids" name="module_ids" multiple hidden>
+            {% for row in module_rows %}
+              <option
+                value="{{ row.id }}"
+                data-courses="{{ row.course_codes|join:',' }}"
+                {% if row.id|stringformat:'s' in selected_module_ids %}
+                  selected
+                {% endif %}
+              >
+                {{ row.label }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="registration-action-group">
+          <button type="submit" class="auth-action-button auth-action-button--primary">
+            SAVE MODULES
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'accounts/module_search.js' %}" defer></script>
+{% endblock %}

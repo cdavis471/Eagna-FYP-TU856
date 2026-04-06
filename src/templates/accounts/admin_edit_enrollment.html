@@ -11,141 +11,196 @@
 
   <section class="dashboard-section">
     <h1 class="section-title">Edit Enrollment</h1>
-    <p class="muted">Add or remove students and lecturers from active modules.</p>
+    <p class="muted">Search for a student or lecturer username, then add or remove module enrolments.</p>
   </section>
 
   <section class="dashboard-section">
     <div class="admin-two-column">
       <div class="week-block">
-        <h2 class="week-title">Student Module Enrollment</h2>
-        <form method="post" class="admin-stacked-form">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_student">
+        <h2 class="week-title">Add Student to Module</h2>
 
+        <form method="get" class="admin-stacked-form">
           <div class="form-group">
-            <label for="id_student_module_id">Module</label>
-            <select id="id_student_module_id" name="student_module_id">
-              {% for module in modules %}
-                <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
-              {% endfor %}
-            </select>
+            <label for="id_add_student_username">Student Username</label>
+            <input type="text" id="id_add_student_username" name="add_student_username" value="{{ add_student_username }}" placeholder="student@mytudublin.ie">
           </div>
-
-          <div class="form-group">
-            <label for="id_student_id">Student</label>
-            <select id="id_student_id" name="student_id">
-              {% for student in students %}
-                <option value="{{ student.id }}">
-                  {{ student.user.get_full_name|default:student.user.username }} — {{ student.student_number }}{% if student.course %} — {{ student.course }}{% endif %}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <button type="submit">Add Student to Module</button>
+          <button type="submit">Search Student</button>
         </form>
+
+        {% if add_student_username and not add_student_profile %}
+          <ul class="error-list">
+            <li>No student account was found for that username.</li>
+          </ul>
+        {% endif %}
+
+        {% if add_student_profile %}
+          <div class="admin-entity-summary">
+            <p class="card-meta">
+              {{ add_student_profile.user.get_full_name|default:add_student_profile.user.username }}<br>
+              {{ add_student_profile.user.username }}<br>
+              {{ add_student_profile.course|default:"N/A" }} · Year {{ add_student_profile.current_year }}
+            </p>
+          </div>
+
+          <form method="post" class="admin-stacked-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_student">
+            <input type="hidden" name="student_id" value="{{ add_student_profile.id }}">
+
+            <div class="form-group">
+              <label for="id_student_module_id">Module</label>
+              <select id="id_student_module_id" name="module_id">
+                {% for module in add_student_modules %}
+                  <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                {% empty %}
+                  <option value="">No available modules</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="submit">Add Student to Module</button>
+          </form>
+        {% endif %}
       </div>
 
       <div class="week-block">
-        <h2 class="week-title">Lecturer Module Enrollment</h2>
-        <form method="post" class="admin-stacked-form">
-          {% csrf_token %}
-          <input type="hidden" name="action" value="add_lecturer">
+        <h2 class="week-title">Remove Student from Module</h2>
 
+        <form method="get" class="admin-stacked-form">
           <div class="form-group">
-            <label for="id_lecturer_module_id">Module</label>
-            <select id="id_lecturer_module_id" name="lecturer_module_id">
-              {% for module in modules %}
-                <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
-              {% endfor %}
-            </select>
+            <label for="id_remove_student_username">Student Username</label>
+            <input type="text" id="id_remove_student_username" name="remove_student_username" value="{{ remove_student_username }}" placeholder="student@mytudublin.ie">
           </div>
-
-          <div class="form-group">
-            <label for="id_lecturer_id">Lecturer</label>
-            <select id="id_lecturer_id" name="lecturer_id">
-              {% for lecturer in lecturers %}
-                <option value="{{ lecturer.id }}">
-                  {{ lecturer.user.get_full_name|default:lecturer.user.username }} — {{ lecturer.staff_id }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-
-          <button type="submit">Add Lecturer to Module</button>
+          <button type="submit">Search Student</button>
         </form>
+
+        {% if remove_student_username and not remove_student_profile %}
+          <ul class="error-list">
+            <li>No student account was found for that username.</li>
+          </ul>
+        {% endif %}
+
+        {% if remove_student_profile %}
+          <div class="admin-entity-summary">
+            <p class="card-meta">
+              {{ remove_student_profile.user.get_full_name|default:remove_student_profile.user.username }}<br>
+              {{ remove_student_profile.user.username }}
+            </p>
+          </div>
+
+          <form method="post" class="admin-stacked-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove_student">
+            <input type="hidden" name="student_id" value="{{ remove_student_profile.id }}">
+
+            <div class="form-group">
+              <label for="id_remove_student_module_id">Module</label>
+              <select id="id_remove_student_module_id" name="module_id">
+                {% for module in remove_student_modules %}
+                  <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                {% empty %}
+                  <option value="">No enrolled modules</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="submit">Remove Student from Module</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <div class="week-block">
+        <h2 class="week-title">Add Lecturer to Module</h2>
+
+        <form method="get" class="admin-stacked-form">
+          <div class="form-group">
+            <label for="id_add_lecturer_username">Lecturer Username</label>
+            <input type="text" id="id_add_lecturer_username" name="add_lecturer_username" value="{{ add_lecturer_username }}" placeholder="lecturer@mytudublin.ie">
+          </div>
+          <button type="submit">Search Lecturer</button>
+        </form>
+
+        {% if add_lecturer_username and not add_lecturer_profile %}
+          <ul class="error-list">
+            <li>No lecturer account was found for that username.</li>
+          </ul>
+        {% endif %}
+
+        {% if add_lecturer_profile %}
+          <div class="admin-entity-summary">
+            <p class="card-meta">
+              {{ add_lecturer_profile.user.get_full_name|default:add_lecturer_profile.user.username }}<br>
+              {{ add_lecturer_profile.user.username }}
+            </p>
+          </div>
+
+          <form method="post" class="admin-stacked-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_lecturer">
+            <input type="hidden" name="lecturer_id" value="{{ add_lecturer_profile.id }}">
+
+            <div class="form-group">
+              <label for="id_add_lecturer_module_id">Module</label>
+              <select id="id_add_lecturer_module_id" name="module_id">
+                {% for module in add_lecturer_modules %}
+                  <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                {% empty %}
+                  <option value="">No available modules</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="submit">Add Lecturer to Module</button>
+          </form>
+        {% endif %}
+      </div>
+
+      <div class="week-block">
+        <h2 class="week-title">Remove Lecturer from Module</h2>
+
+        <form method="get" class="admin-stacked-form">
+          <div class="form-group">
+            <label for="id_remove_lecturer_username">Lecturer Username</label>
+            <input type="text" id="id_remove_lecturer_username" name="remove_lecturer_username" value="{{ remove_lecturer_username }}" placeholder="lecturer@mytudublin.ie">
+          </div>
+          <button type="submit">Search Lecturer</button>
+        </form>
+
+        {% if remove_lecturer_username and not remove_lecturer_profile %}
+          <ul class="error-list">
+            <li>No lecturer account was found for that username.</li>
+          </ul>
+        {% endif %}
+
+        {% if remove_lecturer_profile %}
+          <div class="admin-entity-summary">
+            <p class="card-meta">
+              {{ remove_lecturer_profile.user.get_full_name|default:remove_lecturer_profile.user.username }}<br>
+              {{ remove_lecturer_profile.user.username }}
+            </p>
+          </div>
+
+          <form method="post" class="admin-stacked-form">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="remove_lecturer">
+            <input type="hidden" name="lecturer_id" value="{{ remove_lecturer_profile.id }}">
+
+            <div class="form-group">
+              <label for="id_remove_lecturer_module_id">Module</label>
+              <select id="id_remove_lecturer_module_id" name="module_id">
+                {% for module in remove_lecturer_modules %}
+                  <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                {% empty %}
+                  <option value="">No assigned modules</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <button type="submit">Remove Lecturer from Module</button>
+          </form>
+        {% endif %}
       </div>
     </div>
-  </section>
-
-  <section class="dashboard-section">
-    <h2 class="section-title">Current Student Enrollments</h2>
-
-    {% for row in enrollment_rows %}
-      <div class="week-block">
-        <h3 class="week-title">{{ row.module.code }} – {{ row.module.title }}</h3>
-
-        {% if row.students %}
-          <ul class="profile-assessment-list">
-            {% for student in row.students %}
-              <li class="profile-assessment-row">
-                <div class="profile-assessment-main">
-                  <span class="admin-chip admin-chip--student">Student</span>
-                  <span class="profile-assessment-link">
-                    {{ student.name }} — {{ student.student_number }}{% if student.course %} — {{ student.course }}{% endif %}
-                  </span>
-                </div>
-
-                <form method="post" class="admin-inline-form">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="remove_student">
-                  <input type="hidden" name="module_id" value="{{ row.module.id }}">
-                  <input type="hidden" name="student_id" value="{{ student.id }}">
-                  <button type="submit" class="small-button admin-remove-button">Remove</button>
-                </form>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="muted">No students are currently enrolled in this module.</p>
-        {% endif %}
-      </div>
-    {% endfor %}
-  </section>
-
-  <section class="dashboard-section">
-    <h2 class="section-title">Current Lecturer Enrollments</h2>
-
-    {% for row in enrollment_rows %}
-      <div class="week-block">
-        <h3 class="week-title">{{ row.module.code }} – {{ row.module.title }}</h3>
-
-        {% if row.lecturers %}
-          <ul class="profile-assessment-list">
-            {% for lecturer in row.lecturers %}
-              <li class="profile-assessment-row">
-                <div class="profile-assessment-main">
-                  <span class="admin-chip admin-chip--lecturer">Lecturer</span>
-                  <span class="profile-assessment-link">
-                    {{ lecturer.name }} — {{ lecturer.staff_id }}{% if lecturer.is_primary %} — Primary{% endif %}
-                  </span>
-                </div>
-
-                <form method="post" class="admin-inline-form">
-                  {% csrf_token %}
-                  <input type="hidden" name="action" value="remove_lecturer">
-                  <input type="hidden" name="module_id" value="{{ row.module.id }}">
-                  <input type="hidden" name="lecturer_id" value="{{ lecturer.id }}">
-                  <button type="submit" class="small-button admin-remove-button">Remove</button>
-                </form>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <p class="muted">No lecturers are currently enrolled in this module.</p>
-        {% endif %}
-      </div>
-    {% endfor %}
   </section>
 </div>
 {% endblock %}

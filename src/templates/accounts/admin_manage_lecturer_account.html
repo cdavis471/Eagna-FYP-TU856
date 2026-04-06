@@ -1,0 +1,68 @@
+﻿{% extends "accounts/base_admin.html" %}
+
+{% block title %}Manage Lecturer Account | Eagna{% endblock %}
+{% block admin_header_title %}Manage Lecturer Account{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section admin-back-row">
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+  </section>
+
+  <section class="dashboard-section">
+    <h1 class="section-title">Manage Lecturer Account</h1>
+    <p class="muted">Search by the lecturer username/email to lock or unlock access.</p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="week-block">
+      <form method="get" class="admin-stacked-form admin-form-shell">
+        <div class="form-group">
+          <label for="id_username">Lecturer Username</label>
+          <input type="text" id="id_username" name="username" value="{{ username_query }}" placeholder="lecturer@mytudublin.ie">
+        </div>
+
+        <button type="submit">Search Lecturer</button>
+      </form>
+
+      {% if search_error %}
+        <ul class="error-list">
+          <li>{{ search_error }}</li>
+        </ul>
+      {% endif %}
+
+      {% if lecturer_result %}
+        <div class="admin-entity-summary">
+          <h2 class="week-title">{{ lecturer_result.user.get_full_name|default:lecturer_result.user.username }}</h2>
+          <p class="card-meta">
+            Username: {{ lecturer_result.user.username }}<br>
+            Staff ID: {{ lecturer_result.staff_id }}<br>
+            Account:
+            {% if lecturer_result.user.is_active %}
+              <span class="admin-status-pill admin-status-pill--active">Active</span>
+            {% else %}
+              <span class="admin-status-pill admin-status-pill--locked">Locked</span>
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="announcement-actions">
+          <form method="post" class="admin-inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="lecturer_id" value="{{ lecturer_result.id }}">
+            <input type="hidden" name="action" value="lock_lecturer">
+            <button type="submit" class="small-button">Lock Lecturer Account</button>
+          </form>
+
+          <form method="post" class="admin-inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="lecturer_id" value="{{ lecturer_result.id }}">
+            <input type="hidden" name="action" value="unlock_lecturer">
+            <button type="submit" class="small-button">Unlock Lecturer Account</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

@@ -27,15 +27,19 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f"Generated {total_created} notifications."))
 
-    def _student_users_for_module(self, module):
-        return User.objects.filter(student_profile__modules=module).distinct()
+    def _student_users_for_offering(self, offering):
+        return User.objects.filter(
+            student_profile__offering_enrolments__offering=offering
+        ).distinct()
 
-    def _lecturer_users_for_module(self, module):
-        return User.objects.filter(lecturer_profile__modules=module).distinct()
+    def _lecturer_users_for_offering(self, offering):
+        return User.objects.filter(
+            lecturer_profile__offering_enrolments__offering=offering
+        ).distinct()
 
     def _students_without_submission(self, assignment):
         return (
-            self._student_users_for_module(assignment.module)
+            self._student_users_for_offering(assignment.offering)
             .exclude(student_profile__submissions__assignment=assignment)
             .distinct()
         )
@@ -50,7 +54,7 @@ class Command(BaseCommand):
         one_day_upper = now + timedelta(hours=24)
 
         assignments_three_days = (
-            Assignment.objects.select_related("module")
+            Assignment.objects.select_related("offering__placement__module")
             .filter(due_datetime__gt=three_day_lower, due_datetime__lte=three_day_upper)
             .order_by("due_datetime")
         )
@@ -58,15 +62,18 @@ class Command(BaseCommand):
         for assignment in assignments_three_days:
             created_count += create_notifications_for_users(
                 self._students_without_submission(assignment),
-                module=assignment.module,
+                offering=assignment.offering,
                 title=f"Assignment due in 3 days: {assignment.title}",
-                redirect_url=reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                redirect_url=reverse(
+                    "accounts:offering_assignment_detail",
+                    args=[assignment.offering.id, assignment.id],
+                ),
                 notification_type=Notification.Type.ASSIGNMENT_DUE_3D,
                 event_key=f"assignment-due-3d:{assignment.id}",
             )
 
         assignments_one_day = (
-            Assignment.objects.select_related("module")
+            Assignment.objects.select_related("offering__placement__module")
             .filter(due_datetime__gt=one_day_lower, due_datetime__lte=one_day_upper)
             .order_by("due_datetime")
         )
@@ -74,9 +81,12 @@ class Command(BaseCommand):
         for assignment in assignments_one_day:
             created_count += create_notifications_for_users(
                 self._students_without_submission(assignment),
-                module=assignment.module,
+                offering=assignment.offering,
                 title=f"Assignment due in 24 hours: {assignment.title}",
-                redirect_url=reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                redirect_url=reverse(
+                    "accounts:offering_assignment_detail",
+                    args=[assignment.offering.id, assignment.id],
+                ),
                 notification_type=Notification.Type.ASSIGNMENT_DUE_24H,
                 event_key=f"assignment-due-24h:{assignment.id}",
             )
@@ -87,7 +97,7 @@ class Command(BaseCommand):
         created_count = 0
 
         quizzes = (
-            Quiz.objects.select_related("module")
+            Quiz.objects.select_related("offering__placement__module")
             .filter(
                 is_published=True,
                 open_datetime__gt=window_start,
@@ -98,10 +108,13 @@ class Command(BaseCommand):
 
         for quiz in quizzes:
             created_count += create_notifications_for_users(
-                self._student_users_for_module(quiz.module),
-                module=quiz.module,
+                self._student_users_for_offering(quiz.offering),
+                offering=quiz.offering,
                 title=f"Quiz opened: {quiz.title}",
-                redirect_url=reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                redirect_url=reverse(
+                    "accounts:offering_quiz_detail",
+                    args=[quiz.offering.id, quiz.id],
+                ),
                 notification_type=Notification.Type.QUIZ_OPENED,
                 event_key=f"quiz-opened:{quiz.id}",
             )
@@ -112,7 +125,7 @@ class Command(BaseCommand):
         created_count = 0
 
         assignments = (
-            Assignment.objects.select_related("module")
+            Assignment.objects.select_related("offering__placement__module")
             .filter(
                 due_datetime__gt=window_start,
                 due_datetime__lte=now,
@@ -129,10 +142,13 @@ class Command(BaseCommand):
             )
 
             created_count += create_notifications_for_users(
-                self._lecturer_users_for_module(assignment.module),
-                module=assignment.module,
+                self._lecturer_users_for_offering(assignment.offering),
+                offering=assignment.offering,
                 title=f"Assignment closed: {assignment.title} ({submission_count} submissions)",
-                redirect_url=reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                redirect_url=reverse(
+                    "accounts:offering_assignment_detail",
+                    args=[assignment.offering.id, assignment.id],
+                ),
                 notification_type=Notification.Type.ASSIGNMENT_CLOSED_SUMMARY,
                 event_key=f"assignment-closed-summary:{assignment.id}",
             )
@@ -143,7 +159,7 @@ class Command(BaseCommand):
         created_count = 0
 
         quizzes = (
-            Quiz.objects.select_related("module")
+            Quiz.objects.select_related("offering__placement__module")
             .filter(
                 is_published=True,
                 close_datetime__gt=window_start,
@@ -162,19 +178,25 @@ class Command(BaseCommand):
             )
 
             created_count += create_notifications_for_users(
-                self._student_users_for_module(quiz.module),
-                module=quiz.module,
+                self._student_users_for_offering(quiz.offering),
+                offering=quiz.offering,
                 title=f"Quiz closed: {quiz.title}",
-                redirect_url=reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                redirect_url=reverse(
+                    "accounts:offering_quiz_detail",
+                    args=[quiz.offering.id, quiz.id],
+                ),
                 notification_type=Notification.Type.QUIZ_CLOSED,
                 event_key=f"quiz-closed:{quiz.id}",
             )
 
             created_count += create_notifications_for_users(
-                self._lecturer_users_for_module(quiz.module),
-                module=quiz.module,
+                self._lecturer_users_for_offering(quiz.offering),
+                offering=quiz.offering,
                 title=f"Quiz closed: {quiz.title} ({student_submission_count} submissions)",
-                redirect_url=reverse("accounts:quiz_detail", args=[quiz.module.code, quiz.id]),
+                redirect_url=reverse(
+                    "accounts:offering_quiz_detail",
+                    args=[quiz.offering.id, quiz.id],
+                ),
                 notification_type=Notification.Type.QUIZ_CLOSED_SUMMARY,
                 event_key=f"quiz-closed-summary:{quiz.id}",
             )
@@ -186,7 +208,7 @@ class Command(BaseCommand):
         weekly_seconds = 7 * 24 * 60 * 60
 
         assignments = (
-            Assignment.objects.select_related("module")
+            Assignment.objects.select_related("offering__placement__module")
             .filter(due_datetime__lt=now - timedelta(days=7))
             .order_by("due_datetime")
         )
@@ -213,10 +235,13 @@ class Command(BaseCommand):
                 continue
 
             created_count += create_notifications_for_users(
-                self._lecturer_users_for_module(assignment.module),
-                module=assignment.module,
+                self._lecturer_users_for_offering(assignment.offering),
+                offering=assignment.offering,
                 title=f"Grading reminder: {assignment.title} ({pending_count} students left to grade)",
-                redirect_url=reverse("accounts:assignment_detail", args=[assignment.module.code, assignment.id]),
+                redirect_url=reverse(
+                    "accounts:offering_assignment_detail",
+                    args=[assignment.offering.id, assignment.id],
+                ),
                 notification_type=Notification.Type.ASSIGNMENT_GRADING_REMINDER,
                 event_key=f"assignment-grading-reminder:{assignment.id}:week-{current_bucket}",
             )

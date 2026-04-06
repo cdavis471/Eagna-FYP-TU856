@@ -103,44 +103,34 @@
   <!-- Your Modules -->
   <!-- Semantic section for listing all of the student's modules -->
   <section class="dashboard-section dashboard-card-section dashboard-modules-section">
-    <!-- Heading for the modules section -->
-    <h2 class="section-title">Your Modules</h2>
-    <!-- Check if the student currently has any modules attached -->
-    {% if modules %}
-      <!-- Grid layout for rendering each module as a card -->
+    <div class="module-section-header">
+      <h2 class="section-title">Your Modules</h2>
+      <div class="module-section-actions">
+        <a href="{% url 'accounts:student_join_modules' %}" class="small-button">
+          + Join Modules
+        </a>
+      </div>
+    </div>
+
+    {% if current_module_rows %}
       <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
-        <!-- Loop through each module object assigned to the student -->
-        {% for m in modules %}
-          <!-- Clickable card wrapper linking to the module detail page -->
-          <a href="{% url 'accounts:module_detail' m.code %}?next={{ request.get_full_path|urlencode }}" class="card-link-wrapper">
-            <!-- Card container for a single module -->
+        {% for row in current_module_rows %}
+          <a href="{{ row.url }}" class="card-link-wrapper">
             <article class="card card-clickable dashboard-card-panel dashboard-module-card">
-              <!-- Display the module title/textual name -->
-              <h3 class="card-title">{{ m.title }}</h3>
-              <!-- Row of metadata containing the module code -->
+              <h3 class="card-title">{{ row.title }}</h3>
+
               <p class="card-meta">
-                <!-- Show only the module code here -->
-                <span>{{ m.code }}</span>
+                <span>{{ row.code }}</span>
               </p>
-              <!-- Row that shows the module's lecturer or a fallback label -->
+
               <p class="card-meta">
-                <!-- Check if there is at least one lecturer associated with this module -->
-                {% if m.lecturers.all %}
-                  <!-- Label for the lecturer information -->
-                  Lecturer -
-                  <!-- Show first lecturer's full name, or their username if no full name is set -->
-                  {{ m.lecturers.first.user.get_full_name|default:m.lecturers.first.user.username }}
-                {% else %}
-                  <!-- Fallback text indicating that a lecturer has not yet been assigned -->
-                  Lecturer - TBA
-                {% endif %}
+                Lecturer - {{ row.lecturer_name }}
               </p>
             </article>
           </a>
         {% endfor %}
       </div>
     {% else %}
-      <!-- Message shown when the student has no modules linked yet -->
       <p class="muted">No modules are currently assigned.</p>
     {% endif %}
   </section>
@@ -168,6 +158,46 @@
       </div>
     {% else %}
       <p class="muted">No global announcements have been posted yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="dashboard-section dashboard-card-section dashboard-modules-section">
+    <h2 class="section-title">Previous Years</h2>
+
+    {% if previous_year_groups %}
+      {% for group in previous_year_groups %}
+        <div class="week-block">
+          <h3 class="week-title">Year {{ group.year_number }}</h3>
+
+          {% if group.rows %}
+            <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
+              {% for row in group.rows %}
+                <a href="{{ row.url }}" class="card-link-wrapper">
+                  <article class="card card-clickable dashboard-card-panel dashboard-module-card">
+                    <h3 class="card-title">{{ row.title }}</h3>
+
+                    <p class="card-meta">
+                      <span>{{ row.code }}</span>
+                    </p>
+
+                    <p class="card-meta">
+                      Lecturer - {{ row.lecturer_name }}
+                    </p>
+
+                    <p class="card-meta">
+                      {{ row.academic_year_label }}
+                    </p>
+                  </article>
+                </a>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="muted">No historical modules recorded for this year.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    {% else %}
+      <p class="muted">No previous-year modules are available yet.</p>
     {% endif %}
   </section>
   

@@ -6,14 +6,28 @@
 {% block content %}
 <div class="dashboard-container">
   <section class="dashboard-section">
-    <h1 class="section-title">Admin Dashboard</h1>
-    <p class="muted">
-      Manage lecturer accounts, create modules, edit enrollment, and publish global announcements.
-    </p>
+    <div class="assessment-card-topline">
+      <div>
+        <h1 class="section-title">Admin Dashboard</h1>
+        <p class="muted">
+          Manage accounts, modules, enrolments, and global platform announcements.
+        </p>
+      </div>
+
+      {% if monitoring_url %}
+        <a href="{{ monitoring_url }}"
+           target="_blank"
+           rel="noopener noreferrer"
+           class="small-button">
+          Access Prometheus / Grafana Dashboard
+        </a>
+      {% endif %}
+    </div>
   </section>
 
   <section class="dashboard-section">
     <div class="card-grid">
+
       <a href="{% url 'accounts:admin_add_lecturer' %}" class="card-link-wrapper">
         <article class="card card-clickable">
           <h3 class="card-title">Add Lecturer</h3>
@@ -21,24 +35,65 @@
         </article>
       </a>
 
+      <a href="{% url 'accounts:admin_manage_lecturer_account' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Manage Lecturer Account</h3>
+          <p class="card-meta">Search by lecturer username to lock or unlock lecturer access.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_manage_student_account' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Manage Student Account</h3>
+          <p class="card-meta">Search by student username to lock or unlock student access.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_add_course' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Add Course</h3>
+          <p class="card-meta">Create a new course code, title, and course length.</p>
+        </article>
+      </a>
+
       <a href="{% url 'accounts:admin_add_module' %}" class="card-link-wrapper">
         <article class="card card-clickable">
           <h3 class="card-title">Add Module</h3>
-          <p class="card-meta">Create a new module with code, title, dates, and allowed courses.</p>
+          <p class="card-meta">Create a new module and define the course/year placements it can appear in.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_retire_module' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Retire Module</h3>
+          <p class="card-meta">Search for a module and make it unavailable now and/or in the next academic year rollover.</p>
         </article>
       </a>
 
       <a href="{% url 'accounts:admin_edit_enrollment' %}" class="card-link-wrapper">
         <article class="card card-clickable">
           <h3 class="card-title">Edit Enrollment</h3>
-          <p class="card-meta">Add / remove students and lecturers from modules.</p>
+          <p class="card-meta">Search-first add/remove enrolment tools for students and lecturers.</p>
+        </article>
+      </a>
+
+      <a href="{% url 'accounts:admin_manage_academic_year' %}" class="card-link-wrapper">
+        <article class="card card-clickable">
+          <h3 class="card-title">Manage Academic Year</h3>
+          <p class="card-meta">
+            {% if current_academic_year %}
+              Current: {{ current_academic_year.label }} · Sync offerings or start the next academic year.
+            {% else %}
+              Set the current academic year and synchronize live offerings.
+            {% endif %}
+          </p>
         </article>
       </a>
 
       <a href="{% url 'accounts:admin_create_global_announcement' %}" class="card-link-wrapper">
         <article class="card card-clickable">
           <h3 class="card-title">Create Global Announcement</h3>
-          <p class="card-meta">Publish a new global announcement to all students.</p>
+          <p class="card-meta">Publish a new global announcement to all users.</p>
         </article>
       </a>
     </div>
@@ -46,6 +101,7 @@
 
   <section class="dashboard-section">
     <div class="admin-stat-grid">
+      
       <article class="admin-stat-card">
         <span class="admin-stat-label">Students</span>
         <span class="admin-stat-value">{{ total_students }}</span>
@@ -62,14 +118,21 @@
       </article>
 
       <article class="admin-stat-card">
-        <span class="admin-stat-label">Student Enrolments</span>
-        <span class="admin-stat-value">{{ total_student_enrolments }}</span>
+        <span class="admin-stat-label">Courses</span>
+        <span class="admin-stat-value">{{ total_courses }}</span>
       </article>
 
       <article class="admin-stat-card">
-        <span class="admin-stat-label">Lecturer Enrolments</span>
-        <span class="admin-stat-value">{{ total_lecturer_enrolments }}</span>
+        <span class="admin-stat-label">Current Academic Year</span>
+        <span class="admin-stat-value">
+          {% if current_academic_year %}
+            {{ current_academic_year.label }}
+          {% else %}
+            —
+          {% endif %}
+        </span>
       </article>
+
     </div>
   </section>
 
@@ -97,7 +160,7 @@
 
               <form method="post" action="{% url 'accounts:admin_delete_global_announcement' announcement.id %}" class="admin-inline-form">
                 {% csrf_token %}
-                <button type="submit" class="small-button admin-remove-button">Delete</button>
+                <button type="submit" class="small-button">Delete</button>
               </form>
             </div>
           </div>

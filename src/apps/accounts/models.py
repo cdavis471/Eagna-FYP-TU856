@@ -1,9 +1,8 @@
 from django.contrib.auth.models import AbstractUser  # Import Django's base user model that can be extended
-from django.db import models, transaction  # Import Django's ORM model base classes and field types, and transaction management for atomic operations
+from django.db import models  # Import Django's ORM model base classes and field types, and transaction management for atomic operations
 from django.utils import timezone # Import timezone utilities to work with date and time fields in a timezone-aware manner
 from django.conf import settings  # Import project settings to reference AUTH_USER_MODEL, etc.
-from datetime import date # Import date class for handling module cycle dates
-from django.db.models import Sum # Import aggregation function for summing marks, etc.
+from django.db.models import Sum, Q # Import aggregation function for summing marks, etc. and Q for complex queries
 from django.core.exceptions import ValidationError  # Import exception for validating model data 
 import os  # Import os module for file path operations
 
@@ -54,6 +53,12 @@ class User(AbstractUser):  # Custom user model extending Django's AbstractUser
         return self.role == self.Role.ADMIN # Returns True if role field equals the ADMIN choice
 
 class StudentProfile(models.Model):  # Extra data model for users who are students
+
+    class Status(models.TextChoices):
+        ACTIVE = "ACTIVE", "Active"
+        COMPLETED = "COMPLETED", "Completed"
+        LOCKED = "LOCKED", "Locked"
+
     user = models.OneToOneField(  # One-to-one link between StudentProfile and User
         User,  # Related model is the custom User model
         on_delete=models.CASCADE,  # Delete student profile if the user is deleted
@@ -66,6 +71,23 @@ class StudentProfile(models.Model):  # Extra data model for users who are studen
         blank=True,
         help_text="Course Code(e.g. TU856 - No Name Included)"
     )
+
+    current_year = models.PositiveSmallIntegerField(default=1)
+
+    status = models.CharField(
+        max_length=16,
+        choices=Status.choices,
+        default=Status.ACTIVE,
+    )
+
+    def is_active_student(self):
+        return self.status == self.Status.ACTIVE
+
+    def is_completed_student(self):
+        return self.status == self.Status.COMPLETED
+
+    def is_locked_student(self):
+        return self.status == self.Status.LOCKED
 
     def __str__(self):  # String representation used in admin and shell
         return f"{self.student_number} - {self.user.get_full_name() or self.user.username}"  # Shows ID plus student name or username
@@ -80,6 +102,52 @@ class LecturerProfile(models.Model):  # Extra data model for users who are lectu
 
     def __str__(self):  # String representation for lecturer profile
         return f"{self.staff_id} - {self.user.get_full_name() or self.user.username}"  # Shows staff ID and lecturer name/username
+    
+# =========================
+# Courses
+# =========================
+
+class Course(models.Model):
+    code = models.CharField(max_length=16, unique=True)
+    title = models.CharField(max_length=255)
+    length_years = models.PositiveSmallIntegerField(default=4)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+    
+    def includes_year(self, year_number):
+        return 1 <= year_number <= self.length_years
+
+    def __str__(self):
+        return f"{self.code} - {self.title}"
+    
+# =========================
+# Academic Year
+# =========================
+
+class AcademicYear(models.Model):
+    label = models.CharField(max_length=16, unique=True)
+    start_date = models.DateField()
+    end_date = models.DateField()
+    is_current = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-start_date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["is_current"],
+                condition=Q(is_current=True),
+                name="unique_current_academic_year",
+            )
+        ]
+
+    def clean(self):
+        if self.start_date >= self.end_date:
+            raise ValidationError("Academic year end date must be after the start date.")
+
+    def __str__(self):
+        return self.label
 
 # =========================
 # Modules & Enrolment
@@ -88,195 +156,166 @@ class LecturerProfile(models.Model):  # Extra data model for users who are lectu
 class Module(models.Model):
     code = models.CharField(max_length=32, unique=True)
     title = models.CharField(max_length=255)
-
-    start_date = models.DateField(
-        null=True,
-        blank=True,
-        help_text="Module start date (month/day used for annual rollover).",
-    )
-    end_date = models.DateField(
-        null=True,
-        blank=True,
-        help_text="Module end date (month/day used; can be before start for Sep→May style modules).",
-    )
-
-    last_rollover_year = models.PositiveIntegerField(
-        default=0,
-        help_text="The start-year of the most recent rollover cycle (e.g. 2025).",
-    )
-
     is_active = models.BooleanField(default=True)
-
-    students = models.ManyToManyField(
-        StudentProfile,
-        through="ModuleEnrollmentStudent",
-        related_name="modules",
-        blank=True,
-    )
-    lecturers = models.ManyToManyField(
-        LecturerProfile,
-        through="ModuleEnrollmentLecturer",
-        related_name="modules",
-        blank=True,
-    )
-
-    allowed_courses = models.JSONField(
-        default=list,
-        blank=True,
-        help_text="List of course codes allowed to enroll (e.g. ['TU856','DT228']). Empty = no restriction.",
-    )
 
     def __str__(self):
         return f"{self.code} - {self.title}"
 
-    def _start_md(self):
-        return (self.start_date.month, self.start_date.day) if self.start_date else None
 
-    def _end_md(self):
-        return (self.end_date.month, self.end_date.day) if self.end_date else None
-
-    def current_cycle_window(self):
-        """
-        Returns (run_start, run_end) for the current cycle, based on last_rollover_year.
-        Handles cross-year modules like Sep→May.
-        """
-        if not self.start_date or not self.end_date:
-            return (None, None)
-
-        start_md = self._start_md()
-        end_md = self._end_md()
-        if not start_md or not end_md:
-            return (None, None)
-
-        start_year = self.last_rollover_year or self.start_date.year
-
-        run_start = date(start_year, start_md[0], start_md[1])
-
-        ends_next_year = (end_md[0], end_md[1]) < (start_md[0], start_md[1])
-        end_year = start_year + 1 if ends_next_year else start_year
-        run_end = date(end_year, end_md[0], end_md[1])
-
-        return (run_start, run_end)
-
-    def needs_rollover(self, today=None):
-        """
-        True if we've passed the module's start month/day in the current calendar year,
-        and we haven't rolled over for this year yet.
-        """
-        if not self.start_date:
-            return False
-
-        today = today or timezone.localdate()
-        start_md = self._start_md()
-        if not start_md:
-            return False
-
-        start_this_year = date(today.year, start_md[0], start_md[1])
-        return today >= start_this_year and self.last_rollover_year < today.year
-
-    @transaction.atomic
-    def rollover(self, today=None):
-        """
-        Wipes module content for a new iteration:
-        - Deletes assignments + submissions + grades + all related files
-        - Deletes weeks + week files
-        - Removes student enrolments
-        - Keeps lecturer enrolments
-        """
-        today = today or timezone.localdate()
-        if not self.needs_rollover(today=today):
-            return False
-
-        for wf in ModuleWeekFile.objects.filter(week__module=self):
-            if wf.file:
-                wf.file.delete(save=False)
-        ModuleWeekFile.objects.filter(week__module=self).delete()
-        ModuleWeek.objects.filter(module=self).delete()
-
-        for sf in SubmissionFile.objects.filter(submission__assignment__module=self):
-            if sf.file:
-                sf.file.delete(save=False)
-        SubmissionFile.objects.filter(submission__assignment__module=self).delete()
-
-        for af in AssignmentFile.objects.filter(assignment__module=self):
-            if af.file:
-                af.file.delete(save=False)
-        AssignmentFile.objects.filter(assignment__module=self).delete()
-
-        Assignment.objects.filter(module=self).delete()
-
-        Quiz.objects.filter(module=self).delete()
-
-        ModuleEnrollmentStudent.objects.filter(module=self).delete()
-
-        self.last_rollover_year = today.year
-        self.save(update_fields=["last_rollover_year"])
-
-        return True
-
-class ModuleEnrollmentStudent(models.Model):  # Through model representing a student's enrolment in a module
-    module = models.ForeignKey(  # Link to the module that the student is enrolled in
-        Module,  # Related module model
-        on_delete=models.CASCADE,  # Delete enrolment if module is deleted
-        related_name="student_enrolments",  # Reverse access: module.student_enrolments
+class ModulePlacement(models.Model):
+    module = models.ForeignKey(
+        Module,
+        on_delete=models.CASCADE,
+        related_name="placements",
     )
-    student = models.ForeignKey(  # Link to the student that is enrolled
-        StudentProfile,  # Related student profile
-        on_delete=models.CASCADE,  # Delete enrolment if student profile is deleted
-        related_name="module_enrolments",  # Reverse access: student_profile.module_enrolments
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="module_placements",
     )
-    enrolled_on = models.DateField(auto_now_add=True)  # Date when the student was enrolled, set automatically on creation
+    year_number = models.PositiveSmallIntegerField()
+    available_now = models.BooleanField(default=True)
+    available_next_rollover = models.BooleanField(default=True)
 
-    class Meta:  # Meta options for the student enrolment model
-        unique_together = ("module", "student")  # Ensure each student can only be enrolled once per module
+    class Meta:
+        ordering = ["course__code", "year_number", "module__code"]
+        unique_together = ("module", "course", "year_number")
 
-    def __str__(self):  # String representation of student enrolment
-        return f"{self.student} -> {self.module}"  # Shows which student is enrolled in which module
+    def clean(self):
+        if self.year_number < 1:
+            raise ValidationError("Year number starts at 1.")
 
-class ModuleEnrollmentLecturer(models.Model):  # Through model representing a lecturer assigned to a module
-    module = models.ForeignKey(  # Link to the module being taught
-        Module,  # Related module model
-        on_delete=models.CASCADE,  # Delete record if module is deleted
-        related_name="lecturer_enrolments",  # Reverse access: module.lektor_enrolments
+        if self.course_id and self.year_number > self.course.length_years:
+            raise ValidationError(
+                f"Year number cannot exceed the course length of ({self.course.length_years}) years."
+            )
+
+    def __str__(self):
+        return f"{self.module.code} -> {self.course.code} Year {self.year_number}"
+
+
+class ModuleOffering(models.Model):
+    placement = models.ForeignKey(
+        ModulePlacement,
+        on_delete=models.CASCADE,
+        related_name="offerings",
     )
-    lecturer = models.ForeignKey(  # Link to the lecturer teaching the module
-        LecturerProfile,  # Related lecturer profile
-        on_delete=models.CASCADE,  # Delete record if lecturer profile is deleted
-        related_name="module_enrolments",  # Reverse access: lecturer_profile.module_enrolments
+    academic_year = models.ForeignKey(
+        AcademicYear,
+        on_delete=models.CASCADE,
+        related_name="module_offerings",
     )
-    is_primary = models.BooleanField(default=False)  # Flag to indicate if this lecturer is the primary/lead for this module
+    is_current = models.BooleanField(default=False)
+    is_read_only = models.BooleanField(default=False)
 
-    class Meta:  # Meta configuration for lecturer enrolment
-        unique_together = ("module", "lecturer")  # A lecturer should only appear once per module
+    class Meta:
+        ordering = [
+            "placement__course__code",
+            "placement__year_number",
+            "placement__module__code",
+        ]
+        unique_together = ("placement", "academic_year")
 
-    def __str__(self):  # String representation of lecturer enrolment
-        return f"{self.lecturer} -> {self.module}"  # Shows which lecturer is linked to which module
+    @property
+    def module(self):
+        return self.placement.module
+
+    @property
+    def course(self):
+        return self.placement.course
+
+    @property
+    def year_number(self):
+        return self.placement.year_number
+
+    def clean(self):
+        if self.is_current and self.is_read_only:
+            raise ValidationError("A current module offering cannot also be read-only.")
+
+    def __str__(self):
+        return (
+            f"{self.placement.module.code} - "
+            f"{self.placement.course.code} Year {self.placement.year_number} "
+            f"({self.academic_year.label})"
+        )
+
+
+class ModuleOfferingEnrollmentStudent(models.Model):
+    offering = models.ForeignKey(
+        ModuleOffering,
+        on_delete=models.CASCADE,
+        related_name="student_enrolments",
+    )
+    student = models.ForeignKey(
+        StudentProfile,
+        on_delete=models.CASCADE,
+        related_name="offering_enrolments",
+    )
+    enrolled_on = models.DateField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ("offering", "student")
+
+    def __str__(self):
+        return f"{self.student} -> {self.offering}"
+
+
+class ModuleOfferingEnrollmentLecturer(models.Model):
+    offering = models.ForeignKey(
+        ModuleOffering,
+        on_delete=models.CASCADE,
+        related_name="lecturer_enrolments",
+    )
+    lecturer = models.ForeignKey(
+        LecturerProfile,
+        on_delete=models.CASCADE,
+        related_name="offering_enrolments",
+    )
+    is_primary = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("offering", "lecturer")
+
+    def __str__(self):
+        return f"{self.lecturer} -> {self.offering}"
 
 # =========================
 # Assignments & Submissions
 # =========================
 
-class Assignment(models.Model):  # Represents an assignment belonging to a module
-    module = models.ForeignKey(  # Link to the module this assignment is for
-        Module,  # Related module model
-        on_delete=models.CASCADE,  # Delete assignments if the module is deleted
-        related_name="assignments",  # Reverse access: module.assignments
+class Assignment(models.Model):
+    offering = models.ForeignKey(
+        ModuleOffering,
+        on_delete=models.CASCADE,
+        related_name="assignments",
     )
-    title = models.CharField(max_length=255)  # Title of the assignment shown to students/lecturers
-    description = models.TextField(blank=True)  # Detailed description or instructions for the assignment
-    due_datetime = models.DateTimeField()  # Date and time when the assignment is due
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    due_datetime = models.DateTimeField()
 
-    max_mark = models.DecimalField(  # Maximum mark that can be awarded for this assignment
-        max_digits=5,  # Total number of digits allowed in the stored number
-        decimal_places=2,  # Number of decimal places (e.g. 100.00)
-        default=100.00,  # Default maximum mark is 100.00
+    max_mark = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=100.00,
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)  # Timestamp when the assignment was created
-    updated_at = models.DateTimeField(auto_now=True)  # Timestamp automatically updated whenever the assignment is saved
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):  # String representation of an assignment
-        return f"{self.module.code} - {self.title}"  # Shows module code followed by assignment title
+    @property
+    def module(self):
+        return self.offering.module
+
+    @property
+    def course(self):
+        return self.offering.course
+
+    @property
+    def academic_year(self):
+        return self.offering.academic_year
+
+    def __str__(self):
+        return f"{self.module.code} - {self.title}"
 
 class AssignmentSubmission(models.Model):  # Represents a student's submission for an assignment
     class Status(models.TextChoices):  # Inner choices class to represent submission status
@@ -306,12 +345,13 @@ class AssignmentSubmission(models.Model):  # Represents a student's submission f
     def __str__(self):  # String representation for a submission
         return f"{self.assignment} - {self.student}"  # Shows assignment and student together
 
-def submission_file_upload_path(instance, filename):  # Helper function to compute upload path for submission files
-    return (  # Return a dynamic path that organizes files by module, assignment, and student
-        f"submission_files/{instance.submission.assignment.module.code}/"  # Folder by module code
-        f"{instance.submission.assignment.id}/"  # Nested folder by assignment ID
-        f"{instance.submission.student.student_number or instance.submission.student.id}/"  # Folder by student number or ID
-        f"{filename}"  # Final part is the original filename
+def submission_file_upload_path(instance, filename):
+    return (
+        f"submission_files/{instance.submission.assignment.offering.id}/"
+        f"{instance.submission.assignment.module.code}/"
+        f"{instance.submission.assignment.id}/"
+        f"{instance.submission.student.student_number or instance.submission.student.id}/"
+        f"{filename}"
     )
 
 class SubmissionFile(models.Model):  # Represents an individual file attached to a student's submission
@@ -357,10 +397,11 @@ class AssignmentGrade(models.Model):  # Represents the grade/mark for a submissi
     def __str__(self):  # String representation of grade
         return f"{self.submission} - {self.value}/{self.submission.assignment.max_mark}"  # Shows submission and mark over max
 
-def assignment_file_upload_path(instance, filename):  # Helper function for assignment file storage path
-    return (  # Return path that organizes files by module and assignment
-        f"assignment_files/{instance.assignment.module.code}/"  # Folder by module code
-        f"{instance.assignment.id}/{filename}"  # Nested folder by assignment ID and filename
+def assignment_file_upload_path(instance, filename):
+    return (
+        f"assignment_files/{instance.assignment.offering.id}/"
+        f"{instance.assignment.module.code}/"
+        f"{instance.assignment.id}/{filename}"
     )
 
 class AssignmentFile(models.Model):  # Represents files attached by lecturers to an assignment
@@ -383,8 +424,8 @@ class AssignmentFile(models.Model):  # Represents files attached by lecturers to
         return self.original_name or self.file.name  # Prefer original file name or fallback to stored name
 
 class Quiz(models.Model):
-    module = models.ForeignKey(
-        Module,
+    offering = models.ForeignKey(
+        ModuleOffering,
         on_delete=models.CASCADE,
         related_name="quizzes",
     )
@@ -411,6 +452,18 @@ class Quiz(models.Model):
 
     class Meta:
         ordering = ["close_datetime", "title"]
+
+    @property
+    def module(self):
+        return self.offering.module
+
+    @property
+    def course(self):
+        return self.offering.course
+
+    @property
+    def academic_year(self):
+        return self.offering.academic_year
 
     def __str__(self):
         return f"{self.module.code} - Quiz - {self.title}"
@@ -567,27 +620,40 @@ class QuizAnswer(models.Model):
     def __str__(self):
         return f"{self.attempt} - {self.question}"
 
-class ModuleWeek(models.Model):  # Represents a single teaching week within a module
-    module = models.ForeignKey(  # Link to the module this week belongs to
-        Module,  # Related module model
-        on_delete=models.CASCADE,  # Delete week if module is deleted
-        related_name="weeks",  # Reverse access: module.weeks
+class ModuleWeek(models.Model):
+    offering = models.ForeignKey(
+        ModuleOffering,
+        on_delete=models.CASCADE,
+        related_name="weeks",
     )
-    week_number = models.PositiveSmallIntegerField()  # Numeric week indicator (e.g. 1–30)
-    title = models.CharField(max_length=255, blank=True, default="")  # Optional human-readable title for the week
-    description = models.TextField(blank=True)  # Optional text description or summary of the week’s content
+    week_number = models.PositiveSmallIntegerField()
+    title = models.CharField(max_length=255, blank=True, default="")
+    description = models.TextField(blank=True)
 
-    class Meta:  # Meta configuration for ModuleWeek
-        unique_together = ("module", "week_number")  # Prevent duplicate week numbers for the same module
-        ordering = ["week_number"]  # Default ordering of weeks is ascending by week_number
+    class Meta:
+        unique_together = ("offering", "week_number")
+        ordering = ["week_number"]
 
-    def __str__(self):  # String representation of a module week
-        return f"{self.module.code} - Week {self.week_number}"  # Shows module code plus week number
+    @property
+    def module(self):
+        return self.offering.module
 
-def module_week_file_upload_path(instance, filename):  # Helper to determine upload path for weekly module files
-    return (  # Build a structured path for module week files
-        f"module_files/{instance.week.module.code}/"  # Folder by module code
-        f"week-{instance.week.week_number}/{filename}"  # Nested folder by week number and filename
+    @property
+    def course(self):
+        return self.offering.course
+
+    @property
+    def academic_year(self):
+        return self.offering.academic_year
+
+    def __str__(self):
+        return f"{self.module.code} - Week {self.week_number}"
+
+def module_week_file_upload_path(instance, filename):
+    return (
+        f"module_files/{instance.week.offering.id}/"
+        f"{instance.week.module.code}/"
+        f"week-{instance.week.week_number}/{filename}"
     )
 
 class ModuleWeekFile(models.Model):  # Represents a file resource attached to a specific teaching week
@@ -658,9 +724,9 @@ class ParsedDocument(models.Model):
 
     def get_source_module(self):
         if self.week_file_id:
-            return self.week_file.week.module
+            return self.week_file.week.offering.module
         if self.assignment_file_id:
-            return self.assignment_file.assignment.module
+            return self.assignment_file.assignment.offering.module
         return None
 
     def get_source_file(self):
@@ -729,8 +795,8 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications",
     )
-    module = models.ForeignKey(
-        Module,
+    offering = models.ForeignKey(
+        ModuleOffering,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -756,6 +822,10 @@ class Notification(models.Model):
                 name="unique_notification_event_per_user",
             )
         ]
+
+    @property
+    def module(self):
+        return self.offering.module if self.offering_id else None
 
     def mark_as_read(self):
         if not self.is_read:
@@ -793,8 +863,8 @@ class GlobalAnnouncement(models.Model):
             cls.objects.filter(id__in=stale_ids).delete()
 
 class ModuleAnnouncement(models.Model):
-    module = models.ForeignKey(
-        Module,
+    offering = models.ForeignKey(
+        ModuleOffering,
         on_delete=models.CASCADE,
         related_name="module_announcements",
     )
@@ -811,13 +881,25 @@ class ModuleAnnouncement(models.Model):
     class Meta:
         ordering = ["-created_at", "-id"]
 
+    @property
+    def module(self):
+        return self.offering.module
+
+    @property
+    def course(self):
+        return self.offering.course
+
+    @property
+    def academic_year(self):
+        return self.offering.academic_year
+
     def __str__(self):
         return f"{self.module.code} - {self.title}"
 
     @classmethod
-    def trim_to_latest_three_for_module(cls, module):
+    def trim_to_latest_three_for_offering(cls, offering):
         stale_ids = list(
-            cls.objects.filter(module=module)
+            cls.objects.filter(offering=offering)
             .order_by("-created_at", "-id")
             .values_list("id", flat=True)[3:]
         )

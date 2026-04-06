@@ -1,0 +1,68 @@
+﻿{% extends "accounts/base_admin.html" %}
+
+{% block title %}Manage Student Account | Eagna{% endblock %}
+{% block admin_header_title %}Manage Student Account{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <section class="dashboard-section admin-back-row">
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+  </section>
+
+  <section class="dashboard-section">
+    <h1 class="section-title">Manage Student Account</h1>
+    <p class="muted">Search by the student username/email to lock or unlock access.</p>
+  </section>
+
+  <section class="dashboard-section">
+    <div class="week-block">
+      <form method="get" class="admin-stacked-form admin-form-shell">
+        <div class="form-group">
+          <label for="id_username">Student Username</label>
+          <input type="text" id="id_username" name="username" value="{{ username_query }}" placeholder="student@mytudublin.ie">
+        </div>
+
+        <button type="submit">Search Student</button>
+      </form>
+
+      {% if search_error %}
+        <ul class="error-list">
+          <li>{{ search_error }}</li>
+        </ul>
+      {% endif %}
+
+      {% if student_result %}
+        <div class="admin-entity-summary">
+          <h2 class="week-title">{{ student_result.user.get_full_name|default:student_result.user.username }}</h2>
+          <p class="card-meta">
+            Username: {{ student_result.user.username }}<br>
+            Student Number: {{ student_result.student_number }}<br>
+            Course: {{ student_result.course|default:"N/A" }}<br>
+            Current Year: {{ student_result.current_year }}<br>
+            Status:
+            <span class="admin-status-pill admin-status-pill--{{ student_result.status|lower }}">
+              {{ student_result.get_status_display }}
+            </span>
+          </p>
+        </div>
+
+        <div class="announcement-actions">
+          <form method="post" class="admin-inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="student_id" value="{{ student_result.id }}">
+            <input type="hidden" name="action" value="lock_student">
+            <button type="submit" class="small-button">Lock Student Account</button>
+          </form>
+
+          <form method="post" class="admin-inline-form">
+            {% csrf_token %}
+            <input type="hidden" name="student_id" value="{{ student_result.id }}">
+            <input type="hidden" name="action" value="unlock_student">
+            <button type="submit" class="small-button">Unlock Student Account</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+</div>
+{% endblock %}

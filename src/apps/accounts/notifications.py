@@ -4,17 +4,18 @@ from .models import Notification
 
 User = get_user_model()
 
+
 def create_notification(
     *,
     recipient,
-    module=None,
+    offering=None,
     title,
     redirect_url="",
     notification_type=Notification.Type.GENERAL,
     event_key=None,
 ):
     defaults = {
-        "module": module,
+        "offering": offering,
         "title": title,
         "redirect_url": redirect_url,
         "notification_type": notification_type,
@@ -37,7 +38,7 @@ def create_notification(
 def create_notifications_for_users(
     recipients,
     *,
-    module=None,
+    offering=None,
     title,
     redirect_url="",
     notification_type=Notification.Type.GENERAL,
@@ -51,7 +52,7 @@ def create_notifications_for_users(
     for recipient in recipients:
         _, created = create_notification(
             recipient=recipient,
-            module=module,
+            offering=offering,
             title=title,
             redirect_url=redirect_url,
             notification_type=notification_type,
@@ -63,8 +64,8 @@ def create_notifications_for_users(
     return created_count
 
 
-def notify_module_students(
-    module,
+def notify_offering_students(
+    offering,
     *,
     title,
     redirect_url="",
@@ -72,12 +73,12 @@ def notify_module_students(
     event_key=None,
 ):
     recipients = User.objects.filter(
-        student_profile__modules=module
+        student_profile__offering_enrolments__offering=offering
     ).distinct()
 
     return create_notifications_for_users(
         recipients,
-        module=module,
+        offering=offering,
         title=title,
         redirect_url=redirect_url,
         notification_type=notification_type,
@@ -85,8 +86,8 @@ def notify_module_students(
     )
 
 
-def notify_module_lecturers(
-    module,
+def notify_offering_lecturers(
+    offering,
     *,
     title,
     redirect_url="",
@@ -94,12 +95,12 @@ def notify_module_lecturers(
     event_key=None,
 ):
     recipients = User.objects.filter(
-        lecturer_profile__modules=module
+        lecturer_profile__offering_enrolments__offering=offering
     ).distinct()
 
     return create_notifications_for_users(
         recipients,
-        module=module,
+        offering=offering,
         title=title,
         redirect_url=redirect_url,
         notification_type=notification_type,
