@@ -17,7 +17,7 @@ echo "Creating admin user..."
 python manage.py shell <<'PY'
 from apps.accounts.models import User
 
-USERNAME = "CDavis471@outlook.com"
+USERNAME = "cdavis471@outlook.com"
 PASSWORD = "DevPass123!"
 FIRST_NAME = "Conor"
 LAST_NAME = "Davis"
@@ -35,6 +35,7 @@ if existing:
     existing.set_password(PASSWORD)
     existing.save()
     print(f"Updated existing admin user: {USERNAME}")
+    
 else:
     User.objects.create_superuser(
         username=USERNAME,

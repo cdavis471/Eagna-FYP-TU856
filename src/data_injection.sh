@@ -31,13 +31,13 @@ from apps.accounts.models import (
 )
 
 COURSE_CODE = "TU856"
-COURSE_TITLE = "Computing with Machine Learning and Artificial Intelligence"
+COURSE_TITLE = "BSc in Computer Science"
 COURSE_LENGTH = 4
 
 ACADEMIC_YEAR_START = date(2026, 9, 1)
 ACADEMIC_YEAR_END = date(2027, 5, 31)
 
-STUDENT_EMAIL = "C20441826@mytudublin.ie"
+STUDENT_EMAIL = "c20441826@mytudublin.ie"
 STUDENT_FIRST_NAME = "Conor"
 STUDENT_LAST_NAME = "Davis"
 STUDENT_NUMBER = "C20441826"

@@ -8,7 +8,7 @@ def notifications_context(request):
 
     notifications = list(
         Notification.objects.filter(recipient=user)
-        .select_related("module")
+        .select_related("offering__placement__module")
         .order_by("-created_at", "-id")
     )
 
