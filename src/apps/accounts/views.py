@@ -536,7 +536,7 @@ def _create_next_current_module_offerings(academic_year: AcademicYear):
             module__is_active=True,
             course__is_active=True,
         )
-        .order_by("course__code", "year_number", "module__code")
+        .order_by("course__code", "module__code")
     )
 
     for placement in placements:
