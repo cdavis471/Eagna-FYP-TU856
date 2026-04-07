@@ -2705,25 +2705,33 @@ def register_student(request):
 
         valid_module_ids = set(
             ModulePlacement.objects.filter(
-                course__code=course,
+                course__code__iexact=course,
                 available_now=True,
                 module__is_active=True,
             ).values_list("module_id", flat=True)
         )
 
         selected_modules = []
+        submitted_module_ids: list[int] = []
+
         if module_ids:
+            submitted_module_ids = [
+                int(module_id)
+                for module_id in module_ids
+                if str(module_id).isdigit()
+            ]
 
-            selected_modules = list(
-                Module.objects.filter(
-                    pk__in=set(module_ids) & valid_module_ids,
-                    is_active=True,
-                ).order_by("code")
-            )
-
-            if len(selected_modules) != len(module_ids):
+            invalid_ids = set(submitted_module_ids) - valid_module_ids
+            if invalid_ids or len(submitted_module_ids) != len(module_ids):
                 errors.setdefault("modules", []).append(
                     "One or more selected modules are invalid for the chosen course."
+                )
+            else:
+                selected_modules = list(
+                    Module.objects.filter(
+                        pk__in=submitted_module_ids,
+                        is_active=True,
+                    ).order_by("code")
                 )
 
         if errors:
