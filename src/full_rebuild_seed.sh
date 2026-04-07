@@ -226,58 +226,71 @@ def parse_module_label(raw_text: str):
 
     return title, status
 
+from collections import defaultdict, deque
+
 def scrape_course_structure(course_info: dict) -> dict:
     html = fetch_html(course_info["url"])
     soup = BeautifulSoup(html, "lxml")
 
-    start_node = soup.find(string=lambda s: s and "Module listing" in normalise_space(s))
-    if not start_node:
+    lines = [
+        normalise_space(line)
+        for line in soup.get_text("\n", strip=True).splitlines()
+    ]
+    lines = [line for line in lines if line]
+
+    try:
+        start_index = lines.index("Module listing")
+    except ValueError:
         raise RuntimeError(f"Could not find module listing on {course_info['url']}")
+
+    # Build module-link queues keyed by visible link text, in page order.
+    hrefs_by_label = defaultdict(deque)
+    for a in soup.find_all("a", href=True):
+        href = a.get("href") or ""
+        if "/study/modules/" not in href:
+            continue
+
+        label = normalise_space(a.get_text(" ", strip=True))
+        if not label:
+            continue
+
+        hrefs_by_label[label].append(urljoin(course_info["url"], href))
 
     course_map = {1: [], 2: [], 3: [], 4: []}
     current_year = None
     current_semester = None
-    seen = set()
 
-    for node in start_node.parent.next_elements:
-        if isinstance(node, NavigableString):
-            text = normalise_space(str(node))
-            if text in YEAR_MARKERS:
-                current_year = YEAR_MARKERS[text]
-                current_semester = None
-                continue
-            if text in SEMESTER_MARKERS:
-                current_semester = SEMESTER_MARKERS[text]
-                continue
-            if text.startswith("How to Apply") or text.startswith("Progression") or text.startswith("Contact Us"):
-                break
-            continue
+    for line in lines[start_index + 1:]:
+        if line in {"How to Apply", "Progression", "Contact Us"}:
+            break
 
-        if getattr(node, "name", None) != "a":
-            continue
-
-        raw_label = normalise_space(node.get_text(" ", strip=True))
-        if raw_label in YEAR_MARKERS:
-            current_year = YEAR_MARKERS[raw_label]
+        if line in YEAR_MARKERS:
+            current_year = YEAR_MARKERS[line]
             current_semester = None
             continue
-        if raw_label in SEMESTER_MARKERS:
-            current_semester = SEMESTER_MARKERS[raw_label]
+
+        if line in SEMESTER_MARKERS:
+            current_semester = SEMESTER_MARKERS[line]
             continue
+
         if not current_year or not current_semester:
             continue
 
-        href = node.get("href") or ""
-        if "/study/modules/" not in href:
+        title, status = parse_module_label(line)
+
+        # Skip non-module text that may appear inside the listing area.
+        if status == "UNKNOWN":
             continue
 
-        title, status = parse_module_label(raw_label)
-        absolute_url = urljoin(course_info["url"], href)
-
-        key = (current_year, current_semester, title, absolute_url)
-        if key in seen:
+        label = line
+        if not hrefs_by_label[label]:
+            print(
+                f"WARNING: No module href found for '{label}' "
+                f"on {course_info['code']} year {current_year} semester {current_semester}"
+            )
             continue
-        seen.add(key)
+
+        absolute_url = hrefs_by_label[label].popleft()
 
         course_map[current_year].append(
             {
@@ -309,9 +322,10 @@ def build_course_blueprints():
                 if title == "Final Year Project":
                     code = f"FYP-{course_info['code']}"
                 else:
-                    if title not in module_code_cache:
-                        module_code_cache[title] = extract_module_code(item["url"], title)
-                    code = module_code_cache[title]
+                    cache_key = item["url"]
+                    if cache_key not in module_code_cache:
+                        module_code_cache[cache_key] = extract_module_code(item["url"], title)
+                    code = module_code_cache[cache_key]
 
                 item["code"] = code
 
