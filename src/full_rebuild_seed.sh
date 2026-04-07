@@ -740,10 +740,11 @@ def create_quiz_questions(quiz: Quiz):
             marks=Decimal("1.00"),
             display_order=idx,
         )
-        for option_text, is_correct in options:
+        for option_idx, (option_text, is_correct) in enumerate(options, start=1):
             QuizOption.objects.create(
                 question=question,
-                option_text=option_text,
+                text=option_text,
+                display_order=option_idx,
                 is_correct=is_correct,
             )
 
@@ -780,25 +781,36 @@ def create_quiz_attempts(quiz: Quiz):
     questions = list(quiz.questions.prefetch_related("options").all())
 
     for student in students:
+        submitted_at = timezone.now() - timedelta(days=1)
+        started_at = submitted_at - timedelta(minutes=quiz.time_limit_minutes)
         attempt = QuizAttempt.objects.create(
             quiz=quiz,
             student=student,
-            started_at=timezone.now() - timedelta(days=2),
-            submitted_at=timezone.now() - timedelta(days=1),
+            attempt_number=1,
             status=QuizAttempt.Status.SUBMITTED,
-            score=Decimal("2.00"),
+            expires_at=submitted_at,
+            submitted_at=submitted_at,
+            raw_score=Decimal("2.00"),
             weighted_score=Decimal("66.67"),
         )
+
         for question in questions:
             correct_options = list(question.options.filter(is_correct=True))
             selected = correct_options[0] if correct_options else question.options.first()
+
+            selected_option_ids = []
+            if question.question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+                selected_option_ids = [opt.id for opt in correct_options] if correct_options else ([selected.id] if selected else [])
+            elif selected:
+                selected_option_ids = [selected.id]
+
             QuizAnswer.objects.create(
                 attempt=attempt,
                 question=question,
                 selected_option=selected,
-                selected_text=selected.option_text if selected else "",
-                is_correct=bool(selected and selected.is_correct),
-                marks_awarded=Decimal("1.00") if selected and selected.is_correct else Decimal("0.00"),
+                selected_option_ids=selected_option_ids,
+                is_correct=bool(selected and selected.is_correct) if question.question_type != QuizQuestion.Type.MULTIPLE_SELECT else bool(correct_options),
+                awarded_marks=Decimal("1.00") if selected or correct_options else Decimal("0.00"),
             )
 
 def lecturer_name_generator():
@@ -972,10 +984,11 @@ def create_quiz_questions(quiz: Quiz):
             marks=Decimal("1.00"),
             display_order=idx,
         )
-        for option_text, is_correct in options:
+        for option_idx, (option_text, is_correct) in enumerate(options, start=1):
             QuizOption.objects.create(
                 question=question,
-                option_text=option_text,
+                text=option_text,
+                display_order=option_idx,
                 is_correct=is_correct,
             )
 
@@ -1012,25 +1025,36 @@ def create_quiz_attempts(quiz: Quiz):
     questions = list(quiz.questions.prefetch_related("options").all())
 
     for student in students:
+        submitted_at = timezone.now() - timedelta(days=1)
+        started_at = submitted_at - timedelta(minutes=quiz.time_limit_minutes)
         attempt = QuizAttempt.objects.create(
             quiz=quiz,
             student=student,
-            started_at=timezone.now() - timedelta(days=2),
-            submitted_at=timezone.now() - timedelta(days=1),
+            attempt_number=1,
             status=QuizAttempt.Status.SUBMITTED,
-            score=Decimal("2.00"),
+            expires_at=submitted_at,
+            submitted_at=submitted_at,
+            raw_score=Decimal("2.00"),
             weighted_score=Decimal("66.67"),
         )
+
         for question in questions:
             correct_options = list(question.options.filter(is_correct=True))
             selected = correct_options[0] if correct_options else question.options.first()
+
+            selected_option_ids = []
+            if question.question_type == QuizQuestion.Type.MULTIPLE_SELECT:
+                selected_option_ids = [opt.id for opt in correct_options] if correct_options else ([selected.id] if selected else [])
+            elif selected:
+                selected_option_ids = [selected.id]
+
             QuizAnswer.objects.create(
                 attempt=attempt,
                 question=question,
                 selected_option=selected,
-                selected_text=selected.option_text if selected else "",
-                is_correct=bool(selected and selected.is_correct),
-                marks_awarded=Decimal("1.00") if selected and selected.is_correct else Decimal("0.00"),
+                selected_option_ids=selected_option_ids,
+                is_correct=bool(selected and selected.is_correct) if question.question_type != QuizQuestion.Type.MULTIPLE_SELECT else bool(correct_options),
+                awarded_marks=Decimal("1.00") if selected or correct_options else Decimal("0.00"),
             )
 
 # ----------------------------
