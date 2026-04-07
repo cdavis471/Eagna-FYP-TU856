@@ -37,7 +37,7 @@
               <h3 class="week-title">{{ module_row.code }} – {{ module_row.title }}</h3>
 
               <p class="card-meta">
-                {{ module_row.academic_year_label }} · Year {{ module_row.year_number }}
+                {{ module_row.academic_year_label }}
               </p>
 
               {% if profile_role == "lecturer" %}
@@ -86,7 +86,7 @@
     {% if previous_year_groups %}
       {% for group in previous_year_groups %}
         <div class="week-block">
-          <h3 class="week-title">Year {{ group.year_number }}</h3>
+          <h3 class="week-title">{{ group.academic_year_label }}</h3>
 
           {% if group.module_rows %}
             {% for module_row in group.module_rows %}
@@ -96,7 +96,7 @@
                     <h3 class="week-title">{{ module_row.code }} – {{ module_row.title }}</h3>
 
                     <p class="card-meta">
-                      {{ module_row.academic_year_label }} · Year {{ module_row.year_number }}
+                      {{ module_row.academic_year_label }}
                     </p>
 
                     {% if profile_role == "lecturer" %}

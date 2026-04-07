@@ -116,7 +116,7 @@
     {% if previous_year_groups %}
       {% for group in previous_year_groups %}
         <div class="week-block">
-          <h3 class="week-title">Year {{ group.year_number }}</h3>
+          <h3 class="week-title">{{ group.academic_year_label }}</h3>
 
           {% if group.rows %}
             <div class="card-grid dashboard-cards-grid dashboard-modules-grid">

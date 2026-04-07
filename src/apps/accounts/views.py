@@ -61,11 +61,10 @@ def _ensure_primary_lecturer(offering: ModuleOffering):
         first_enrolment.is_primary = True
         first_enrolment.save(update_fields=["is_primary"])
 
-def _get_available_course_codes_for_year(year_number: int) -> list[str]:
+def _get_available_course_codes() -> list[str]:
     return list(
         Course.objects.filter(
             is_active=True,
-            module_placements__year_number=year_number,
             module_placements__available_now=True,
             module_placements__module__is_active=True,
         )
@@ -81,17 +80,21 @@ def _get_course_by_code(course_code: str):
     return Course.objects.filter(code__iexact=course_code, is_active=True).first()
 
 
-def _build_module_selector_rows(year_number: int) -> list[dict]:
+def _build_module_selector_rows(course_code: str | None = None) -> list[dict]:
     placements = (
         ModulePlacement.objects.select_related("module", "course")
         .filter(
-            year_number=year_number,
             available_now=True,
             module__is_active=True,
             course__is_active=True,
         )
-        .order_by("module__code", "module__title", "course__code")
+        .order_by("module__code", "module__title", "course__code", "year_number")
     )
+
+    if course_code:
+        placements = placements.filter(
+            course__code__iexact=_normalize_course_code(course_code)
+        )
 
     rows_by_module_id: dict[int, dict] = {}
 
@@ -196,15 +199,7 @@ def _get_lecturer_by_username(username: str):
     )
 
 def _derived_student_status_after_unlock(student: StudentProfile):
-    course = _get_course_by_code(student.course or "")
-    if not course:
-        return StudentProfile.Status.ACTIVE
-
-    if student.current_year >= course.length_years:
-        return StudentProfile.Status.COMPLETED
-
     return StudentProfile.Status.ACTIVE
-
 
 def _current_module_ids_for_student(student: StudentProfile):
     current_year = _get_current_academic_year()
@@ -244,7 +239,6 @@ def _build_addable_modules_for_student(student: StudentProfile):
         Module.objects.filter(
             is_active=True,
             placements__course__code__iexact=course_code,
-            placements__year_number=student.current_year,
             placements__available_now=True,
             placements__course__is_active=True,
         )
@@ -413,16 +407,34 @@ def _find_current_student_offering(student: StudentProfile, module: Module, acad
     if not course_code:
         return None
 
+    existing_offering = (
+        ModuleOffering.objects.select_related(
+            "placement__module",
+            "placement__course",
+            "academic_year",
+        )
+        .filter(
+            academic_year=academic_year,
+            is_current=True,
+            placement__module=module,
+            placement__course__code__iexact=course_code,
+        )
+        .order_by("placement__year_number", "id")
+        .first()
+    )
+    if existing_offering:
+        return existing_offering
+
     placement = (
         ModulePlacement.objects.select_related("module", "course")
         .filter(
             module=module,
             course__code__iexact=course_code,
-            year_number=student.current_year,
             available_now=True,
             module__is_active=True,
             course__is_active=True,
         )
+        .order_by("year_number", "id")
         .first()
     )
 
@@ -625,39 +637,6 @@ def _copy_lecturers_to_next_current_offerings(previous_current_year: AcademicYea
 
     return created_count
 
-
-def _advance_active_students_for_new_academic_year():
-    promoted_count = 0
-    completed_count = 0
-    skipped_count = 0
-
-    active_students = (
-        StudentProfile.objects.select_related("user")
-        .filter(status=StudentProfile.Status.ACTIVE)
-        .order_by("id")
-    )
-
-    for student in active_students:
-        course = _get_course_by_code(student.course or "")
-        if not course:
-            skipped_count += 1
-            continue
-
-        next_year_number = student.current_year + 1
-
-        if next_year_number > course.length_years:
-            student.current_year = course.length_years
-            student.status = StudentProfile.Status.COMPLETED
-            student.save(update_fields=["current_year", "status"])
-            completed_count += 1
-        else:
-            student.current_year = next_year_number
-            student.save(update_fields=["current_year"])
-            promoted_count += 1
-
-    return promoted_count, completed_count, skipped_count
-
-
 def _start_new_academic_year_transition(current_year: AcademicYear):
     next_window = _build_next_academic_year_window(current_year)
 
@@ -693,16 +672,12 @@ def _start_new_academic_year_transition(current_year: AcademicYear):
         placement_updates = _roll_forward_module_placement_availability()
         created_offerings = _create_next_current_module_offerings(next_year)
         copied_lecturers = _copy_lecturers_to_next_current_offerings(current_year, next_year)
-        promoted_count, completed_count, skipped_count = _advance_active_students_for_new_academic_year()
 
     return {
         "next_year": next_year,
         "placement_updates": placement_updates,
         "created_offerings": created_offerings,
         "copied_lecturers": copied_lecturers,
-        "promoted_count": promoted_count,
-        "completed_count": completed_count,
-        "skipped_count": skipped_count,
     }
 
 def _get_accessible_current_offering_by_code_for_user(user: User, code: str):
@@ -839,13 +814,14 @@ def _previous_offering_queryset_for_student(student: StudentProfile):
         .prefetch_related("lecturer_enrolments__lecturer__user")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("placement__year_number", "academic_year__start_date", "placement__module__code")
+        .order_by("-academic_year__start_date", "placement__module__code")
     )
 
     if current_year:
         qs = qs.exclude(academic_year=current_year, is_current=True)
 
     return qs
+
 
 def _previous_offering_queryset_for_lecturer(lecturer: LecturerProfile):
     current_year = _get_current_academic_year()
@@ -857,7 +833,7 @@ def _previous_offering_queryset_for_lecturer(lecturer: LecturerProfile):
         .select_related("placement__module", "placement__course", "academic_year")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("placement__year_number", "academic_year__start_date", "placement__module__code")
+        .order_by("-academic_year__start_date", "placement__module__code")
     )
 
     if current_year:
@@ -865,18 +841,23 @@ def _previous_offering_queryset_for_lecturer(lecturer: LecturerProfile):
 
     return qs
 
-def _group_offerings_by_year_number(offerings):
+
+def _group_offerings_by_academic_year(offerings):
     grouped = defaultdict(list)
+    ordered_year_ids = []
 
     for offering in offerings:
-        grouped[offering.year_number].append(offering)
+        academic_year_id = offering.academic_year_id
+        if academic_year_id not in grouped:
+            ordered_year_ids.append(academic_year_id)
+        grouped[academic_year_id].append(offering)
 
     return [
         {
-            "year_number": year_number,
-            "offerings": grouped[year_number],
+            "academic_year_label": grouped[academic_year_id][0].academic_year.label,
+            "offerings": grouped[academic_year_id],
         }
-        for year_number in sorted(grouped.keys())
+        for academic_year_id in ordered_year_ids
     ]
 
 
@@ -884,10 +865,10 @@ def _build_previous_student_dashboard_year_groups(student: StudentProfile, next_
     previous_offerings = list(_previous_offering_queryset_for_student(student))
 
     year_groups = []
-    for group in _group_offerings_by_year_number(previous_offerings):
+    for group in _group_offerings_by_academic_year(previous_offerings):
         year_groups.append(
             {
-                "year_number": group["year_number"],
+                "academic_year_label": group["academic_year_label"],
                 "rows": _build_student_dashboard_module_rows(
                     group["offerings"],
                     next_url,
@@ -902,10 +883,10 @@ def _build_previous_lecturer_dashboard_year_groups(lecturer: LecturerProfile, ne
     previous_offerings = list(_previous_offering_queryset_for_lecturer(lecturer))
 
     year_groups = []
-    for group in _group_offerings_by_year_number(previous_offerings):
+    for group in _group_offerings_by_academic_year(previous_offerings):
         year_groups.append(
             {
-                "year_number": group["year_number"],
+                "academic_year_label": group["academic_year_label"],
                 "rows": _build_lecturer_dashboard_module_rows(
                     group["offerings"],
                     next_url,
@@ -920,10 +901,10 @@ def _build_previous_student_profile_year_groups(student: StudentProfile, next_ur
     previous_offerings = list(_previous_offering_queryset_for_student(student))
 
     year_groups = []
-    for group in _group_offerings_by_year_number(previous_offerings):
+    for group in _group_offerings_by_academic_year(previous_offerings):
         year_groups.append(
             {
-                "year_number": group["year_number"],
+                "academic_year_label": group["academic_year_label"],
                 "module_rows": _build_student_profile_modules(
                     group["offerings"],
                     student,
@@ -939,10 +920,10 @@ def _build_previous_lecturer_profile_year_groups(lecturer: LecturerProfile, next
     previous_offerings = list(_previous_offering_queryset_for_lecturer(lecturer))
 
     year_groups = []
-    for group in _group_offerings_by_year_number(previous_offerings):
+    for group in _group_offerings_by_academic_year(previous_offerings):
         year_groups.append(
             {
-                "year_number": group["year_number"],
+                "academic_year_label": group["academic_year_label"],
                 "module_rows": _build_lecturer_profile_modules(
                     group["offerings"],
                     lecturer,
@@ -978,7 +959,6 @@ def _build_student_dashboard_module_rows(offerings_qs, next_url=None):
                 ),
                 "lecturer_name": _primary_offering_lecturer_name(offering),
                 "academic_year_label": offering.academic_year.label,
-                "year_number": offering.year_number,
             }
         )
 
@@ -999,7 +979,6 @@ def _build_lecturer_dashboard_module_rows(offerings_qs, next_url=None):
                 ),
                 "student_count": getattr(offering, "student_count", 0),
                 "academic_year_label": offering.academic_year.label,
-                "year_number": offering.year_number,
             }
         )
 
@@ -2426,7 +2405,6 @@ def _build_student_profile_modules(offerings_qs, student, next_url=None):
                     next_url,
                 ),
                 "academic_year_label": offering.academic_year.label,
-                "year_number": offering.year_number,
                 "items": items,
             }
         )
@@ -2531,7 +2509,6 @@ def _build_lecturer_profile_modules(offerings_qs, lecturer, next_url=None):
                     next_url,
                 ),
                 "academic_year_label": offering.academic_year.label,
-                "year_number": offering.year_number,
                 "student_count": total_students,
                 "items": items,
             }
@@ -2698,7 +2675,7 @@ def register_student(request):
     if request.user.is_authenticated:
         return redirect("accounts:dashboard")
 
-    valid_courses = _get_available_course_codes_for_year(year_number=1)
+    valid_courses = _get_available_course_codes()
     module_rows = _build_registration_module_rows()
 
     if request.method == "POST":
@@ -2755,15 +2732,15 @@ def register_student(request):
             errors.setdefault("password", []).extend(pw_errors)
 
         selected_course = _get_course_by_code(course)
+
         if not selected_course or course not in valid_courses:
             errors.setdefault("course", []).append(
-                "Selected course is not recognised for first-year module registration."
+                "Selected course is not recognised for module registration."
             )
 
         valid_module_ids = set(
             ModulePlacement.objects.filter(
                 course__code=course,
-                year_number=1,
                 available_now=True,
                 module__is_active=True,
             ).values_list("module_id", flat=True)
@@ -2814,7 +2791,6 @@ def register_student(request):
             user=user,
             student_number=student_number,
             course=course,
-            current_year=1,
             status=StudentProfile.Status.ACTIVE,
         )
 
@@ -2850,23 +2826,17 @@ def student_join_modules(request):
 
     student = user.student_profile
     if student.status != StudentProfile.Status.ACTIVE:
-        messages.info(request, "Only active students can join current-year modules.")
+        messages.info(request, "Only active students can join current academic year modules.")
         return redirect("accounts:dashboard")
 
     course_code = _normalize_course_code(student.course or "")
-    selected_course = _get_course_by_code(course_code)
 
-    if not selected_course:
+    if not _get_course_by_code(course_code):
         messages.error(request, "Your course is not configured yet. Please contact an administrator.")
         return redirect("accounts:dashboard")
 
-    module_rows = [
-        row for row in _build_module_selector_rows(year_number=student.current_year)
-        if course_code in row["course_codes"]
-    ]
-
+    module_rows = _build_module_selector_rows(course_code=course_code)
     valid_module_ids = {row["id"] for row in module_rows}
-
     existing_current_year_ids = _current_module_ids_for_student(student)
 
     if request.method == "POST":
@@ -2878,7 +2848,7 @@ def student_join_modules(request):
 
         invalid_ids = submitted_ids - valid_module_ids
         if invalid_ids:
-            messages.error(request, "One or more selected modules are not valid for your current year.")
+            messages.error(request, "One or more selected modules are not valid for your course.")
             submitted_ids = existing_current_year_ids
         else:
             current_academic_year = _get_current_academic_year()
@@ -3348,13 +3318,10 @@ def admin_manage_academic_year(request):
 
             messages.success(
                 request,
-                f"Started new academic year {summary['next_year'].label}. "
-                f"Placement availability updated: {summary['placement_updates']}. "
-                f"Offerings created: {summary['created_offerings']}. "
-                f"Lecturer enrolments copied: {summary['copied_lecturers']}. "
-                f"Students promoted: {summary['promoted_count']}. "
-                f"Students completed: {summary['completed_count']}. "
-                f"Students skipped: {summary['skipped_count']}."
+                f"Started New Academic Year {summary['next_year'].label}. "
+                f"Placement Availability Updated: {summary['placement_updates']}. "
+                f"Offerings Created: {summary['created_offerings']}. "
+                f"Lecturers Re-Enrolled: {summary['copied_lecturers']}."
             )
             return redirect("accounts:admin_manage_academic_year")
 
@@ -5270,4 +5237,4 @@ def _normalize_course_code(raw: str) -> str:
     return raw
 
 def _build_registration_module_rows() -> list[dict]:
-    return _build_module_selector_rows(year_number=1)
+    return _build_module_selector_rows()

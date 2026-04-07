@@ -34,8 +34,8 @@ COURSE_CODE = "TU856"
 COURSE_TITLE = "BSc in Computer Science"
 COURSE_LENGTH = 4
 
-ACADEMIC_YEAR_START = date(2026, 9, 1)
-ACADEMIC_YEAR_END = date(2027, 5, 31)
+ACADEMIC_YEAR_START = date(2025, 9, 1)
+ACADEMIC_YEAR_END = date(2026, 5, 31)
 
 STUDENT_EMAIL = "c20441826@mytudublin.ie"
 STUDENT_FIRST_NAME = "Conor"
@@ -102,7 +102,6 @@ def main():
         user=student_user,
         student_number=STUDENT_NUMBER,
         course=COURSE_CODE,
-        current_year=1,
         status=StudentProfile.Status.ACTIVE,
     )
 

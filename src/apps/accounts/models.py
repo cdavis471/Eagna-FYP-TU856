@@ -72,8 +72,6 @@ class StudentProfile(models.Model):  # Extra data model for users who are studen
         help_text="Course Code(e.g. TU856 - No Name Included)"
     )
 
-    current_year = models.PositiveSmallIntegerField(default=1)
-
     status = models.CharField(
         max_length=16,
         choices=Status.choices,

@@ -38,7 +38,6 @@
             Username: {{ student_result.user.username }}<br>
             Student Number: {{ student_result.student_number }}<br>
             Course: {{ student_result.course|default:"N/A" }}<br>
-            Current Year: {{ student_result.current_year }}<br>
             Status:
             <span class="admin-status-pill admin-status-pill--{{ student_result.status|lower }}">
               {{ student_result.get_status_display }}
