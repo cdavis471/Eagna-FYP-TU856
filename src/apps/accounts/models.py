@@ -113,9 +113,6 @@ class Course(models.Model):
 
     class Meta:
         ordering = ["code"]
-    
-    def includes_year(self, year_number):
-        return 1 <= year_number <= self.length_years
 
     def __str__(self):
         return f"{self.code} - {self.title}"
@@ -159,7 +156,6 @@ class Module(models.Model):
     def __str__(self):
         return f"{self.code} - {self.title}"
 
-
 class ModulePlacement(models.Model):
     module = models.ForeignKey(
         Module,
@@ -171,26 +167,15 @@ class ModulePlacement(models.Model):
         on_delete=models.CASCADE,
         related_name="module_placements",
     )
-    year_number = models.PositiveSmallIntegerField()
     available_now = models.BooleanField(default=True)
     available_next_rollover = models.BooleanField(default=True)
 
     class Meta:
-        ordering = ["course__code", "year_number", "module__code"]
-        unique_together = ("module", "course", "year_number")
-
-    def clean(self):
-        if self.year_number < 1:
-            raise ValidationError("Year number starts at 1.")
-
-        if self.course_id and self.year_number > self.course.length_years:
-            raise ValidationError(
-                f"Year number cannot exceed the course length of ({self.course.length_years}) years."
-            )
+        ordering = ["course__code", "module__code"]
+        unique_together = ("module", "course")
 
     def __str__(self):
-        return f"{self.module.code} -> {self.course.code} Year {self.year_number}"
-
+        return f"{self.module.code} -> {self.course.code}"
 
 class ModuleOffering(models.Model):
     placement = models.ForeignKey(
@@ -209,8 +194,8 @@ class ModuleOffering(models.Model):
     class Meta:
         ordering = [
             "placement__course__code",
-            "placement__year_number",
             "placement__module__code",
+            "academic_year__start_date",
         ]
         unique_together = ("placement", "academic_year")
 
@@ -222,10 +207,6 @@ class ModuleOffering(models.Model):
     def course(self):
         return self.placement.course
 
-    @property
-    def year_number(self):
-        return self.placement.year_number
-
     def clean(self):
         if self.is_current and self.is_read_only:
             raise ValidationError("A current module offering cannot also be read-only.")
@@ -233,10 +214,9 @@ class ModuleOffering(models.Model):
     def __str__(self):
         return (
             f"{self.placement.module.code} - "
-            f"{self.placement.course.code} Year {self.placement.year_number} "
+            f"{self.placement.course.code} "
             f"({self.academic_year.label})"
         )
-
 
 class ModuleOfferingEnrollmentStudent(models.Model):
     offering = models.ForeignKey(
@@ -256,7 +236,6 @@ class ModuleOfferingEnrollmentStudent(models.Model):
 
     def __str__(self):
         return f"{self.student} -> {self.offering}"
-
 
 class ModuleOfferingEnrollmentLecturer(models.Model):
     offering = models.ForeignKey(

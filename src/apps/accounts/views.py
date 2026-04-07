@@ -79,7 +79,6 @@ def _get_course_by_code(course_code: str):
         return None
     return Course.objects.filter(code__iexact=course_code, is_active=True).first()
 
-
 def _build_module_selector_rows(course_code: str | None = None) -> list[dict]:
     placements = (
         ModulePlacement.objects.select_related("module", "course")
@@ -88,7 +87,7 @@ def _build_module_selector_rows(course_code: str | None = None) -> list[dict]:
             module__is_active=True,
             course__is_active=True,
         )
-        .order_by("module__code", "module__title", "course__code", "year_number")
+        .order_by("module__code", "module__title", "course__code")
     )
 
     if course_code:
@@ -120,62 +119,34 @@ def _build_module_selector_rows(course_code: str | None = None) -> list[dict]:
 
     return rows
 
-
-def _parse_module_placement_lines(raw_value: str, errors: list[str]) -> list[tuple[Course, int]]:
-    placements: list[tuple[Course, int]] = []
-    seen: set[tuple[int, int]] = set()
+def _parse_module_course_lines(raw_value: str, errors: list[str]) -> list[Course]:
+    courses: list[Course] = []
+    seen: set[int] = set()
 
     lines = [line.strip() for line in (raw_value or "").splitlines() if line.strip()]
     if not lines:
-        errors.append("At least one course/year placement is required.")
-        return placements
+        errors.append("At least one course placement is required.")
+        return courses
 
     for line in lines:
-        if ":" not in line:
-            errors.append(
-                f"Invalid placement '{line}'. Use one placement per line in the format COURSECODE:YEAR."
-            )
-            continue
-
-        raw_course_code, raw_year = line.split(":", 1)
-        course_code = _normalize_course_code(raw_course_code)
-        raw_year = raw_year.strip()
+        course_code = _normalize_course_code(line)
 
         if not COURSE_CODE_RE.match(course_code):
-            errors.append(
-                f"Invalid course code '{course_code}' in placement '{line}'."
-            )
+            errors.append(f"Invalid course code '{course_code}'.")
             continue
 
         course = _get_course_by_code(course_code)
         if not course:
-            errors.append(
-                f"Course '{course_code}' does not exist or is inactive."
-            )
+            errors.append(f"Course '{course_code}' does not exist or is inactive.")
             continue
 
-        try:
-            year_number = int(raw_year)
-        except ValueError:
-            errors.append(
-                f"Invalid year '{raw_year}' in placement '{line}'."
-            )
+        if course.id in seen:
             continue
 
-        if year_number < 1 or year_number > course.length_years:
-            errors.append(
-                f"Placement '{line}' is outside the course length for {course.code}."
-            )
-            continue
+        seen.add(course.id)
+        courses.append(course)
 
-        key = (course.id, year_number)
-        if key in seen:
-            continue
-
-        seen.add(key)
-        placements.append((course, year_number))
-
-    return placements
+    return courses
 
 def _get_student_by_username(username: str):
     username = (username or "").strip().lower()
@@ -246,7 +217,6 @@ def _build_addable_modules_for_student(student: StudentProfile):
         .distinct()
         .order_by("code", "title")
     )
-
 
 def _build_removable_modules_for_student(student: StudentProfile):
     existing_module_ids = _current_module_ids_for_student(student)
@@ -320,7 +290,7 @@ def _build_module_retire_summary(module: Module):
     placements = list(
         module.placements
         .select_related("course")
-        .order_by("course__code", "year_number")
+        .order_by("course__code")
     )
 
     current_offerings = []
@@ -335,7 +305,7 @@ def _build_module_retire_summary(module: Module):
                 student_count=Count("student_enrolments", distinct=True),
                 lecturer_count=Count("lecturer_enrolments", distinct=True),
             )
-            .order_by("placement__course__code", "placement__year_number")
+            .order_by("placement__course__code")
         )
 
     return {
@@ -376,7 +346,6 @@ def _ensure_module_offering_for_placement(placement: ModulePlacement, academic_y
 
     return offering, created
 
-
 def _sync_current_module_offerings(academic_year: AcademicYear) -> int:
     created_count = 0
 
@@ -387,7 +356,7 @@ def _sync_current_module_offerings(academic_year: AcademicYear) -> int:
             module__is_active=True,
             course__is_active=True,
         )
-        .order_by("course__code", "year_number", "module__code")
+        .order_by("course__code", "module__code")
     )
 
     for placement in placements:
@@ -396,7 +365,6 @@ def _sync_current_module_offerings(academic_year: AcademicYear) -> int:
             created_count += 1
 
     return created_count
-
 
 def _find_current_student_offering(student: StudentProfile, module: Module, academic_year: AcademicYear | None = None):
     academic_year = academic_year or _get_current_academic_year()
@@ -419,7 +387,7 @@ def _find_current_student_offering(student: StudentProfile, module: Module, acad
             placement__module=module,
             placement__course__code__iexact=course_code,
         )
-        .order_by("placement__year_number", "id")
+        .order_by("id")
         .first()
     )
     if existing_offering:
@@ -434,7 +402,7 @@ def _find_current_student_offering(student: StudentProfile, module: Module, acad
             module__is_active=True,
             course__is_active=True,
         )
-        .order_by("year_number", "id")
+        .order_by("id")
         .first()
     )
 
@@ -443,7 +411,6 @@ def _find_current_student_offering(student: StudentProfile, module: Module, acad
 
     offering, _ = _ensure_module_offering_for_placement(placement, academic_year)
     return offering
-
 
 def _get_current_module_offerings_for_lecturer_module(module: Module, academic_year: AcademicYear | None = None):
     academic_year = academic_year or _get_current_academic_year()
@@ -458,7 +425,7 @@ def _get_current_module_offerings_for_lecturer_module(module: Module, academic_y
             module__is_active=True,
             course__is_active=True,
         )
-        .order_by("course__code", "year_number")
+        .order_by("course__code")
     )
 
     offerings = []
@@ -467,7 +434,6 @@ def _get_current_module_offerings_for_lecturer_module(module: Module, academic_y
         offerings.append(offering)
 
     return offerings
-
 
 def _sync_student_current_offering_enrolment(student: StudentProfile, module: Module, academic_year: AcademicYear | None = None):
     offering = _find_current_student_offering(student, module, academic_year=academic_year)
@@ -641,7 +607,6 @@ def _start_new_academic_year_transition(current_year: AcademicYear):
     next_window = _build_next_academic_year_window(current_year)
 
     with transaction.atomic():
-
         _sync_current_module_offerings(current_year)
 
         current_year.is_current = False
@@ -3386,7 +3351,7 @@ def admin_add_module(request):
         if not title:
             errors.append("Module title is required.")
 
-        parsed_placements = _parse_module_placement_lines(placements_raw, errors)
+        parsed_courses = _parse_module_course_lines(placements_raw, errors)
 
         if not errors:
             module = Module.objects.create(
@@ -3397,11 +3362,10 @@ def admin_add_module(request):
 
             current_academic_year = _get_current_academic_year()
 
-            for course, year_number in parsed_placements:
+            for course in parsed_courses:
                 placement = ModulePlacement.objects.create(
                     module=module,
                     course=course,
-                    year_number=year_number,
                     available_now=available_now,
                     available_next_rollover=available_next_rollover,
                 )

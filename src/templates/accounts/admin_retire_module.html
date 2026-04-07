@@ -91,7 +91,7 @@
             <ul class="week-files">
               {% for placement in selected_summary.placements %}
                 <li>
-                  {{ placement.course.code }} · Year {{ placement.year_number }}
+                  {{ placement.course.code }}
                   — Available now:
                   {% if placement.available_now %}Yes{% else %}No{% endif %}
                   — Available next rollover:
@@ -111,7 +111,7 @@
             <ul class="week-files">
               {% for offering in selected_summary.current_offerings %}
                 <li>
-                  {{ offering.placement.course.code }} · Year {{ offering.placement.year_number }}
+                  {{ offering.placement.course.code }}
                   — Current:
                   {% if offering.is_current %}Yes{% else %}No{% endif %}
                   — Read only:
