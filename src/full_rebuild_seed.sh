@@ -25,6 +25,12 @@ for raw_line in env_path.read_text().splitlines():
     key = key.strip()
     value = value.strip()
 
+    if len(value) >= 2 and (
+        (value[0] == value[-1] == '"') or
+        (value[0] == value[-1] == "'")
+    ):
+        value = value[1:-1]
+
     print(f"export {key}={shlex.quote(value)}")
 PY
 
