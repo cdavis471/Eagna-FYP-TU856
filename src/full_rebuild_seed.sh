@@ -9,9 +9,27 @@ SERVICE_NAME="eagna"
 cd "$PROJECT_ROOT"
 
 source "$VENV_DIR/bin/activate"
-set -a
-source "$PROJECT_ROOT/.env"
-set +a
+
+python3 - <<'PY' > /tmp/eagna_env_exports.sh
+from pathlib import Path
+import shlex
+
+env_path = Path("/srv/eagna/.env")
+
+for raw_line in env_path.read_text().splitlines():
+    line = raw_line.strip()
+    if not line or line.startswith("#") or "=" not in line:
+        continue
+
+    key, value = line.split("=", 1)
+    key = key.strip()
+    value = value.strip()
+
+    print(f"export {key}={shlex.quote(value)}")
+PY
+
+source /tmp/eagna_env_exports.sh
+rm -f /tmp/eagna_env_exports.sh
 
 cd "$SRC_DIR"
 
