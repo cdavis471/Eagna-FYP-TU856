@@ -833,7 +833,7 @@ def build_stage_module_selection(course_year_items: list[dict]) -> list[dict]:
         else:
             elective.append(item)
 
-    target = min(len(seen_codes), RNG.randint(8, 10))
+    target = min(len(seen_codes), DATA_RNG.randint(8, 10))
     selection = list(mandatory)
     selected_codes = {item["code"] for item in selection}
 
