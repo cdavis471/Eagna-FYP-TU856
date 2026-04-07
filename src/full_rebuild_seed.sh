@@ -60,14 +60,10 @@ python manage.py collectstatic --noinput
 echo "==> Seeding full TU dataset..."
 python manage.py shell <<'PY'
 import io
-import re
 import random
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
-from urllib.parse import urljoin
-from urllib.request import Request, urlopen
 
-from bs4 import BeautifulSoup, NavigableString
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.utils import timezone
@@ -110,13 +106,16 @@ from apps.accounts.views import (
 # Config
 # ----------------------------
 
-USER_AGENT = "Mozilla/5.0 (compatible; EagnaSeed/1.0)"
-RNG = random.Random()
+CODE_RNG = random.Random(856857858)
+DATA_RNG = random.Random(471856857858)
 
 ADMIN_EMAIL = "cdavis471@outlook.com"
 ADMIN_PASSWORD = "DevPass123!"
 ADMIN_FIRST_NAME = "Conor"
 ADMIN_LAST_NAME = "Davis"
+
+LECTURER_PASSWORD = "DevPass123!"
+STUDENT_PASSWORD = "DevPass123!"
 
 ACADEMIC_YEARS = [
     ("2022/23", date(2022, 9, 1), date(2023, 5, 31)),
@@ -129,39 +128,342 @@ COURSE_SOURCES = [
     {
         "code": "TU856",
         "title": "BSc in Computer Science",
-        "url": "https://www.tudublin.ie/study/undergraduate/courses/computer-science-tu856/",
         "length_years": 4,
     },
     {
         "code": "TU857",
         "title": "BSc in Computer Science (Infrastructure)",
-        "url": "https://www.tudublin.ie/study/undergraduate/courses/computer-science-infrastructure-tu857/",
         "length_years": 4,
     },
     {
         "code": "TU858",
         "title": "BSc in Computer Science (International)",
-        "url": "https://www.tudublin.ie/study/undergraduate/courses/computer-science-international-tu858/",
         "length_years": 4,
     },
 ]
 
-YEAR_MARKERS = {
-    "Year One": 1,
-    "Year Two": 2,
-    "Year Three": 3,
-    "Year Four": 4,
-}
+M = "MANDATORY"
+E = "ELECTIVE"
 
-SEMESTER_MARKERS = {
-    "Semester 1": 1,
-    "Semester 2": 2,
+COURSE_CATALOG = {
+    "TU856": {
+        1: {
+            1: [
+                ("Communications", M),
+                ("IT Fundamentals", M),
+                ("Mathematics 1", M),
+                ("Program Design", M),
+                ("Programming", M),
+                ("Web Development 1", M),
+            ],
+            2: [
+                ("Algorithm Design and Problem Solving", M),
+                ("Computer Architecture and Technology", M),
+                ("Microprocessor Systems", M),
+                ("Operating Systems 1", M),
+                ("Programming", M),
+                ("Data Exploration", M),
+            ],
+        },
+        2: {
+            1: [
+                ("Databases 1", M),
+                ("Mathematics II", M),
+                ("Object Oriented Programming", M),
+                ("Operating Systems 2", M),
+                ("Software Engineering 1", M),
+                ("Web Development 2", M),
+            ],
+            2: [
+                ("GenAI-Assisted Programming", M),
+                ("Algorithms & Data Structures", M),
+                ("Data Communications", M),
+                ("Human Computer Interaction", M),
+                ("Legal and Professional Issues", M),
+                ("Software Engineering 2", M),
+            ],
+        },
+        3: {
+            1: [
+                ("Client Serving Programming", M),
+                ("Cloud Computing", M),
+                ("Databases 2", M),
+                ("Mobile Software Development", M),
+                ("Software Engineering 3", M),
+                ("Introduction to Artificial Intelligence", M),
+                ("Individual Project", E),
+                ("Study Abroad 1", E),
+                ("Study Abroad 2", E),
+                ("Study Abroad 3", E),
+                ("Study Abroad 4", E),
+            ],
+            2: [
+                ("Business & Enterprise", E),
+                ("Individual Project", E),
+                ("Mobile Robotics", E),
+                ("Service-Learning & Civic Engagement", E),
+                ("Team Project", E),
+                ("Universal Design & Assistive Technology", E),
+                ("Work Placement", E),
+                ("Introduction to DevOps", E),
+                ("Cryptography & Cyber Security", E),
+                ("Software Testing", E),
+                ("Global Classroom", E),
+                ("Study Abroad 5", E),
+                ("Study Abroad 6", E),
+                ("Study Abroad 7", E),
+                ("Study Abroad 8", E),
+            ],
+        },
+        4: {
+            1: [
+                ("Final Year Project", M),
+                ("Advanced Databases", E),
+                ("Advanced Security 1", E),
+                ("Machine Learning for Data Analytics", E),
+                ("Distributed Systems", E),
+                ("Forensics", E),
+                ("Games Engines 1", E),
+                ("Rich Web Application Technology", E),
+                ("Advanced Web Mapping", E),
+                ("Fundamentals of IoT", E),
+                ("Image Processing", E),
+            ],
+            2: [
+                ("Final Year Project", M),
+                ("Advanced Security 2", E),
+                ("Artificial Intelligence", E),
+                ("Bioinformatics", E),
+                ("Enterprise Application Development", E),
+                ("Enterprise Sys Inf. and Arch.", E),
+                ("Games Engines 2", E),
+                ("Geographical Info Systems", E),
+                ("Environmental Analytics", E),
+                ("Systems Software", E),
+                ("Visualizing Data", E),
+            ],
+        },
+    },
+    "TU857": {
+        1: {
+            1: [
+                ("Building a PC", M),
+                ("Communications and Personal Development", M),
+                ("Introduction to Operating Systems", M),
+                ("IT Fundamentals", M),
+                ("Program Design", M),
+                ("Programming", M),
+            ],
+            2: [
+                ("Introduction to Algorithms", M),
+                ("Mathematics 1", M),
+                ("Network Fundamentals", M),
+                ("Programming", M),
+                ("Team Computing", M),
+                ("Data Exploration", M),
+            ],
+        },
+        2: {
+            1: [
+                ("Legal and Professional Issues", M),
+                ("Microprocessors", M),
+                ("Networking 2", M),
+                ("Operating Systems and System Administration", M),
+                ("System Infrastructure and Architecture 1", M),
+                ("Object Oriented Programming", E),
+            ],
+            2: [
+                ("GenAI-Assisted Programming", M),
+                ("Databases 1", M),
+                ("Human Computer Interaction", M),
+                ("Internet Applications and Web Development", M),
+                ("Mathematics II", M),
+                ("Networking 3", M),
+            ],
+        },
+        3: {
+            1: [
+                ("Cloud Computing", M),
+                ("Databases 2", M),
+                ("Mobile Software Development", M),
+                ("Networking Programming", M),
+                ("Web Development & Deployment", M),
+                ("Introduction to DevOps", M),
+                ("Individual Project", E),
+                ("Study Abroad 1", E),
+                ("Study Abroad 2", E),
+                ("Study Abroad 3", E),
+                ("Study Abroad 4", E),
+            ],
+            2: [
+                ("Business & Enterprise", E),
+                ("Individual Project", E),
+                ("Mobile Robotics", E),
+                ("Service-Learning & Civic Engagement", E),
+                ("Systems Infrastructure and Architecture 2", E),
+                ("Team Project", E),
+                ("Universal Design & Assistive Technology", E),
+                ("Work Placement", E),
+                ("Cryptography & Cyber Security", E),
+                ("Software Testing", E),
+                ("Global Classroom", E),
+                ("Study Abroad 5", E),
+                ("Study Abroad 6", E),
+                ("Study Abroad 7", E),
+                ("Study Abroad 8", E),
+            ],
+        },
+        4: {
+            1: [
+                ("Advanced Security 1", M),
+                ("Final Year Project", M),
+                ("Systems Integration", M),
+                ("Advanced Databases", E),
+                ("Machine Learning for Data Analytics", E),
+                ("Distributed Systems", E),
+                ("Forensics", E),
+                ("Games Engines 1", E),
+                ("Rich Web Application Technology", E),
+                ("Advanced Web Mapping", E),
+                ("Fundamentals of IoT", E),
+                ("Image Processing", E),
+            ],
+            2: [
+                ("Advanced Security 2", M),
+                ("Final Year Project", M),
+                ("System and Database Administration", M),
+                ("Artificial Intelligence", E),
+                ("Bioinformatics", E),
+                ("Enterprise Application Development", E),
+                ("Games Engines 2", E),
+                ("Geographical Info Systems", E),
+                ("Environmental Analytics", E),
+                ("Systems Software", E),
+                ("Visualizing Data", E),
+            ],
+        },
+    },
+    "TU858": {
+        1: {
+            1: [
+                ("Global Citizenship (Professional and Ethical Communications)", M),
+                ("Mathematics 1", M),
+                ("Program Design", M),
+                ("Programming", M),
+                ("Web Development 1", M),
+                ("Chinese Language and Culture 1", E),
+                ("German Language 1B", E),
+                ("Korean Language and Culture 1", E),
+            ],
+            2: [
+                ("Algorithm Design and Problem Solving", M),
+                ("Computer Architecture and Technology", M),
+                ("Operating Systems 1", M),
+                ("Programming", M),
+                ("Software for the Global Market 1 (User Interface Design)", M),
+                ("Chinese Language and Culture 1", E),
+                ("German Language 1B", E),
+                ("Korean Language and Culture 1", E),
+            ],
+        },
+        2: {
+            1: [
+                ("Databases 1", M),
+                ("Mathematics II", M),
+                ("Object Oriented Programming", M),
+                ("Operating Systems 2", M),
+                ("Software Engineering 1", M),
+                ("Chinese Language and Culture 2", E),
+                ("German Language 2B", E),
+                ("Korean Language and Culture 2", E),
+            ],
+            2: [
+                ("GenAI-Assisted Programming", M),
+                ("Algorithms & Data Structures", M),
+                ("Data Communications", M),
+                ("Legal and Professional Issues", M),
+                ("Software for the Global Market 2 (Internationalisation & Localisation)", M),
+                ("Chinese Language and Culture 2", E),
+                ("German Language 2B", E),
+                ("Korean Language and Culture 2", E),
+            ],
+        },
+        3: {
+            1: [
+                ("Software Engineering 2", M),
+                ("Client Serving Programming", M),
+                ("Databases 2", M),
+                ("Mobile Software Development", M),
+                ("Web Development & Deployment", M),
+                ("Chinese Language and Culture 3", E),
+                ("Cloud Computing", E),
+                ("Introduction to Artificial Intelligence", E),
+                ("English for Academic Purposes (EAP) Intermediate 1", E),
+                ("English for Academic Purposes (EAP) Upper Intermediate 1", E),
+                ("English for Academic Purposes (EAP) Advanced 1", E),
+                ("German Language 1A", E),
+                ("Study Abroad 1", E),
+                ("Study Abroad 2", E),
+                ("Study Abroad 3", E),
+                ("Study Abroad 4", E),
+                ("Irish Cultural Studies 1A", E),
+                ("Korean Language and Culture 3", E),
+            ],
+            2: [
+                ("Business & Enterprise", E),
+                ("Individual Project", E),
+                ("Mobile Robotics", E),
+                ("Universal Design & Assistive Technology", E),
+                ("Work Placement", E),
+                ("Introduction to DevOps", E),
+                ("Cryptography & Cyber Security", E),
+                ("Software Testing", E),
+                ("English for Academic Purposes (EAP) Intermediate 2", E),
+                ("English for Academic Purposes (EAP) Upper Intermediate 2", E),
+                ("English for Academic Purposes (EAP) Advanced 2", E),
+                ("Global Classroom", E),
+                ("Study Abroad 5", E),
+                ("Study Abroad 6", E),
+                ("Study Abroad 7", E),
+                ("Study Abroad 8", E),
+                ("Irish Cultural Studies 1A", E),
+            ],
+        },
+        4: {
+            1: [
+                ("Final Year Project", M),
+                ("Advanced Databases", E),
+                ("Advanced Security 1", E),
+                ("Machine Learning for Data Analytics", E),
+                ("Distributed Systems", E),
+                ("Forensics", E),
+                ("Games Engines 1", E),
+                ("Rich Web Application Technology", E),
+                ("Advanced Web Mapping", E),
+                ("Fundamentals of IoT", E),
+                ("Image Processing", E),
+            ],
+            2: [
+                ("Final Year Project", M),
+                ("Advanced Security 2", E),
+                ("Artificial Intelligence", E),
+                ("Bioinformatics", E),
+                ("Enterprise Application Development", E),
+                ("Enterprise Sys Inf. and Arch.", E),
+                ("Games Engines 2", E),
+                ("Geographical Info Systems", E),
+                ("Environmental Analytics", E),
+                ("Systems Software", E),
+                ("Visualizing Data", E),
+            ],
+        },
+    },
 }
 
 FIRST_NAMES = [
     "Aoife", "Eoin", "Niamh", "Cian", "Saoirse", "Ciara", "Darragh", "Orla",
     "Ronan", "Clodagh", "Aisling", "Padraig", "Fiona", "Tadhg", "Grainne",
-    "Lorcan", "Maeve", "Conall", "Sinéad", "Oisin", "Aideen", "Finn", "Roisin",
+    "Lorcan", "Maeve", "Conall", "Sinead", "Oisin", "Aideen", "Finn", "Roisin",
     "Caoimhe", "Sean", "Laura", "Declan", "Emma", "Shane", "Megan", "Brendan",
     "Kelly", "Patrick", "Holly", "Jack", "Sarah", "Tom", "Leah", "Mark", "Kate",
 ]
@@ -188,153 +490,316 @@ STUDENT_LAST_NAMES = [
 # Helpers
 # ----------------------------
 
-def normalise_space(value: str) -> str:
-    return re.sub(r"\s+", " ", (value or "")).strip()
-
-def slugify_code_fallback(title: str) -> str:
-    cleaned = re.sub(r"[^A-Za-z0-9]+", "-", title.upper()).strip("-")
-    cleaned = cleaned[:24] if cleaned else "MODULE"
-    return f"MOD-{cleaned}"
-
-def fetch_html(url: str) -> str:
-    req = Request(url, headers={"User-Agent": USER_AGENT})
-    with urlopen(req, timeout=30) as response:
-        return response.read().decode("utf-8", errors="ignore")
-
-def extract_module_code(module_url: str, fallback_title: str) -> str:
-    try:
-        html = fetch_html(module_url)
-        text = normalise_space(BeautifulSoup(html, "lxml").get_text("\n", strip=True))
-        match = re.search(r"Module Code\s+([A-Z]{4,6}\s*\d{4}[A-Z]?)", text)
-        if match:
-            return match.group(1).replace(" ", "").upper()
-    except Exception as exc:
-        print(f"WARNING: Could not fetch module code for {fallback_title}: {exc}")
-    return slugify_code_fallback(fallback_title)
-
-def parse_module_label(raw_text: str):
-    raw_text = normalise_space(raw_text)
-    status = "UNKNOWN"
-    title = raw_text
-
-    if raw_text.endswith("[Mandatory]"):
-        title = raw_text[:-11].strip()
-        status = "MANDATORY"
-    elif raw_text.endswith("[Elective]"):
-        title = raw_text[:-10].strip()
-        status = "ELECTIVE"
-
-    return title, status
-
 from collections import defaultdict, deque
 
-def scrape_course_structure(course_info: dict) -> dict:
-    html = fetch_html(course_info["url"])
-    soup = BeautifulSoup(html, "lxml")
+USED_MODULE_CODES = set()
+MODULE_CODE_BY_KEY = {}
 
-    lines = [
-        normalise_space(line)
-        for line in soup.get_text("\n", strip=True).splitlines()
-    ]
-    lines = [line for line in lines if line]
+def generate_cmpu_code() -> str:
+    while True:
+        code = f"CMPU{CODE_RNG.randint(1000, 9999)}"
+        if code not in USED_MODULE_CODES:
+            USED_MODULE_CODES.add(code)
+            return code
 
-    try:
-        start_index = lines.index("Module listing")
-    except ValueError:
-        raise RuntimeError(f"Could not find module listing on {course_info['url']}")
+def get_module_code_for_key(module_key: str) -> str:
+    existing = MODULE_CODE_BY_KEY.get(module_key)
+    if existing:
+        return existing
 
-    # Build module-link queues keyed by visible link text, in page order.
-    hrefs_by_label = defaultdict(deque)
-    for a in soup.find_all("a", href=True):
-        href = a.get("href") or ""
-        if "/study/modules/" not in href:
+    code = generate_cmpu_code()
+    MODULE_CODE_BY_KEY[module_key] = code
+    return code
+
+def normalise_catalog_title(title: str) -> str:
+    replacements = {
+        "Fundmentals of IoT": "Fundamentals of IoT",
+    }
+    return replacements.get(title, title)
+
+def dedupe_semester_modules(modules: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    seen = set()
+    deduped = []
+
+    for title, status in modules:
+        title = normalise_catalog_title(title)
+        key = (title, status)
+        if key in seen:
             continue
+        seen.add(key)
+        deduped.append((title, status))
 
-        label = normalise_space(a.get_text(" ", strip=True))
-        if not label:
-            continue
-
-        hrefs_by_label[label].append(urljoin(course_info["url"], href))
-
-    course_map = {1: [], 2: [], 3: [], 4: []}
-    current_year = None
-    current_semester = None
-
-    for line in lines[start_index + 1:]:
-        if line in {"How to Apply", "Progression", "Contact Us"}:
-            break
-
-        if line in YEAR_MARKERS:
-            current_year = YEAR_MARKERS[line]
-            current_semester = None
-            continue
-
-        if line in SEMESTER_MARKERS:
-            current_semester = SEMESTER_MARKERS[line]
-            continue
-
-        if not current_year or not current_semester:
-            continue
-
-        title, status = parse_module_label(line)
-
-        # Skip non-module text that may appear inside the listing area.
-        if status == "UNKNOWN":
-            continue
-
-        label = line
-        if not hrefs_by_label[label]:
-            print(
-                f"WARNING: No module href found for '{label}' "
-                f"on {course_info['code']} year {current_year} semester {current_semester}"
-            )
-            continue
-
-        absolute_url = hrefs_by_label[label].popleft()
-
-        course_map[current_year].append(
-            {
-                "title": title,
-                "status": status,
-                "semester": current_semester,
-                "url": absolute_url,
-            }
-        )
-
-    for year_num in course_map:
-        if not course_map[year_num]:
-            raise RuntimeError(f"No modules parsed for {course_info['code']} year {year_num}")
-
-    return course_map
+    return deduped
 
 def build_course_blueprints():
     blueprints = {}
-    module_code_cache = {}
 
     for course_info in COURSE_SOURCES:
-        print(f"Scraping {course_info['code']} from {course_info['url']} ...")
-        course_map = scrape_course_structure(course_info)
+        course_code = course_info["code"]
+        raw_years = COURSE_CATALOG[course_code]
+        course_map = {}
 
-        for year_num, items in course_map.items():
-            for item in items:
-                title = item["title"]
+        print(f"Building local module catalog for {course_code} ...")
 
-                if title == "Final Year Project":
-                    code = f"FYP-{course_info['code']}"
-                else:
-                    cache_key = item["url"]
-                    if cache_key not in module_code_cache:
-                        module_code_cache[cache_key] = extract_module_code(item["url"], title)
-                    code = module_code_cache[cache_key]
+        for year_num, semester_map in raw_years.items():
+            year_items = []
 
-                item["code"] = code
+            for semester_num, modules in semester_map.items():
+                for title, status in dedupe_semester_modules(modules):
+                    if title == "Final Year Project":
+                        module_key = f"FYP::{course_code}"
+                    else:
+                        module_key = title
 
-        blueprints[course_info["code"]] = {
+                    year_items.append(
+                        {
+                            "title": title,
+                            "status": status,
+                            "semester": semester_num,
+                            "code": get_module_code_for_key(module_key),
+                        }
+                    )
+
+            if not year_items:
+                raise RuntimeError(f"No modules defined for {course_code} year {year_num}")
+
+            course_map[year_num] = year_items
+
+        blueprints[course_code] = {
             "course": course_info,
             "years": course_map,
         }
 
     return blueprints
+
+def lecturer_name_generator():
+    counter = 1
+    for first in FIRST_NAMES:
+        for last in LAST_NAMES:
+            yield {
+                "first_name": first,
+                "last_name": last,
+                "email": f"{first.lower()}.{last.lower()}@tudublin.ie",
+                "staff_id": f"L{counter:04d}",
+            }
+            counter += 1
+
+def student_name(counter: int):
+    first = STUDENT_FIRST_NAMES[counter % len(STUDENT_FIRST_NAMES)]
+    last = STUDENT_LAST_NAMES[counter % len(STUDENT_LAST_NAMES)]
+    return first, last
+
+def build_stage_module_selection(course_year_items: list[dict]) -> list[dict]:
+    mandatory = []
+    elective = []
+    seen_codes = set()
+
+    for item in sorted(course_year_items, key=lambda x: (x["semester"], x["title"])):
+        if item["code"] in seen_codes:
+            continue
+        seen_codes.add(item["code"])
+
+        if item["status"] == "MANDATORY":
+            mandatory.append(item)
+        else:
+            elective.append(item)
+
+    target = min(len(seen_codes), DATA_RNG.randint(8, 10))
+    selection = list(mandatory)
+    selected_codes = {item["code"] for item in selection}
+
+    for item in elective:
+        if len(selected_codes) >= target and len(selected_codes) >= 8:
+            break
+        if item["code"] in selected_codes:
+            continue
+        selection.append(item)
+        selected_codes.add(item["code"])
+
+    if len(selected_codes) < 8:
+        for item in elective:
+            if item["code"] in selected_codes:
+                continue
+            selection.append(item)
+            selected_codes.add(item["code"])
+            if len(selected_codes) >= 8:
+                break
+
+    return selection
+
+def make_aware_dt(d: date, hour: int = 9, minute: int = 0):
+    return timezone.make_aware(datetime.combine(d, time(hour, minute)))
+
+def build_generic_image_bytes(label: str) -> bytes:
+    image = Image.new("RGB", (640, 240), color=(7, 22, 77))
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((20, 20, 620, 220), outline=(173, 216, 230), width=4)
+    draw.text((40, 95), label[:40], fill=(255, 255, 255))
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+def build_pptx_bytes(title: str, subtitle: str, bullets: list[str]) -> bytes:
+    presentation = Presentation()
+
+    slide = presentation.slides.add_slide(presentation.slide_layouts[1])
+    slide.shapes.title.text = title
+    slide.placeholders[1].text = subtitle
+
+    slide2 = presentation.slides.add_slide(presentation.slide_layouts[1])
+    slide2.shapes.title.text = "Key Points"
+    tf = slide2.placeholders[1].text_frame
+    tf.clear()
+    for idx, bullet in enumerate(bullets, start=1):
+        p = tf.add_paragraph() if idx > 1 else tf.paragraphs[0]
+        p.text = bullet
+
+    image_bytes = build_generic_image_bytes(title)
+    image_stream = io.BytesIO(image_bytes)
+    slide2.shapes.add_picture(image_stream, Inches(6.0), Inches(1.5), width=Inches(2.5))
+
+    out = io.BytesIO()
+    presentation.save(out)
+    return out.getvalue()
+
+def attach_and_parse_week_file(week: ModuleWeek, lecturer_user: User):
+    filename = f"{week.offering.module.code.lower()}-week-{week.week_number}.pptx"
+    payload = build_pptx_bytes(
+        title=f"{week.offering.module.title} - Week {week.week_number}",
+        subtitle=f"{week.offering.course.code} · {week.offering.academic_year.label}",
+        bullets=[
+            f"Weekly topic for {week.offering.module.title}",
+            "Accessible notes deck generated by seed script",
+            "Contains text and one image for parser coverage",
+        ],
+    )
+
+    week_file = ModuleWeekFile.objects.create(
+        week=week,
+        original_name=filename,
+        uploaded_by=lecturer_user,
+    )
+    week_file.file.save(filename, ContentFile(payload), save=True)
+
+    try:
+        parsed_payload = parse_uploaded_office_file(week_file.file)
+        _persist_parsed_document(parsed_payload=parsed_payload, week_file=week_file)
+    except Exception as exc:
+        print(f"WARNING: Week file parse failed for {filename}: {exc}")
+
+def attach_and_parse_assignment_file(assignment: Assignment, lecturer_user: User):
+    filename = f"{assignment.offering.module.code.lower()}-assignment-brief.pptx"
+    payload = build_pptx_bytes(
+        title=f"{assignment.title}",
+        subtitle=f"{assignment.offering.course.code} · {assignment.offering.academic_year.label}",
+        bullets=[
+            "Read the brief carefully",
+            "Follow the submission instructions",
+            "This generated file is parsed into accessible HTML",
+        ],
+    )
+
+    assignment_file = AssignmentFile.objects.create(
+        assignment=assignment,
+        original_name=filename,
+        uploaded_by=lecturer_user,
+    )
+    assignment_file.file.save(filename, ContentFile(payload), save=True)
+
+    try:
+        parsed_payload = parse_uploaded_office_file(assignment_file.file)
+        _persist_parsed_document(parsed_payload=parsed_payload, assignment_file=assignment_file)
+    except Exception as exc:
+        print(f"WARNING: Assignment file parse failed for {filename}: {exc}")
+
+def create_quiz_questions(quiz: Quiz):
+    prompts = [
+        ("Multiple choice", QuizQuestion.Type.MULTIPLE_CHOICE, [
+            ("Correct answer", True),
+            ("Option 2", False),
+            ("Option 3", False),
+            ("Option 4", False),
+        ]),
+        ("True or false", QuizQuestion.Type.TRUE_FALSE, [
+            ("True", True),
+            ("False", False),
+        ]),
+        ("Multiple select", QuizQuestion.Type.MULTIPLE_SELECT, [
+            ("Correct option 1", True),
+            ("Correct option 2", True),
+            ("Distractor 1", False),
+            ("Distractor 2", False),
+        ]),
+    ]
+
+    for idx, (stem, qtype, options) in enumerate(prompts, start=1):
+        question = QuizQuestion.objects.create(
+            quiz=quiz,
+            prompt=f"{quiz.offering.module.title}: {stem} question {idx}",
+            question_type=qtype,
+            marks=Decimal("1.00"),
+            display_order=idx,
+        )
+        for option_text, is_correct in options:
+            QuizOption.objects.create(
+                question=question,
+                option_text=option_text,
+                is_correct=is_correct,
+            )
+
+def create_assignment_submissions(assignment: Assignment):
+    lecturer_enrolment = assignment.offering.lecturer_enrolments.order_by("-is_primary", "id").first()
+    marker = lecturer_enrolment.lecturer if lecturer_enrolment else None
+
+    students = list(
+        StudentProfile.objects.filter(
+            offering_enrolments__offering=assignment.offering
+        ).distinct().order_by("id")[:3]
+    )
+
+    for idx, student in enumerate(students, start=1):
+        submission = AssignmentSubmission.objects.create(
+            assignment=assignment,
+            student=student,
+            status=AssignmentSubmission.Status.SUBMITTED,
+        )
+        if idx <= 2:
+            AssignmentGrade.objects.create(
+                submission=submission,
+                marker=marker,
+                value=Decimal("68.00") + idx,
+                feedback_text="Generated feedback for seeded submission.",
+            )
+
+def create_quiz_attempts(quiz: Quiz):
+    students = list(
+        StudentProfile.objects.filter(
+            offering_enrolments__offering=quiz.offering
+        ).distinct().order_by("id")[:3]
+    )
+    questions = list(quiz.questions.prefetch_related("options").all())
+
+    for student in students:
+        attempt = QuizAttempt.objects.create(
+            quiz=quiz,
+            student=student,
+            started_at=timezone.now() - timedelta(days=2),
+            submitted_at=timezone.now() - timedelta(days=1),
+            status=QuizAttempt.Status.SUBMITTED,
+            score=Decimal("2.00"),
+            weighted_score=Decimal("66.67"),
+        )
+        for question in questions:
+            correct_options = list(question.options.filter(is_correct=True))
+            selected = correct_options[0] if correct_options else question.options.first()
+            QuizAnswer.objects.create(
+                attempt=attempt,
+                question=question,
+                selected_option=selected,
+                selected_text=selected.option_text if selected else "",
+                is_correct=bool(selected and selected.is_correct),
+                marks_awarded=Decimal("1.00") if selected and selected.is_correct else Decimal("0.00"),
+            )
 
 def lecturer_name_generator():
     counter = 1
@@ -666,7 +1131,7 @@ def main():
         primary_user = User.objects.create_user(
             username=primary_seed["email"],
             email=primary_seed["email"],
-            password="DevPass123!",
+            password=LECTURER_PASSWORD,
             first_name=primary_seed["first_name"],
             last_name=primary_seed["last_name"],
             role=User.Role.LECTURER,
@@ -682,7 +1147,7 @@ def main():
             secondary_user = User.objects.create_user(
                 username=secondary_seed["email"],
                 email=secondary_seed["email"],
-                password="DevPass123!",
+                password=LECTURER_PASSWORD,
                 first_name=secondary_seed["first_name"],
                 last_name=secondary_seed["last_name"],
                 role=User.Role.LECTURER,
@@ -739,7 +1204,7 @@ def main():
 
     for course_code in ["TU856", "TU857", "TU858"]:
         for current_stage in range(1, 5):
-            cohort_size = RNG.randint(80, 100)
+            cohort_size = DATA_RNG.randint(80, 100)
             relevant_years = all_years[-current_stage:]
 
             print(f"  {course_code} stage {current_stage}: {cohort_size} students")
@@ -753,7 +1218,7 @@ def main():
                 user = User.objects.create_user(
                     username=email,
                     email=email,
-                    password="DevPass123!",
+                    password=STUDENT_PASSWORD,
                     first_name=first_name,
                     last_name=last_name,
                     role=User.Role.STUDENT,
