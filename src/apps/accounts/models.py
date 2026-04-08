@@ -178,8 +178,8 @@ class ModulePlacement(models.Model):
         return f"{self.module.code} -> {self.course.code}"
 
 class ModuleOffering(models.Model):
-    placement = models.ForeignKey(
-        ModulePlacement,
+    module = models.ForeignKey(
+        Module,
         on_delete=models.CASCADE,
         related_name="offerings",
     )
@@ -192,31 +192,30 @@ class ModuleOffering(models.Model):
     is_read_only = models.BooleanField(default=False)
 
     class Meta:
-        ordering = [
-            "placement__course__code",
-            "placement__module__code",
-            "academic_year__start_date",
-        ]
-        unique_together = ("placement", "academic_year")
+        ordering = ["module__code", "academic_year__start_date"]
+        unique_together = ("module", "academic_year")
 
     @property
-    def module(self):
-        return self.placement.module
+    def course_codes(self):
+        return list(
+            self.module.placements
+            .select_related("course")
+            .filter(course__is_active=True)
+            .order_by("course__code")
+            .values_list("course__code", flat=True)
+            .distinct()
+        )
 
     @property
-    def course(self):
-        return self.placement.course
+    def course_codes_display(self):
+        return ", ".join(self.course_codes)
 
     def clean(self):
         if self.is_current and self.is_read_only:
             raise ValidationError("A current module offering cannot also be read-only.")
 
     def __str__(self):
-        return (
-            f"{self.placement.module.code} - "
-            f"{self.placement.course.code} "
-            f"({self.academic_year.label})"
-        )
+        return f"{self.module.code} ({self.academic_year.label})"
 
 class ModuleOfferingEnrollmentStudent(models.Model):
     offering = models.ForeignKey(
@@ -284,8 +283,12 @@ class Assignment(models.Model):
         return self.offering.module
 
     @property
-    def course(self):
-        return self.offering.course
+    def course_codes(self):
+        return self.offering.course_codes
+
+    @property
+    def course_codes_display(self):
+        return self.offering.course_codes_display
 
     @property
     def academic_year(self):
@@ -318,6 +321,13 @@ class AssignmentSubmission(models.Model):  # Represents a student's submission f
 
     class Meta:  # Meta options for assignment submissions
         unique_together = ("assignment", "student")  # Each student can have at most one submission per assignment
+
+    @property
+    def grade_safe(self):
+        try:
+            return self.grade
+        except AssignmentGrade.DoesNotExist:
+            return None
 
     def __str__(self):  # String representation for a submission
         return f"{self.assignment} - {self.student}"  # Shows assignment and student together
@@ -397,6 +407,13 @@ class AssignmentFile(models.Model):  # Represents files attached by lecturers to
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp when this file was uploaded
 
+    @property
+    def parsed_document_safe(self):
+        try:
+            return self.parsed_document
+        except ParsedDocument.DoesNotExist:
+            return None
+
     def __str__(self):  # String representation of assignment file
         return self.original_name or self.file.name  # Prefer original file name or fallback to stored name
 
@@ -435,8 +452,12 @@ class Quiz(models.Model):
         return self.offering.module
 
     @property
-    def course(self):
-        return self.offering.course
+    def course_codes(self):
+        return self.offering.course_codes
+
+    @property
+    def course_codes_display(self):
+        return self.offering.course_codes_display
 
     @property
     def academic_year(self):
@@ -616,8 +637,12 @@ class ModuleWeek(models.Model):
         return self.offering.module
 
     @property
-    def course(self):
-        return self.offering.course
+    def course_codes(self):
+        return self.offering.course_codes
+
+    @property
+    def course_codes_display(self):
+        return self.offering.course_codes_display
 
     @property
     def academic_year(self):
@@ -648,6 +673,13 @@ class ModuleWeekFile(models.Model):  # Represents a file resource attached to a 
         blank=True,  # Uploader not required
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp when this file was uploaded
+
+    @property
+    def parsed_document_safe(self):
+        try:
+            return self.parsed_document
+        except ParsedDocument.DoesNotExist:
+            return None
 
     def __str__(self):  # String representation for a weekly module file
         return self.original_name or self.file.name  # Prefer original name, or fallback to stored filename
@@ -863,8 +895,12 @@ class ModuleAnnouncement(models.Model):
         return self.offering.module
 
     @property
-    def course(self):
-        return self.offering.course
+    def course_codes(self):
+        return self.offering.course_codes
+
+    @property
+    def course_codes_display(self):
+        return self.offering.course_codes_display
 
     @property
     def academic_year(self):

@@ -294,19 +294,19 @@
                     <span class="week-file-meta">
                       (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                     </span>
-                    {% if f.parsed_document %}
-                      {% if f.parsed_document.parser_status == "READY" %}
+                    {% if f.parsed_document_safe %}
+                      {% if f.parsed_document_safe.parser_status == "READY" %}
                         <span class="status-badge ready">Ready</span>
                         <button type="button"
                                 class="small-button"
-                                hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
+                                hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document_safe.id %}"
                                 hx-target="#parsed-modal-body"
                                 hx-swap="innerHTML">
                           View
                         </button>
-                      {% elif f.parsed_document.parser_status == "PROCESSING" %}
+                      {% elif f.parsed_document_safe.parser_status == "PROCESSING" %}
                         <span class="status-badge processing">Processing</span>
-                      {% elif f.parsed_document.parser_status == "FAILED" %}
+                      {% elif f.parsed_document_safe.parser_status == "FAILED" %}
                         <span class="status-badge failed">Failed</span>
                       {% endif %}
                     {% endif %}
@@ -389,28 +389,28 @@
                         (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                       </span>
 
-                      {% if f.parsed_document %}
-                        {% if f.parsed_document.parser_status == "READY" %}
+                      {% if f.parsed_document_safe %}
+                        {% if f.parsed_document_safe.parser_status == "READY" %}
                           <span class="status-badge ready">Ready</span>
 
                           <button type="button"
                                   class="small-button"
-                                  hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
+                                  hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document_safe.id %}"
                                   hx-target="#parsed-modal-body"
                                   hx-swap="innerHTML">
                             View
                           </button>
 
-                          {% if f.parsed_document.images.all %}
-                            <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}?next={{ request.get_full_path|urlencode }}"
+                          {% if f.parsed_document_safe.images.all %}
+                            <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document_safe.id %}?next={{ request.get_full_path|urlencode }}"
                                class="small-button">
                               Edit Image Descriptions
                             </a>
                           {% endif %}
 
-                        {% elif f.parsed_document.parser_status == "PROCESSING" %}
+                        {% elif f.parsed_document_safe.parser_status == "PROCESSING" %}
                           <span class="status-badge processing">Processing</span>
-                        {% elif f.parsed_document.parser_status == "FAILED" %}
+                        {% elif f.parsed_document_safe.parser_status == "FAILED" %}
                           <span class="status-badge failed">Failed</span>
                         {% endif %}
                       {% endif %}

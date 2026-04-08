@@ -63,27 +63,27 @@
                 </div>
 
                 <div class="assessment-action-row">
-                  {% if f.parsed_document %}
-                    {% if f.parsed_document.parser_status == "READY" %}
+                  {% if f.parsed_document_safe %}
+                    {% if f.parsed_document_safe.parser_status == "READY" %}
                       <span class="status-badge ready">Ready</span>
 
                       <button type="button"
                               class="small-button"
-                              hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document.id %}"
+                              hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document_safe.id %}"
                               hx-target="#parsed-modal-body"
                               hx-swap="innerHTML">
                         View
                       </button>
 
-                      {% if role == "lecturer" and f.parsed_document.images.all %}
-                        <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document.id %}?next={{ request.get_full_path|urlencode }}"
+                      {% if role == "lecturer" and f.parsed_document_safe.images.all %}
+                        <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document_safe.id %}?next={{ request.get_full_path|urlencode }}"
                           class="small-button">
                           Edit Image Descriptions
                         </a>
                       {% endif %}
-                    {% elif f.parsed_document.parser_status == "PROCESSING" %}
+                    {% elif f.parsed_document_safe.parser_status == "PROCESSING" %}
                       <span class="status-badge processing">Processing</span>
-                    {% elif f.parsed_document.parser_status == "FAILED" %}
+                    {% elif f.parsed_document_safe.parser_status == "FAILED" %}
                       <span class="status-badge failed">Failed</span>
                     {% endif %}
                   {% endif %}
@@ -128,12 +128,12 @@
               </ul>
             {% endif %}
 
-            {% if submission.grade %}
+            {% if submission.grade_safe %}
               <h4 class="week-files-title">Grade</h4>
               <p class="card-meta">
-                Mark: {{ submission.grade.value }} / {{ assignment.max_mark }}<br>
-                {% if submission.grade.feedback_text %}
-                  Feedback: {{ submission.grade.feedback_text }}
+                Mark: {{ submission.grade_safe.value }} / {{ assignment.max_mark }}<br>
+                {% if submission.grade_safe.feedback_text %}
+                  Feedback: {{ submission.grade_safe.feedback_text }}
                 {% endif %}
               </p>
             {% endif %}
@@ -226,11 +226,11 @@
                   <p class="muted">No files uploaded yet.</p>
                 {% endif %}
 
-                {% if s.grade %}
+                {% if s.grade_safe %}
                   <p class="card-meta">
-                    Grade: {{ s.grade.value }} / {{ assignment.max_mark }}<br>
-                    {% if s.grade.feedback_text %}
-                      Feedback: {{ s.grade.feedback_text }}
+                    Grade: {{ s.grade_safe.value }} / {{ assignment.max_mark }}<br>
+                    {% if s.grade_safe.feedback_text %}
+                      Feedback: {{ s.grade_safe.feedback_text }}
                     {% endif %}
                   </p>
                 {% endif %}
@@ -239,7 +239,7 @@
                   <div class="workflow-submit-row workflow-submit-row--start">
                     <a href="{% url 'accounts:offering_grade_submission' offering.id assignment.id s.id %}?next={{ request.get_full_path|urlencode }}"
                       class="small-button">
-                      {% if s.grade %}Edit Grade{% else %}Add Grade{% endif %}
+                      {% if s.grade_safe %}Edit Grade{% else %}Add Grade{% endif %}
                     </a>
                   </div>
                 {% endif %}

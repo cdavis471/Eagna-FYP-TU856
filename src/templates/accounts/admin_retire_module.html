@@ -111,7 +111,10 @@
             <ul class="week-files">
               {% for offering in selected_summary.current_offerings %}
                 <li>
-                  {{ offering.placement.course.code }}
+                  {{ offering.module.code }}
+                  {% if offering.course_codes_display %}
+                    — Courses: {{ offering.course_codes_display }}
+                  {% endif %}
                   — Current:
                   {% if offering.is_current %}Yes{% else %}No{% endif %}
                   — Read only:

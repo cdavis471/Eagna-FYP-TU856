@@ -182,7 +182,7 @@ def _current_module_ids_for_student(student: StudentProfile):
             student=student,
             offering__academic_year=current_year,
             offering__is_current=True,
-        ).values_list("offering__placement__module_id", flat=True)
+        ).values_list("offering__module_id", flat=True)
     )
 
 
@@ -196,7 +196,7 @@ def _current_module_ids_for_lecturer(lecturer: LecturerProfile):
             lecturer=lecturer,
             offering__academic_year=current_year,
             offering__is_current=True,
-        ).values_list("offering__placement__module_id", flat=True)
+        ).values_list("offering__module_id", flat=True)
     )
 
 def _build_addable_modules_for_student(student: StudentProfile):
@@ -243,14 +243,13 @@ def _build_addable_modules_for_lecturer(lecturer: LecturerProfile):
             is_active=True,
             placements__available_now=True,
             placements__course__is_active=True,
-            placements__offerings__academic_year=current_year,
-            placements__offerings__is_current=True,
+            offerings__academic_year=current_year,
+            offerings__is_current=True,
         )
         .exclude(pk__in=existing_module_ids)
         .distinct()
         .order_by("code", "title")
     )
-
 
 def _build_removable_modules_for_lecturer(lecturer: LecturerProfile):
     existing_module_ids = _current_module_ids_for_lecturer(lecturer)
@@ -297,15 +296,15 @@ def _build_module_retire_summary(module: Module):
     if current_year:
         current_offerings = list(
             ModuleOffering.objects.filter(
-                placement__module=module,
+                module=module,
                 academic_year=current_year,
             )
-            .select_related("placement__course", "academic_year")
+            .select_related("module", "academic_year")
             .annotate(
                 student_count=Count("student_enrolments", distinct=True),
                 lecturer_count=Count("lecturer_enrolments", distinct=True),
             )
-            .order_by("placement__course__code")
+            .order_by("module__code")
         )
 
     return {
@@ -322,9 +321,9 @@ def _build_academic_year_label(start_date: date, end_date: date) -> str:
     return f"{start_date.year}/{str(end_date.year)[-2:]}"
 
 
-def _ensure_module_offering_for_placement(placement: ModulePlacement, academic_year: AcademicYear):
+def _ensure_module_offering_for_module(module: Module, academic_year: AcademicYear):
     offering, created = ModuleOffering.objects.get_or_create(
-        placement=placement,
+        module=module,
         academic_year=academic_year,
         defaults={
             "is_current": academic_year.is_current,
@@ -349,18 +348,18 @@ def _ensure_module_offering_for_placement(placement: ModulePlacement, academic_y
 def _sync_current_module_offerings(academic_year: AcademicYear) -> int:
     created_count = 0
 
-    placements = (
-        ModulePlacement.objects.select_related("module", "course")
-        .filter(
-            available_now=True,
-            module__is_active=True,
-            course__is_active=True,
+    modules = (
+        Module.objects.filter(
+            is_active=True,
+            placements__available_now=True,
+            placements__course__is_active=True,
         )
-        .order_by("course__code", "module__code")
+        .distinct()
+        .order_by("code")
     )
 
-    for placement in placements:
-        _, created = _ensure_module_offering_for_placement(placement, academic_year)
+    for module in modules:
+        _, created = _ensure_module_offering_for_module(module, academic_year)
         if created:
             created_count += 1
 
@@ -375,65 +374,37 @@ def _find_current_student_offering(student: StudentProfile, module: Module, acad
     if not course_code:
         return None
 
-    existing_offering = (
-        ModuleOffering.objects.select_related(
-            "placement__module",
-            "placement__course",
-            "academic_year",
-        )
-        .filter(
-            academic_year=academic_year,
-            is_current=True,
-            placement__module=module,
-            placement__course__code__iexact=course_code,
-        )
-        .order_by("id")
-        .first()
-    )
-    if existing_offering:
-        return existing_offering
+    allowed = ModulePlacement.objects.filter(
+        module=module,
+        course__code__iexact=course_code,
+        available_now=True,
+        module__is_active=True,
+        course__is_active=True,
+    ).exists()
 
-    placement = (
-        ModulePlacement.objects.select_related("module", "course")
-        .filter(
-            module=module,
-            course__code__iexact=course_code,
-            available_now=True,
-            module__is_active=True,
-            course__is_active=True,
-        )
-        .order_by("id")
-        .first()
-    )
-
-    if not placement:
+    if not allowed:
         return None
 
-    offering, _ = _ensure_module_offering_for_placement(placement, academic_year)
+    offering, _ = _ensure_module_offering_for_module(module, academic_year)
     return offering
 
-def _get_current_module_offerings_for_lecturer_module(module: Module, academic_year: AcademicYear | None = None):
+def _get_current_offering_for_lecturer_module(module: Module, academic_year: AcademicYear | None = None):
     academic_year = academic_year or _get_current_academic_year()
     if not academic_year:
-        return []
+        return None
 
-    placements = (
-        ModulePlacement.objects.select_related("module", "course")
-        .filter(
-            module=module,
-            available_now=True,
-            module__is_active=True,
-            course__is_active=True,
-        )
-        .order_by("course__code")
-    )
+    allowed = ModulePlacement.objects.filter(
+        module=module,
+        available_now=True,
+        module__is_active=True,
+        course__is_active=True,
+    ).exists()
 
-    offerings = []
-    for placement in placements:
-        offering, _ = _ensure_module_offering_for_placement(placement, academic_year)
-        offerings.append(offering)
+    if not allowed:
+        return None
 
-    return offerings
+    offering, _ = _ensure_module_offering_for_module(module, academic_year)
+    return offering
 
 def _sync_student_current_offering_enrolment(student: StudentProfile, module: Module, academic_year: AcademicYear | None = None):
     offering = _find_current_student_offering(student, module, academic_year=academic_year)
@@ -460,38 +431,34 @@ def _remove_student_current_offering_enrolment(student: StudentProfile, module: 
 
 
 def _sync_lecturer_current_offering_enrolment(lecturer: LecturerProfile, module: Module, academic_year: AcademicYear | None = None):
-    offerings = _get_current_module_offerings_for_lecturer_module(module, academic_year=academic_year)
-    created_count = 0
+    offering = _get_current_offering_for_lecturer_module(module, academic_year=academic_year)
+    if not offering:
+        return 0
 
-    for offering in offerings:
-        offering_has_primary = offering.lecturer_enrolments.filter(is_primary=True).exists()
+    offering_has_primary = offering.lecturer_enrolments.filter(is_primary=True).exists()
 
-        enrolment, created = ModuleOfferingEnrollmentLecturer.objects.get_or_create(
-            offering=offering,
-            lecturer=lecturer,
-            defaults={"is_primary": not offering_has_primary},
-        )
+    enrolment, created = ModuleOfferingEnrollmentLecturer.objects.get_or_create(
+        offering=offering,
+        lecturer=lecturer,
+        defaults={"is_primary": not offering_has_primary},
+    )
 
-        if created:
-            created_count += 1
-        elif not offering_has_primary and not enrolment.is_primary:
-            enrolment.is_primary = True
-            enrolment.save(update_fields=["is_primary"])
+    if not created and not offering_has_primary and not enrolment.is_primary:
+        enrolment.is_primary = True
+        enrolment.save(update_fields=["is_primary"])
 
-    return created_count
+    return 1 if created else 0
 
 def _remove_lecturer_current_offering_enrolment(lecturer: LecturerProfile, module: Module, academic_year: AcademicYear | None = None):
-    offerings = _get_current_module_offerings_for_lecturer_module(module, academic_year=academic_year)
-    deleted_total = 0
+    offering = _get_current_offering_for_lecturer_module(module, academic_year=academic_year)
+    if not offering:
+        return 0
 
-    for offering in offerings:
-        deleted, _ = ModuleOfferingEnrollmentLecturer.objects.filter(
-            offering=offering,
-            lecturer=lecturer,
-        ).delete()
-        deleted_total += deleted
-
-    return deleted_total
+    deleted, _ = ModuleOfferingEnrollmentLecturer.objects.filter(
+        offering=offering,
+        lecturer=lecturer,
+    ).delete()
+    return deleted
 
 def _safe_add_years(date_value: date, years: int = 1) -> date:
     try:
@@ -529,19 +496,19 @@ def _roll_forward_module_placement_availability():
 def _create_next_current_module_offerings(academic_year: AcademicYear):
     created_count = 0
 
-    placements = (
-        ModulePlacement.objects.select_related("module", "course")
-        .filter(
-            available_next_rollover=True,
-            module__is_active=True,
-            course__is_active=True,
+    modules = (
+        Module.objects.filter(
+            is_active=True,
+            placements__available_next_rollover=True,
+            placements__course__is_active=True,
         )
-        .order_by("course__code", "module__code")
+        .distinct()
+        .order_by("code")
     )
 
-    for placement in placements:
+    for module in modules:
         offering, created = ModuleOffering.objects.get_or_create(
-            placement=placement,
+            module=module,
             academic_year=academic_year,
             defaults={
                 "is_current": True,
@@ -574,13 +541,13 @@ def _copy_lecturers_to_next_current_offerings(previous_current_year: AcademicYea
         ModuleOffering.objects.filter(
             academic_year=previous_current_year,
         )
-        .select_related("placement")
+        .select_related("module")
         .prefetch_related("lecturer_enrolments")
     )
 
     for previous_offering in previous_offerings:
         next_offering = ModuleOffering.objects.filter(
-            placement=previous_offering.placement,
+            module=previous_offering.module,
             academic_year=next_current_year,
         ).first()
 
@@ -645,57 +612,10 @@ def _start_new_academic_year_transition(current_year: AcademicYear):
         "copied_lecturers": copied_lecturers,
     }
 
-def _get_accessible_current_offering_by_code_for_user(user: User, code: str):
-    current_year = _get_current_academic_year()
-    if not current_year:
-        raise Http404("No current academic year is configured.")
-
-    if user.is_student():
-        student = user.student_profile
-        offering = (
-            ModuleOffering.objects.select_related(
-                "placement__module",
-                "placement__course",
-                "academic_year",
-            )
-            .filter(
-                academic_year=current_year,
-                is_current=True,
-                placement__module__code=code,
-                student_enrolments__student=student,
-            )
-            .first()
-        )
-    elif user.is_lecturer():
-        lecturer = user.lecturer_profile
-        offering = (
-            ModuleOffering.objects.select_related(
-                "placement__module",
-                "placement__course",
-                "academic_year",
-            )
-            .filter(
-                academic_year=current_year,
-                is_current=True,
-                placement__module__code=code,
-                lecturer_enrolments__lecturer=lecturer,
-            )
-            .first()
-        )
-    else:
-        raise Http404("Not found")
-
-    if not offering:
-        raise Http404("Offering not found")
-
-    return offering
-
-
 def _get_accessible_offering_for_user(user: User, offering_id: int):
     offering = get_object_or_404(
         ModuleOffering.objects.select_related(
-            "placement__module",
-            "placement__course",
+            "module",
             "academic_year",
         ),
         pk=offering_id,
@@ -743,11 +663,11 @@ def _current_offering_queryset_for_student(student: StudentProfile):
             is_current=True,
             student_enrolments__student=student,
         )
-        .select_related("placement__module", "placement__course", "academic_year")
+        .select_related("module", "academic_year")
         .prefetch_related("lecturer_enrolments__lecturer__user")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("placement__module__code")
+        .order_by("module__code")
     )
 
 
@@ -762,10 +682,10 @@ def _current_offering_queryset_for_lecturer(lecturer: LecturerProfile):
             is_current=True,
             lecturer_enrolments__lecturer=lecturer,
         )
-        .select_related("placement__module", "placement__course", "academic_year")
+        .select_related("module", "academic_year")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("placement__module__code")
+        .order_by("module__code")
     )
 
 def _previous_offering_queryset_for_student(student: StudentProfile):
@@ -775,11 +695,11 @@ def _previous_offering_queryset_for_student(student: StudentProfile):
         ModuleOffering.objects.filter(
             student_enrolments__student=student,
         )
-        .select_related("placement__module", "placement__course", "academic_year")
+        .select_related("module", "academic_year")
         .prefetch_related("lecturer_enrolments__lecturer__user")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("-academic_year__start_date", "placement__module__code")
+        .order_by("-academic_year__start_date", "module__code")
     )
 
     if current_year:
@@ -795,10 +715,10 @@ def _previous_offering_queryset_for_lecturer(lecturer: LecturerProfile):
         ModuleOffering.objects.filter(
             lecturer_enrolments__lecturer=lecturer,
         )
-        .select_related("placement__module", "placement__course", "academic_year")
+        .select_related("module", "academic_year")
         .annotate(student_count=Count("student_enrolments", distinct=True))
         .distinct()
-        .order_by("-academic_year__start_date", "placement__module__code")
+        .order_by("-academic_year__start_date", "module__code")
     )
 
     if current_year:
@@ -829,75 +749,49 @@ def _group_offerings_by_academic_year(offerings):
 def _build_previous_student_dashboard_year_groups(student: StudentProfile, next_url=None):
     previous_offerings = list(_previous_offering_queryset_for_student(student))
 
-    year_groups = []
-    for group in _group_offerings_by_academic_year(previous_offerings):
-        year_groups.append(
-            {
-                "academic_year_label": group["academic_year_label"],
-                "rows": _build_student_dashboard_module_rows(
-                    group["offerings"],
-                    next_url,
-                ),
-            }
-        )
-
-    return year_groups
+    return [
+        {
+            "academic_year_label": group["academic_year_label"],
+            "rows": _build_student_dashboard_module_rows(group["offerings"], next_url),
+        }
+        for group in _group_offerings_by_academic_year(previous_offerings)
+    ]
 
 
 def _build_previous_lecturer_dashboard_year_groups(lecturer: LecturerProfile, next_url=None):
     previous_offerings = list(_previous_offering_queryset_for_lecturer(lecturer))
 
-    year_groups = []
-    for group in _group_offerings_by_academic_year(previous_offerings):
-        year_groups.append(
-            {
-                "academic_year_label": group["academic_year_label"],
-                "rows": _build_lecturer_dashboard_module_rows(
-                    group["offerings"],
-                    next_url,
-                ),
-            }
-        )
-
-    return year_groups
+    return [
+        {
+            "academic_year_label": group["academic_year_label"],
+            "rows": _build_lecturer_dashboard_module_rows(group["offerings"], next_url),
+        }
+        for group in _group_offerings_by_academic_year(previous_offerings)
+    ]
 
 
 def _build_previous_student_profile_year_groups(student: StudentProfile, next_url=None):
     previous_offerings = list(_previous_offering_queryset_for_student(student))
 
-    year_groups = []
-    for group in _group_offerings_by_academic_year(previous_offerings):
-        year_groups.append(
-            {
-                "academic_year_label": group["academic_year_label"],
-                "module_rows": _build_student_profile_modules(
-                    group["offerings"],
-                    student,
-                    next_url,
-                ),
-            }
-        )
-
-    return year_groups
+    return [
+        {
+            "academic_year_label": group["academic_year_label"],
+            "module_rows": _build_student_profile_modules(group["offerings"], student, next_url),
+        }
+        for group in _group_offerings_by_academic_year(previous_offerings)
+    ]
 
 
 def _build_previous_lecturer_profile_year_groups(lecturer: LecturerProfile, next_url=None):
     previous_offerings = list(_previous_offering_queryset_for_lecturer(lecturer))
 
-    year_groups = []
-    for group in _group_offerings_by_academic_year(previous_offerings):
-        year_groups.append(
-            {
-                "academic_year_label": group["academic_year_label"],
-                "module_rows": _build_lecturer_profile_modules(
-                    group["offerings"],
-                    lecturer,
-                    next_url,
-                ),
-            }
-        )
-
-    return year_groups
+    return [
+        {
+            "academic_year_label": group["academic_year_label"],
+            "module_rows": _build_lecturer_profile_modules(group["offerings"], lecturer, next_url),
+        }
+        for group in _group_offerings_by_academic_year(previous_offerings)
+    ]
 
 def _primary_offering_lecturer_name(offering: ModuleOffering) -> str:
     enrolments = list(offering.lecturer_enrolments.all())
@@ -949,29 +843,10 @@ def _build_lecturer_dashboard_module_rows(offerings_qs, next_url=None):
 
     return rows
 
-def _get_accessible_current_offering_assignment_for_user(user: User, code: str, assignment_id: int):
-    offering = _get_accessible_current_offering_by_code_for_user(user, code)
-    assignment = get_object_or_404(
-        Assignment.objects.select_related("offering__placement__module").prefetch_related("files__parsed_document"),
-        pk=assignment_id,
-        offering=offering,
-    )
-    return offering, assignment
-
-
-def _get_accessible_current_offering_quiz_for_user(user: User, code: str, quiz_id: int):
-    offering = _get_accessible_current_offering_by_code_for_user(user, code)
-    quiz = get_object_or_404(
-        Quiz.objects.select_related("offering__placement__module").prefetch_related("questions__options"),
-        pk=quiz_id,
-        offering=offering,
-    )
-    return offering, quiz
-
 def _get_accessible_offering_assignment_for_user(user: User, offering_id: int, assignment_id: int):
     offering = _get_accessible_offering_for_user(user, offering_id)
     assignment = get_object_or_404(
-        Assignment.objects.select_related("offering__placement__module").prefetch_related("files__parsed_document"),
+        Assignment.objects.select_related("offering__module").prefetch_related("files__parsed_document"),
         pk=assignment_id,
         offering=offering,
     )
@@ -981,7 +856,7 @@ def _get_accessible_offering_assignment_for_user(user: User, offering_id: int, a
 def _get_accessible_offering_quiz_for_user(user: User, offering_id: int, quiz_id: int):
     offering = _get_accessible_offering_for_user(user, offering_id)
     quiz = get_object_or_404(
-        Quiz.objects.select_related("offering__placement__module").prefetch_related("questions__options"),
+        Quiz.objects.select_related("offering__module").prefetch_related("questions__options"),
         pk=quiz_id,
         offering=offering,
     )
@@ -1048,9 +923,9 @@ def _portal_offering_queryset_for_user(user: User):
                 is_current=True,
                 student_enrolments__student=user.student_profile,
             )
-            .select_related("placement__module", "placement__course", "academic_year")
+            .select_related("module", "academic_year")
             .distinct()
-            .order_by("placement__module__code")
+            .order_by("module__code")
         )
 
     if user.is_lecturer():
@@ -1060,9 +935,9 @@ def _portal_offering_queryset_for_user(user: User):
                 is_current=True,
                 lecturer_enrolments__lecturer=user.lecturer_profile,
             )
-            .select_related("placement__module", "placement__course", "academic_year")
+            .select_related("module", "academic_year")
             .distinct()
-            .order_by("placement__module__code")
+            .order_by("module__code")
         )
 
     return ModuleOffering.objects.none()
@@ -1306,7 +1181,7 @@ def _build_portal_calendar_context(user, year, month, next_url=None):
             due_datetime__date__gte=first_of_month,
             due_datetime__date__lte=last_of_month,
         )
-        .select_related("offering__placement__module")
+        .select_related("offering__module")
         .order_by("due_datetime", "title")
     )
 
@@ -1317,7 +1192,7 @@ def _build_portal_calendar_context(user, year, month, next_url=None):
             close_datetime__date__gte=first_of_month,
             close_datetime__date__lte=last_of_month,
         )
-        .select_related("offering__placement__module")
+        .select_related("offering__module")
         .order_by("close_datetime", "title")
     )
 
@@ -1586,8 +1461,8 @@ def _persist_parsed_document(
 def _get_authorised_parsed_document(parsed_id: int, user: User):
     parsed_document = get_object_or_404(
         ParsedDocument.objects.select_related(
-            "week_file__week__offering__placement__module",
-            "assignment_file__assignment__offering__placement__module",
+            "week_file__week__offering__module",
+            "assignment_file__assignment__offering__module",
         ).prefetch_related("images"),
         pk=parsed_id,
     )
@@ -2185,7 +2060,7 @@ def _build_student_dashboard_items(student, offerings_qs, now, next_url=None):
             due_datetime__gte=now,
         )
         .exclude(submissions__student=student)
-        .select_related("offering__placement__module")
+        .select_related("offering__module")
         .order_by("due_datetime")
     )
 
@@ -2218,7 +2093,7 @@ def _build_student_dashboard_items(student, offerings_qs, now, next_url=None):
             is_published=True,
             close_datetime__gte=now,
         )
-        .select_related("offering__placement__module")
+        .select_related("offering__module")
         .order_by("close_datetime")
     )
 
@@ -2286,7 +2161,7 @@ def _build_student_profile_modules(offerings_qs, student, next_url=None):
             quiz__is_published=True,
             submitted_at__isnull=False,
         )
-        .select_related("quiz", "quiz__offering__placement__module")
+        .select_related("quiz", "quiz__offering__module")
         .order_by("quiz_id", "-weighted_score", "-submitted_at", "-id")
     )
 
@@ -2810,7 +2685,7 @@ def student_join_modules(request):
 
     module_rows = _build_module_selector_rows(course_code=course_code)
     valid_module_ids = {row["id"] for row in module_rows}
-    existing_current_year_ids = _current_module_ids_for_student(student)
+    existing_current_ids = _current_module_ids_for_student(student)
 
     if request.method == "POST":
         submitted_ids = {
@@ -2822,7 +2697,7 @@ def student_join_modules(request):
         invalid_ids = submitted_ids - valid_module_ids
         if invalid_ids:
             messages.error(request, "One or more selected modules are not valid for your course.")
-            submitted_ids = existing_current_year_ids
+            submitted_ids = existing_current_ids
         else:
             current_academic_year = _get_current_academic_year()
 
@@ -2835,16 +2710,15 @@ def student_join_modules(request):
                         academic_year=current_academic_year,
                     )
 
-            newly_added = len(submitted_ids - existing_current_year_ids)
+            newly_added = len(submitted_ids - existing_current_ids)
             if newly_added:
                 messages.success(request, f"{newly_added} module(s) added successfully.")
             else:
                 messages.info(request, "No new modules were added.")
 
             return redirect("accounts:student_join_modules")
-
     else:
-        submitted_ids = existing_current_year_ids
+        submitted_ids = existing_current_ids
 
     context = {
         "user": user,
@@ -2908,7 +2782,7 @@ def dashboard(request):
             )
             .select_related(
                 "assignment",
-                "assignment__offering__placement__module",
+                "assignment__offering__module",
                 "student",
                 "student__user",
             )
@@ -3368,18 +3242,17 @@ def admin_add_module(request):
                 is_active=is_active,
             )
 
-            current_academic_year = _get_current_academic_year()
-
             for course in parsed_courses:
-                placement = ModulePlacement.objects.create(
+                ModulePlacement.objects.create(
                     module=module,
                     course=course,
                     available_now=available_now,
                     available_next_rollover=available_next_rollover,
                 )
 
-                if current_academic_year and available_now:
-                    _ensure_module_offering_for_placement(placement, current_academic_year)
+            current_academic_year = _get_current_academic_year()
+            if current_academic_year and available_now:
+                _ensure_module_offering_for_module(module, current_academic_year)
 
             messages.success(request, "Module created successfully.")
             return redirect("accounts:admin_dashboard")
@@ -3450,7 +3323,7 @@ def admin_retire_module(request):
                                 _sync_current_module_offerings(current_year)
 
                                 archived_offerings = ModuleOffering.objects.filter(
-                                    placement__module=selected_module,
+                                    module=selected_module,
                                     academic_year=current_year,
                                     is_current=True,
                                 ).update(
@@ -3610,12 +3483,12 @@ def admin_edit_enrollment(request):
                     )
 
                 if deleted:
-                    current_offerings = _get_current_module_offerings_for_lecturer_module(
+                    current_offering = _get_current_offering_for_lecturer_module(
                         module,
                         academic_year=current_academic_year,
                     )
-                    for offering in current_offerings:
-                        _ensure_primary_lecturer(offering)
+                    if current_offering:
+                        _ensure_primary_lecturer(current_offering)
 
                     messages.success(
                         request,
@@ -3934,18 +3807,6 @@ def portal(request):
     return render(request, "accounts/portal.html", context)
 
 @login_required
-def module_detail(request, code):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-
-    target_url = reverse("accounts:offering_detail", args=[offering.id])
-
-    next_value = request.GET.get("next")
-    if next_value:
-        target_url = f"{target_url}?{urlencode({'next': next_value})}"
-
-    return redirect(target_url)
-
-@login_required
 def offering_detail(request, offering_id):
     user: User = request.user
     nav_items = _shared_nav_items()
@@ -4102,12 +3963,6 @@ def offering_create_module_announcement(request, offering_id):
 
 @login_required
 @require_http_methods(["GET", "POST"])
-def create_module_announcement(request, code):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_create_module_announcement(request, offering.id)
-
-@login_required
-@require_http_methods(["GET", "POST"])
 def offering_edit_module_announcement(request, offering_id, announcement_id):
     user: User = request.user
     offering = _get_writable_lecturer_offering_by_id(user, offering_id)
@@ -4143,13 +3998,6 @@ def offering_edit_module_announcement(request, offering_id, announcement_id):
     }
     return render(request, "accounts/module_announcement_form.html", context)
 
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def edit_module_announcement(request, code, announcement_id):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_edit_module_announcement(request, offering.id, announcement_id)
-
 @login_required
 @require_http_methods(["POST"])
 def offering_delete_module_announcement(request, offering_id, announcement_id):
@@ -4161,13 +4009,6 @@ def offering_delete_module_announcement(request, offering_id, announcement_id):
     announcement.delete()
     messages.success(request, "Module announcement deleted successfully.")
     return redirect("accounts:offering_detail", offering_id=offering.id)
-
-
-@login_required
-@require_http_methods(["POST"])
-def delete_module_announcement(request, code, announcement_id):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_delete_module_announcement(request, offering.id, announcement_id)
 
 @login_required
 def offering_upload_week_file(request, offering_id, week_number):
@@ -4243,41 +4084,6 @@ def offering_upload_week_file(request, offering_id, week_number):
         messages.success(request, "Weekly file uploaded and parsed successfully.")
 
     return redirect("accounts:offering_detail", offering_id=offering.id)
-
-
-@login_required
-def upload_week_file(request, code, week_number):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_upload_week_file(request, offering.id, week_number)
-
-# DEFUNCT
-#
-# @login_required
-# def edit_week_description(request, code, week_number):
-#
-#    user: User = request.user
-#    if not user.is_lecturer():
-#       raise Http404("Not found")
-#
-#    lecturer = user.lecturer_profile
-#    module = get_object_or_404(Module, code=code, lecturers=lecturer)
-#
-#    week, _ = ModuleWeek.objects.get_or_create(
-#        module=module,
-#       week_number=week_number,
-#        defaults={"title": f"Week {week_number}"},
-#    )
-#
-#    if request.method == "POST":
-#        was_visible = _week_is_viewable(week)
-#        description = request.POST.get("description", "").strip()
-#        week.description = description
-#        week.save()
-#
-#       if not was_visible:
-#           _notify_students_if_week_now_viewable(week)
-#
-#   return redirect("accounts:module_detail", code=module.code)
 
 @login_required
 @require_http_methods(["POST"])
@@ -4357,13 +4163,6 @@ def offering_save_module_week(request, offering_id, week_number):
     messages.success(request, f"Week {week.week_number} saved successfully.")
     return redirect(f"{reverse('accounts:offering_detail', args=[offering.id])}?week={week.week_number}")
 
-
-@login_required
-@require_http_methods(["POST"])
-def save_module_week(request, code, week_number):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_save_module_week(request, offering.id, week_number)
-
 @login_required
 @require_http_methods(["POST"])
 def offering_add_module_week(request, offering_id):
@@ -4381,12 +4180,6 @@ def offering_add_module_week(request, offering_id):
     )
 
     return redirect(f"{reverse('accounts:offering_detail', args=[offering.id])}?week={week.week_number}")
-
-@login_required
-@require_http_methods(["POST"])
-def add_module_week(request, code):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_add_module_week(request, offering.id)
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -4528,13 +4321,6 @@ def offering_create_assignment(request, offering_id):
     }
     return render(request, "accounts/create_assignment.html", context)
 
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def create_assignment(request, code):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_create_assignment(request, offering.id)
-
 @login_required
 @require_http_methods(["GET", "POST"])
 def offering_create_quiz(request, offering_id):
@@ -4637,12 +4423,6 @@ def offering_create_quiz(request, offering_id):
     return render(request, "accounts/create_quiz.html", context)
 
 @login_required
-@require_http_methods(["GET", "POST"])
-def create_quiz(request, code):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
-    return offering_create_quiz(request, offering.id)
-
-@login_required
 def offering_quiz_detail(request, offering_id, quiz_id):
     user: User = request.user
     nav_items = _shared_nav_items()
@@ -4670,7 +4450,7 @@ def offering_quiz_detail(request, offering_id, quiz_id):
             "read_only": read_only,
             "question_rows": question_rows,
             "attempts": attempts,
-            "back_url": _safe_back_url(request, "offering_detail", offering.id),
+            "back_url": _safe_back_url(request, "accounts:offering_detail", offering.id),
         }
         return render(request, "accounts/quiz_detail.html", context)
 
@@ -4722,7 +4502,7 @@ def offering_quiz_detail(request, offering_id, quiz_id):
             "can_start_attempt": can_start_attempt,
             "question_rows": question_rows,
             "remaining_seconds": remaining_seconds,
-            "back_url": _safe_back_url(request, "offering_detail", offering.id),
+            "back_url": _safe_back_url(request, "accounts:offering_detail", offering.id),
         }
         return render(request, "accounts/quiz_detail.html", context)
 
@@ -4757,7 +4537,7 @@ def offering_assignment_detail(request, offering_id, assignment_id):
             "role": "student",
             "read_only": read_only,
             "submission": submission,
-            "back_url": _safe_back_url(request, "offering_detail", offering.id),
+            "back_url": _safe_back_url(request, "accounts:offering_detail", offering.id),
         }
         template = "accounts/assignment_detail.html"
 
@@ -4779,7 +4559,7 @@ def offering_assignment_detail(request, offering_id, assignment_id):
             "role": "lecturer",
             "read_only": read_only,
             "submissions": submissions,
-            "back_url": _safe_back_url(request, "offering_detail", offering.id),
+            "back_url": _safe_back_url(request, "accounts:offering_detail", offering.id),
         }
         template = "accounts/assignment_detail.html"
 
@@ -4787,24 +4567,6 @@ def offering_assignment_detail(request, offering_id, assignment_id):
         return redirect("accounts:login")
 
     return render(request, template, context)
-
-@login_required
-def assignment_detail(request, code, assignment_id):
-    offering, assignment = _get_accessible_current_offering_assignment_for_user(
-        request.user,
-        code,
-        assignment_id,
-    )
-    return redirect(
-        "accounts:offering_assignment_detail",
-        offering_id=offering.id,
-        assignment_id=assignment.id,
-    )
-
-@login_required
-def quiz_detail(request, code, quiz_id):
-    offering, quiz = _get_accessible_current_offering_quiz_for_user(request.user, code, quiz_id)
-    return redirect("accounts:offering_quiz_detail", offering_id=offering.id, quiz_id=quiz.id)
 
 @login_required
 @require_http_methods(["POST"])
@@ -4851,14 +4613,6 @@ def offering_start_quiz_attempt(request, offering_id, quiz_id):
 
     return redirect("accounts:offering_quiz_detail", offering_id=offering.id, quiz_id=quiz.id)
 
-
-@login_required
-@require_http_methods(["POST"])
-def start_quiz_attempt(request, code, quiz_id):
-    offering, quiz = _get_accessible_current_offering_quiz_for_user(request.user, code, quiz_id)
-    return offering_start_quiz_attempt(request, offering.id, quiz.id)
-
-
 @login_required
 @require_http_methods(["POST"])
 def offering_save_quiz_progress(request, offering_id, quiz_id):
@@ -4888,14 +4642,6 @@ def offering_save_quiz_progress(request, offering_id, quiz_id):
     _upsert_attempt_answers(attempt, request.POST)
     return JsonResponse({"ok": True})
 
-
-@login_required
-@require_http_methods(["POST"])
-def save_quiz_progress(request, code, quiz_id):
-    offering, quiz = _get_accessible_current_offering_quiz_for_user(request.user, code, quiz_id)
-    return offering_save_quiz_progress(request, offering.id, quiz.id)
-
-
 @login_required
 @require_http_methods(["POST"])
 def offering_submit_quiz_attempt(request, offering_id, quiz_id):
@@ -4924,14 +4670,6 @@ def offering_submit_quiz_attempt(request, offering_id, quiz_id):
 
     messages.success(request, "Quiz submitted successfully.")
     return redirect("accounts:offering_quiz_detail", offering_id=offering.id, quiz_id=quiz.id)
-
-
-@login_required
-@require_http_methods(["POST"])
-def submit_quiz_attempt(request, code, quiz_id):
-    offering, quiz = _get_accessible_current_offering_quiz_for_user(request.user, code, quiz_id)
-    return offering_submit_quiz_attempt(request, offering.id, quiz.id)
-
 
 @login_required
 @require_http_methods(["POST"])
@@ -4989,14 +4727,6 @@ def offering_submit_assignment(request, offering_id, assignment_id):
     _notify_student_assignment_submitted(submission)
 
     return redirect("accounts:offering_assignment_detail", offering_id=offering.id, assignment_id=assignment.id)
-
-
-@login_required
-@require_http_methods(["POST"])
-def submit_assignment(request, code, assignment_id):
-    offering, assignment = _get_accessible_current_offering_assignment_for_user(request.user, code, assignment_id)
-    return offering_submit_assignment(request, offering.id, assignment.id)
-
 
 @login_required
 @require_http_methods(["GET", "POST"])
@@ -5078,13 +4808,6 @@ def offering_grade_submission(request, offering_id, assignment_id, submission_id
 
     return render(request, "accounts/grade_submission.html", context)
 
-
-@login_required
-@require_http_methods(["GET", "POST"])
-def grade_submission(request, code, assignment_id, submission_id):
-    offering, assignment = _get_accessible_current_offering_assignment_for_user(request.user, code, assignment_id)
-    return offering_grade_submission(request, offering.id, assignment.id, submission_id)
-
 @login_required
 @require_http_methods(["GET"])
 def parsed_document_modal(request, parsed_id):
@@ -5119,18 +4842,6 @@ def global_announcement_modal(request, announcement_id):
 @require_http_methods(["GET"])
 def offering_module_announcement_modal(request, offering_id, announcement_id):
     offering = _get_accessible_offering_for_user(request.user, offering_id)
-    announcement = get_object_or_404(ModuleAnnouncement, pk=announcement_id, offering=offering)
-
-    context = {
-        "announcement": announcement,
-        "scope_label": f"{offering.module.code} Announcement",
-    }
-    return render(request, "accounts/partials/announcement_modal.html", context)
-
-@login_required
-@require_http_methods(["GET"])
-def module_announcement_modal(request, code, announcement_id):
-    offering = _get_accessible_current_offering_by_code_for_user(request.user, code)
     announcement = get_object_or_404(ModuleAnnouncement, pk=announcement_id, offering=offering)
 
     context = {

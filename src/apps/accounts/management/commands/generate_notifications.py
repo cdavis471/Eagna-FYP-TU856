@@ -54,7 +54,7 @@ class Command(BaseCommand):
         one_day_upper = now + timedelta(hours=24)
 
         assignments_three_days = (
-            Assignment.objects.select_related("offering__placement__module")
+            Assignment.objects.select_related("offering__module")
             .filter(due_datetime__gt=three_day_lower, due_datetime__lte=three_day_upper)
             .order_by("due_datetime")
         )
@@ -73,7 +73,7 @@ class Command(BaseCommand):
             )
 
         assignments_one_day = (
-            Assignment.objects.select_related("offering__placement__module")
+            Assignment.objects.select_related("offering__module")
             .filter(due_datetime__gt=one_day_lower, due_datetime__lte=one_day_upper)
             .order_by("due_datetime")
         )
@@ -97,7 +97,7 @@ class Command(BaseCommand):
         created_count = 0
 
         quizzes = (
-            Quiz.objects.select_related("offering__placement__module")
+            Quiz.objects.select_related("offering__module")
             .filter(
                 is_published=True,
                 open_datetime__gt=window_start,
@@ -125,7 +125,7 @@ class Command(BaseCommand):
         created_count = 0
 
         assignments = (
-            Assignment.objects.select_related("offering__placement__module")
+            Assignment.objects.select_related("offering__module")
             .filter(
                 due_datetime__gt=window_start,
                 due_datetime__lte=now,
@@ -159,7 +159,7 @@ class Command(BaseCommand):
         created_count = 0
 
         quizzes = (
-            Quiz.objects.select_related("offering__placement__module")
+            Quiz.objects.select_related("offering__module")
             .filter(
                 is_published=True,
                 close_datetime__gt=window_start,
@@ -208,7 +208,7 @@ class Command(BaseCommand):
         weekly_seconds = 7 * 24 * 60 * 60
 
         assignments = (
-            Assignment.objects.select_related("offering__placement__module")
+            Assignment.objects.select_related("offering__module")
             .filter(due_datetime__lt=now - timedelta(days=7))
             .order_by("due_datetime")
         )
