@@ -5,6 +5,7 @@ from django.urls import include, path
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("prometheus/", include("django_prometheus.urls")),
     path("", include("apps.accounts.urls")),
 ]
 
