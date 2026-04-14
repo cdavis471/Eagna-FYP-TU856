@@ -275,13 +275,13 @@ class AcademicYearVisibilityTests(EagnaBaseTestCase):
         previous_year_groups = response.context["previous_year_groups"]
 
         self.assertEqual(len(current_rows), 1)
-        self.assertEqual(current_rows[0]["module_code"], "CMPU3010")
+        self.assertEqual(current_rows[0]["code"], "CMPU3010")
 
         self.assertEqual(len(previous_year_groups), 1)
         self.assertEqual(previous_year_groups[0]["academic_year_label"], "2024/25")
         previous_codes = {
-            row["module_code"]
-            for row in previous_year_groups[0]["module_rows"]
+            row["code"]
+            for row in previous_year_groups[0]["rows"]
         }
         self.assertSetEqual(previous_codes, {"CMPU3020"})
 
