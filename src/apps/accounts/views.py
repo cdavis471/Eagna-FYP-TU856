@@ -571,14 +571,20 @@ def _copy_lecturers_to_next_current_offerings(previous_current_year: AcademicYea
     return created_count
 
 def _start_new_academic_year_transition(current_year: AcademicYear):
+    # Calculate the label, start date, and end date for the next academic year
     next_window = _build_next_academic_year_window(current_year)
-
+    # Run the whole rollover as one database transaction.
     with transaction.atomic():
+        # Make sure the current year has all required offerings before rollover starts
         _sync_current_module_offerings(current_year)
-
+        # Mark the old year as no longer current
         current_year.is_current = False
+        # Save that change to the database
         current_year.save(update_fields=["is_current"])
 
+        # Select all module offerings belonging to the old current year
+        # Mark those offerings as no longer current
+        # Lock them so they become historical / read-only records
         ModuleOffering.objects.filter(
             academic_year=current_year,
         ).update(
@@ -587,24 +593,33 @@ def _start_new_academic_year_transition(current_year: AcademicYear):
         )
 
         next_year, created = AcademicYear.objects.get_or_create(
+            # Try to find or create the next academic year by label
             label=next_window["label"],
             defaults={
+                # Default start date for the new year
                 "start_date": next_window["start_date"],
+                # Default end date for the new year
                 "end_date": next_window["end_date"],
+                # Make the new year the active current year
                 "is_current": True,
             },
         )
 
+        # If the year already existed, refresh its dates and current status
         if not created:
+            # Update the start date
             next_year.start_date = next_window["start_date"]
+            # Ensure the existing year becomes current
             next_year.end_date = next_window["end_date"]
+            # Save only the updated fields
             next_year.is_current = True
             next_year.save(update_fields=["start_date", "end_date", "is_current"])
 
-        placement_updates = _roll_forward_module_placement_availability()
-        created_offerings = _create_next_current_module_offerings(next_year)
-        copied_lecturers = _copy_lecturers_to_next_current_offerings(current_year, next_year)
+        placement_updates = _roll_forward_module_placement_availability() # Update module placement availability for the new cycle
+        created_offerings = _create_next_current_module_offerings(next_year) # Create the new current module offerings for the next academic year
+        copied_lecturers = _copy_lecturers_to_next_current_offerings(current_year, next_year) # Carry lecturer enrolments forward into the new offerings where appropriate
 
+    # Return a summary of the rollover results
     return {
         "next_year": next_year,
         "placement_updates": placement_updates,
@@ -1419,33 +1434,50 @@ def _persist_parsed_document(
         page_count=parsed_payload["page_count"],
     )
 
+    # Track created image records in case cleanup is needed later
     created_images: list[ParsedDocumentImage] = []
 
     try:
+        # Loop through all extracted images returned by the parser
         for image_data in parsed_payload.get("images", []):
             image_obj = ParsedDocumentImage(
+                # Link the image back to the parsed document record
                 parsed_document=parsed_document,
+                # Save the token used to place the image back into rendered content
                 token=image_data["token"],
+                # Save the image order for display
                 display_order=image_data.get("display_order") or 0,
+                # Save the page/slide number the image came from
                 page_number=image_data.get("page_number"),
+                # Save the original filename where available
                 original_name=image_data.get("filename", ""),
+                # Save any available image description / alt text
                 alt_text=image_data.get("alt_text", ""),
             )
             image_obj.image.save(
+                # Use the original extracted filename
                 image_data["filename"],
+                # Save the raw binary image content as a Django file
                 ContentFile(image_data["content"]),
+                # Persist the image record immediately
                 save=True,
             )
+            # Keep a reference for rollback if something fails later
             created_images.append(image_obj)
 
+        # Rebuild the final rendered HTML now that images have been stored
         _rebuild_parsed_document_html(parsed_document, save=False)
 
+        # Mark parsing as complete
         parsed_document.parser_status = ParsedDocument.Status.READY
+        # Clear any previous parser error message
         parsed_document.parse_error = ""
+        # Save only the final fields that changed after processing finished
         parsed_document.save(update_fields=["rendered_html", "parser_status", "parse_error", "updated_at"])
-
+        # Return the completed parsed document record.
         return parsed_document
 
+    # If any part of persistence fails, clean up partial records and files
     except Exception:
         for image in created_images:
             if image.image:
@@ -3083,15 +3115,21 @@ def admin_add_course(request):
 @login_required
 @require_http_methods(["GET", "POST"])
 def admin_manage_academic_year(request):
+
+    # Get the currently logged-in user
     user: User = request.user
+    # Stop access unless the user is an administrator
     _require_admin_user(user)
+    
+    current_year = _get_current_academic_year() # Fetch the current academic year if one exists
+    errors = [] # Collect validation errors for display
+    confirm_rollover = request.GET.get("confirm_rollover") == "1" # Check whether the rollover confirmation flag was passed in the query string
+    next_year_preview = _build_next_academic_year_window(current_year) if current_year else None  # Build a preview of the next academic year if a current year exists
 
-    current_year = _get_current_academic_year()
-    errors = []
-    confirm_rollover = request.GET.get("confirm_rollover") == "1"
-    next_year_preview = _build_next_academic_year_window(current_year) if current_year else None
-
+    # Handle submitted admin actions
     if request.method == "POST":
+
+        # Read which action the admin requested from the submitted form data
         action = (request.POST.get("action") or "").strip()
 
         if action == "set_current_year":
@@ -3156,13 +3194,18 @@ def admin_manage_academic_year(request):
             )
             return redirect("accounts:admin_manage_academic_year")
 
+        # Admin wants to perform the full rollover into a new year
         elif action == "start_new_academic_year":
+
+            # Prevent rollover if there is no active current year
             if not current_year:
                 messages.error(request, "You must set a current academic year before starting a new one.")
                 return redirect("accounts:admin_manage_academic_year")
 
+            # Run the rollover process and collect summary counts
             summary = _start_new_academic_year_transition(current_year)
 
+            # Show the rollover outcome in one success message
             messages.success(
                 request,
                 f"Started New Academic Year {summary['next_year'].label}. "
@@ -3170,7 +3213,7 @@ def admin_manage_academic_year(request):
                 f"Offerings Created: {summary['created_offerings']}. "
                 f"Lecturers Re-Enrolled: {summary['copied_lecturers']}."
             )
-            return redirect("accounts:admin_manage_academic_year")
+            return redirect("accounts:admin_manage_academic_year")  # Redirect back to the admin management page
 
         else:
             messages.error(request, "Unknown academic year action.")

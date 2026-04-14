@@ -98,24 +98,31 @@ def _validate_office_container(file_bytes: bytes, extension: str) -> None:
         raise ValueError("The uploaded file is not a valid Office document.")
 
 def parse_uploaded_office_file(uploaded_file) -> dict[str, Any]:
-    extension = validate_supported_upload(uploaded_file)
 
-    file_bytes = uploaded_file.read()
+    extension = validate_supported_upload(uploaded_file) # Check the uploaded file type and return the allowed extension
+    file_bytes = uploaded_file.read() # Read the uploaded file into memory as raw bytes
+
+    # Reset the file pointer so the file can be read again later if needed
     if hasattr(uploaded_file, "seek"):
         uploaded_file.seek(0)
 
+    # Stop immediately if the upload contains no data
     if not file_bytes:
         raise ValueError("The uploaded file is empty.")
     
+    # Confirm the file is a valid Office container for the detected extension
     _validate_office_container(file_bytes, extension)
 
+    # Send Word documents to the Word parser
     if extension == ".docx":
         parsed = parse_docx_file(file_bytes)
+
+    # Send PowerPoint files to the PowerPoint parser
     else:
         parsed = parse_pptx_file(file_bytes)
 
-    parsed["extension"] = extension.lstrip(".")
-    return parsed
+    parsed["extension"] = extension.lstrip(".") # Store the extension in the returned payload without the leading dot
+    return parsed # Return one normalized parsed payload for the system to use
 
 def parse_docx_file(file_bytes: bytes) -> dict[str, Any]:
     captured_images: list[dict[str, Any]] = []
