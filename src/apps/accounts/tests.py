@@ -1,7 +1,7 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from apps.accounts.models import (
@@ -20,6 +20,7 @@ from apps.accounts.models import (
 
 User = get_user_model()
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class EagnaBaseTestCase(TestCase):
     def create_academic_year(
         self,
