@@ -2695,17 +2695,6 @@ Module Detail - Final UI
   padding-right: 0;
 }
 
-.module-announcement-card {
-  margin-bottom: 0;
-}
-
-.module-announcement-card .announcement-content {
-  margin-top: 0.45rem;
-  color: var(--primary);
-  font-weight: 500;
-  line-height: 1.6;
-}
-
 .module-calendar-section .module-week-card {
   border: 2px solid var(--tertiary);
   box-shadow: 0 12px 30px rgba(7, 22, 77, 0.12);
@@ -3933,6 +3922,25 @@ General Features - Final UI
   background: var(--surface-danger-alt);
   border-color: var(--text-danger-bright);
   color: var(--text-danger-strong);
+}
+
+.module-announcement-card {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.module-announcement-card .announcement-content {
+  margin-top: 0.45rem;
+  color: var(--primary);
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+.module-announcement-card .module-announcement-actions {
+  margin-top: auto;
+  padding-top: 0.85rem;
 }
 
 /*
