@@ -1,8 +1,8 @@
-<!-- Use the shared accounts base template for overall layout and styling -->
+﻿<!-- Use the shared accounts base template for overall layout and styling -->
 {% extends "accounts/base.html" %}
 
 <!-- Set the page title, including the module code for context -->
-{% block title %}Create Assignment – {{ module.code }} | Eagna{% endblock %}
+{% block title %}Edit Assignment – {{ module.code }} | Eagna{% endblock %}
 
 <!-- Begin the main content block that will be inserted into the base template -->
 {% block content %}
@@ -20,8 +20,8 @@
         <div>
           <!-- Wrap the assessment detail kicker area for layout or styling. -->
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
-          <!-- Display the main heading for create assignment. -->
-          <h1 class="section-title">Create Assignment</h1>
+          <!-- Display the main heading for edit assignment. -->
+          <h1 class="section-title">Edit Assignment</h1>
         </div>
 
         <!-- Show the assessment type badge. -->
@@ -30,7 +30,7 @@
 
       <!-- Wrap the assessment body text area for layout or styling. -->
       <p class="assessment-body-text">
-        Add the title, instructions, deadline, weighting, and any supporting files for students here.
+        Update the title, instructions, deadline, weighting, and optionally attach additional supporting files.
       </p>
     </div>
   </section>
@@ -110,8 +110,46 @@
 
           <!-- Group a label, field, and help text together. -->
           <div class="form-group workflow-field--full">
+            <!-- Label the current files area. -->
+            <label>Current Files</label>
+
+            <!-- Conditionally render this block when the data is available. -->
+            {% if assignment.files.all %}
+              <!-- Begin a list of related items. -->
+              <ul class="assessment-file-list assignment-materials-list">
+                <!-- Loop through each f from assignment files. -->
+                {% for f in assignment.files.all %}
+                  <!-- Render one item within the current list. -->
+                  <li class="assessment-file-row assignment-material-row">
+                    <!-- Wrap the assessment file main area for layout or styling. -->
+                    <div class="assessment-file-main">
+                      <!-- Wrap the assessment file name area for layout or styling. -->
+                      <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer" class="assessment-file-name">
+                        <!-- Render the f value here. -->
+                        {{ f.original_name|default:f.file.name }}
+                      </a>
+
+                      <!-- Wrap the week file meta area for layout or styling. -->
+                      <span class="week-file-meta">
+                        (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
+                      </span>
+                    </div>
+                  </li>
+                <!-- End the loop for this repeated content. -->
+                {% endfor %}
+              </ul>
+            <!-- Show the fallback content for the alternative case. -->
+            {% else %}
+              <!-- Wrap the muted area for layout or styling. -->
+              <p class="muted">No supporting files are currently attached.</p>
+            <!-- End this conditional template block. -->
+            {% endif %}
+          </div>
+
+          <!-- Group a label, field, and help text together. -->
+          <div class="form-group workflow-field--full">
             <!-- Label the attach files optional / can select multiple field. -->
-            <label for="id_files">Attach Files - Optional / Can Select Multiple</label>
+            <label for="id_files">Attach Additional Files - Optional / Can Select Multiple</label>
 
             <!-- Wrap the upload dropzone area for layout or styling. -->
             <div class="upload-dropzone" data-upload-dropzone>
@@ -127,7 +165,7 @@
               <!-- Label the related form control for accessibility. -->
               <label for="id_files" class="upload-dropzone__label .upload-text-fix">
                 <!-- Wrap the upload dropzone title area for layout or styling. -->
-                <span class="upload-dropzone__title">Drag and drop assignment brief files here</span>
+                <span class="upload-dropzone__title">Drag and drop additional assignment brief files here</span>
                 <!-- Insert a line break within the content. -->
                 <br>
                 <!-- Wrap the upload dropzone hint area for layout or styling. -->
@@ -140,7 +178,7 @@
 
             <!-- Wrap the workflow form help area for layout or styling. -->
             <p class="workflow-form-help">
-              Image descriptions for parsed assignment materials can be edited from the assignment detail page after creation.
+              Image descriptions for newly parsed assignment materials can still be edited from the assignment detail page after saving.
             </p>
           </div>
         </div>
@@ -148,7 +186,7 @@
         <!-- Wrap the workflow submit row area for layout or styling. -->
         <div class="workflow-submit-row">
           <!-- Provide a compact action button or link. -->
-          <button type="submit" class="small-button">Create Assignment</button>
+          <button type="submit" class="small-button">Save Assignment Changes</button>
         </div>
       </form>
     </div>

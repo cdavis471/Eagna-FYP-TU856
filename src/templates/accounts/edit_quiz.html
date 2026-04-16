@@ -1,10 +1,10 @@
-<!-- Use the shared base template for this page. -->
+﻿<!-- Use the shared base template for this page. -->
 {% extends "accounts/base.html" %}
 <!-- Load Django's static tag library for asset references. -->
 {% load static %}
 
 <!-- Set the page title shown in the browser tab. -->
-{% block title %}Create Quiz – {{ module.code }} | Eagna{% endblock %}
+{% block title %}Edit Quiz – {{ module.code }} | Eagna{% endblock %}
 
 <!-- Begin the main content block for this page. -->
 {% block content %}
@@ -22,8 +22,8 @@
         <div>
           <!-- Wrap the assessment detail kicker area for layout or styling. -->
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
-          <!-- Display the main heading for create quiz. -->
-          <h1 class="section-title">Create Quiz</h1>
+          <!-- Display the main heading for edit quiz. -->
+          <h1 class="section-title">Edit Quiz</h1>
         </div>
 
         <!-- Show the assessment type badge. -->
@@ -32,172 +32,111 @@
 
       <!-- Wrap the assessment body text area for layout or styling. -->
       <p class="assessment-body-text">
-        Build the quiz structure, configure availability, and define the questions in one clean workflow.
+        Update the quiz structure, availability, and question set before it opens to students.
       </p>
     </div>
   </section>
 
   <!-- Show validation errors when the form has problems. -->
   {% if errors %}
-    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
-      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-alert-card">
-        <!-- Begin a list of related items. -->
         <ul class="error-list">
-          <!-- Loop through each e from errors. -->
           {% for e in errors %}
-            <!-- Render one item within the current list. -->
             <li>{{ e }}</li>
-          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </ul>
       </div>
     </section>
-  <!-- End this conditional template block. -->
   {% endif %}
 
-  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
-    <!-- Wrap the assessment surface area for layout or styling. -->
     <div class="assessment-surface workflow-form-card">
-      <!-- Render quiz-related content for this page. -->
       <form method="post" id="create-quiz-form" class="workflow-form">
-        <!-- Insert the CSRF token for secure form submission. -->
         {% csrf_token %}
-        <!-- Render a hidden input for user entry. -->
         <input type="hidden" name="questions_payload" id="id_questions_payload">
 
-        <!-- Wrap the workflow form grid area for layout or styling. -->
         <div class="workflow-form-grid">
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group workflow-field--full">
-            <!-- Label the title field. -->
             <label for="id_title">Title</label>
-            <!-- Render a text input for user entry. -->
             <input type="text" id="id_title" name="title" value="{{ initial.title }}">
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group workflow-field--full">
-            <!-- Label the description / instructions field. -->
             <label for="id_description">Description / Instructions</label>
-            <!-- Render a multi-line input for longer text. -->
             <textarea id="id_description" name="description" rows="4" class="week-description-input">{{ initial.description }}</textarea>
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the open date field. -->
             <label for="id_open_date">Open Date</label>
-            <!-- Render a date input for user entry. -->
             <input type="date" id="id_open_date" name="open_date" value="{{ initial.open_date }}">
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the open time (24 hour) field. -->
             <label for="id_open_time">Open Time (24-Hour)</label>
-            <!-- Render a time input for user entry. -->
             <input type="time" id="id_open_time" name="open_time" value="{{ initial.open_time }}" step="60">
-            <!-- Wrap the workflow form help area for layout or styling. -->
             <p class="workflow-form-help">Use 24-hour Time - Example: 14:30 - For 2.30 PM</p>
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the close date field. -->
             <label for="id_close_date">Close date</label>
-            <!-- Render a date input for user entry. -->
             <input type="date" id="id_close_date" name="close_date" value="{{ initial.close_date }}">
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the close time (24 hour) field. -->
             <label for="id_close_time">Close Time (24-Hour)</label>
-            <!-- Render a time input for user entry. -->
             <input type="time" id="id_close_time" name="close_time" value="{{ initial.close_time }}" step="60">
-            <!-- Wrap the workflow form help area for layout or styling. -->
             <p class="workflow-form-help">Use 24-hour Time - Example: 14:30 - For 2.30 PM</p>
           </div>
         </div>
 
-        <!-- Wrap the workflow form grid area for layout or styling. -->
         <div class="workflow-form-grid workflow-form-grid--triple">
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the time limit (minutes) field. -->
             <label for="id_time_limit_minutes">Time Limit (Minutes)</label>
-            <!-- Render a number input for user entry. -->
             <input type="number" id="id_time_limit_minutes" name="time_limit_minutes" min="1" value="{{ initial.time_limit_minutes }}">
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the attempts allowed field. -->
             <label for="id_max_attempts">Attempts Allowed</label>
-            <!-- Render a number input for user entry. -->
             <input type="number" id="id_max_attempts" name="max_attempts" min="1" value="{{ initial.max_attempts }}">
           </div>
 
-          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
-            <!-- Label the % of module field. -->
             <label for="id_max_mark">% of Module</label>
-            <!-- Render a number input for user entry. -->
             <input type="number" step="0.01" id="id_max_mark" name="max_mark" value="{{ initial.max_mark }}">
           </div>
         </div>
 
-        <!-- Group a label, field, and help text together. -->
         <div class="form-group workflow-field--full">
-          <!-- Label the related form control for accessibility. -->
           <label class="workflow-checkbox-row">
-            <!-- Render a checkbox input for user entry. -->
             <input type="checkbox" name="is_published" {% if initial.is_published %}checked{% endif %}>
-            <!-- Display inline text for publish immediately. -->
             <span>Publish immediately</span>
           </label>
         </div>
 
-        <!-- Render quiz-related content for this page. -->
         <div class="assessment-surface quiz-builder-shell">
-          <!-- Render quiz-related content for this page. -->
           <div class="quiz-builder-header">
-            <!-- Wrap this part of the page for layout and styling. -->
             <div>
-              <!-- Wrap the assessment detail kicker area for layout or styling. -->
               <div class="assessment-detail-kicker">Question Builder</div>
-              <!-- Display the section heading for quiz questions. -->
               <h2 class="workflow-panel-title">Quiz Questions</h2>
             </div>
 
-            <!-- Provide a compact action button or link. -->
             <button type="button" id="add-question-button" class="small-button">+ Add Question</button>
           </div>
 
-          <!-- Render quiz-related content for this page. -->
           <div id="question-builder" class="quiz-builder"></div>
         </div>
 
-        <!-- Wrap the workflow submit row area for layout or styling. -->
         <div class="workflow-submit-row">
-          <!-- Provide a compact action button or link. -->
-          <button type="submit" class="small-button">Create Quiz</button>
+          <button type="submit" class="small-button">Save Quiz Changes</button>
         </div>
       </form>
     </div>
   </section>
 </div>
-<!-- End this template block for the parent layout. -->
 {% endblock %}
 
-<!-- Allow child templates to add page-specific scripts. -->
 {% block extra_scripts %}
-<!-- Render the initial questions value here. -->
 {{ initial_questions|json_script:"initial-quiz-questions" }}
-<!-- Load JavaScript required for this page. -->
 <script src="{% static 'accounts/create_quiz.js' %}" defer></script>
-<!-- End this template block for the parent layout. -->
 {% endblock %}

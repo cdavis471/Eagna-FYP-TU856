@@ -1,218 +1,338 @@
-﻿{% extends "accounts/base.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base.html" %}
+<!-- Load Django's static tag library for asset references. -->
 {% load static %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Portal | Eagna{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for portal. -->
     <h1 class="section-title">Portal</h1>
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
       Access Your Latest Materials, Microsoft 365 Products, Your Assessment Calendar & Timetable.
     </p>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section portal-week-section">
+    <!-- Arrange the card heading details in one row. -->
     <div class="assessment-card-topline">
+      <!-- Display the section heading for your week. -->
       <h2 class="section-title">Your Week</h2>
     </div>
 
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
       Activity from {{ week_start|date:"Y-m-d" }} to {{ week_end|date:"Y-m-d" }} across your modules.
     </p>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if portal_week_rows %}
+      <!-- Render portal-related content for this page. -->
       <div class="portal-week-stack">
+        <!-- Loop through each row from portal week rows. -->
         {% for row in portal_week_rows %}
+          <!-- Render portal-related content for this page. -->
           <article class="assessment-surface portal-week-module-card">
+            <!-- Display a subsection heading within this area. -->
             <h3 class="portal-week-module-title">
+              <!-- Render portal-related content for this page. -->
               <a href="{{ row.module_url }}" class="portal-week-module-link">
+                <!-- Render the row value here. -->
                 {{ row.module_code }} · {{ row.module_title }}
               </a>
             </h3>
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if row.assessment_items %}
+              <!-- Render portal-related content for this page. -->
               <section class="portal-week-group">
                 <h4 class="portal-week-group-title">Assessments</h4>
+                <!-- Begin a list of related items. -->
                 <ul class="portal-week-item-list">
+                  <!-- Loop through each item from row. -->
                   {% for item in row.assessment_items %}
+                    <!-- Render one item within the current list. -->
                     <li class="portal-week-item">
+                      <!-- Render portal-related content for this page. -->
                       <a href="{{ item.url }}" class="portal-week-item-link">{{ item.title }}</a>
 
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if item.files %}
+                        <!-- Begin a list of related items. -->
                         <ul class="portal-week-file-list">
+                          <!-- Loop through each file from item. -->
                           {% for file in item.files %}
+                            <!-- Render one item within the current list. -->
                             <li class="portal-week-file-text">{{ file.name }}</li>
+                          <!-- End the loop for this repeated content. -->
                           {% endfor %}
                         </ul>
+                      <!-- End this conditional template block. -->
                       {% endif %}
                     </li>
+                  <!-- End the loop for this repeated content. -->
                   {% endfor %}
                 </ul>
               </section>
+            <!-- End this conditional template block. -->
             {% endif %}
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if row.learning_items %}
+              <!-- Render portal-related content for this page. -->
               <section class="portal-week-group">
                 <h4 class="portal-week-group-title">Learning Materials</h4>
+                <!-- Begin a list of related items. -->
                 <ul class="portal-week-item-list">
+                  <!-- Loop through each item from row. -->
                   {% for item in row.learning_items %}
+                    <!-- Render one item within the current list. -->
                     <li class="portal-week-item">
+                      <!-- Render portal-related content for this page. -->
                       <a href="{{ item.url }}" class="portal-week-item-link">{{ item.title }}</a>
 
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if item.files %}
+                        <!-- Begin a list of related items. -->
                         <ul class="portal-week-file-list">
+                          <!-- Loop through each file from item. -->
                           {% for file in item.files %}
+                            <!-- Render one item within the current list. -->
                             <li class="portal-week-file-text">{{ file.name }}</li>
+                          <!-- End the loop for this repeated content. -->
                           {% endfor %}
                         </ul>
+                      <!-- End this conditional template block. -->
                       {% endif %}
                     </li>
+                  <!-- End the loop for this repeated content. -->
                   {% endfor %}
                 </ul>
               </section>
+            <!-- End this conditional template block. -->
             {% endif %}
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if row.grade_items %}
+              <!-- Render portal-related content for this page. -->
               <section class="portal-week-group">
                 <h4 class="portal-week-group-title">Grades</h4>
+                <!-- Begin a list of related items. -->
                 <ul class="portal-week-item-list">
+                  <!-- Loop through each item from row. -->
                   {% for item in row.grade_items %}
+                    <!-- Render one item within the current list. -->
                     <li class="portal-week-item">
+                      <!-- Render portal-related content for this page. -->
                       <a href="{{ item.url }}" class="portal-week-item-link">{{ item.title }}</a>
+                      <!-- Render portal-related content for this page. -->
                       <p class="portal-week-grade-meta">{{ item.summary }}</p>
                     </li>
+                  <!-- End the loop for this repeated content. -->
                   {% endfor %}
                 </ul>
               </section>
+            <!-- End this conditional template block. -->
             {% endif %}
           </article>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No new module activity this week.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section portal-office-section">
+    <!-- Arrange the card heading details in one row. -->
     <div class="assessment-card-topline">
+      <!-- Display the section heading for office365. -->
       <h2 class="section-title">Office365</h2>
+      <!-- Provide a compact action button or link. -->
       <a href="https://www.microsoft365.com/" target="_blank" rel="noopener noreferrer" class="small-button">
         Open Microsoft 365
       </a>
     </div>
 
+    <!-- Render portal-related content for this page. -->
     <div class="portal-app-grid portal-app-grid--primary">
+      <!-- Loop through each tile from office tiles primary. -->
       {% for tile in office_tiles_primary %}
         <a
           href="{{ tile.url }}"
           target="_blank"
           rel="noopener noreferrer"
           class="portal-app-card">
+          <!-- Render portal-related content for this page. -->
           <img
             src="{% static tile.image %}"
             alt="{{ tile.label }}"
             class="portal-app-image">
+          <!-- Render portal-related content for this page. -->
           <span class="portal-app-label">{{ tile.label }}</span>
         </a>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
     </div>
 
+    <!-- Render portal-related content for this page. -->
     <div class="portal-app-grid portal-app-grid--more">
       <a
         href="{{ office_tile_more.url }}"
         target="_blank"
         rel="noopener noreferrer"
         class="portal-app-card portal-app-card--more">
+        <!-- Render portal-related content for this page. -->
         <img
           src="{% static office_tile_more.image %}"
           alt="{{ office_tile_more.label }}"
           class="portal-app-image">
+        <!-- Render portal-related content for this page. -->
         <span class="portal-app-label">{{ office_tile_more.label }}</span>
       </a>
     </div>
 
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section portal-calendar-section" id="portal-assessment-calendar">
+    <!-- Arrange the card heading details in one row. -->
     <div class="assessment-card-topline portal-calendar-header">
+      <!-- Display the section heading for assessment calendar. -->
       <h2 class="section-title">Assessment Calendar</h2>
 
+      <!-- Display calendar-related content for the user. -->
       <div class="portal-calendar-nav">
+        <!-- Provide a compact action button or link. -->
         <a href="?year={{ prev_year }}&month={{ prev_month }}#portal-assessment-calendar" class="small-button">
           ← Previous
         </a>
+        <!-- Display calendar-related content for the user. -->
         <span class="portal-calendar-month">{{ calendar_month_label }}</span>
+        <!-- Provide a compact action button or link. -->
         <a href="?year={{ next_year }}&month={{ next_month }}#portal-assessment-calendar" class="small-button">
           Next →
         </a>
       </div>
     </div>
 
+    <!-- Display calendar-related content for the user. -->
     <div class="portal-calendar-grid" role="table" aria-label="Assessment calendar">
+      <!-- Loop through each weekday from calendar weekdays. -->
       {% for weekday in calendar_weekdays %}
+        <!-- Display calendar-related content for the user. -->
         <div class="portal-calendar-weekday" role="columnheader">{{ weekday }}</div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
 
+      <!-- Loop through each week from calendar weeks. -->
       {% for week in calendar_weeks %}
+        <!-- Loop through each day from week. -->
         {% for day in week %}
+          <!-- Display calendar-related content for the user. -->
           <div class="portal-calendar-cell {% if not day.in_month %}portal-calendar-cell--muted{% endif %} {% if day.is_today %}portal-calendar-cell--today{% endif %}" role="cell">
+            <!-- Display calendar-related content for the user. -->
             <div class="portal-calendar-date">{{ day.day_number }}</div>
 
+            <!-- Loop through each item from day. -->
             {% for item in day.items %}
+              <!-- Display calendar-related content for the user. -->
               <a href="{{ item.url }}" class="portal-calendar-item {{ item.kind_class }}">
+                <!-- Display calendar-related content for the user. -->
                 <span class="portal-calendar-item-type">{{ item.kind_label }}</span>
+                <!-- Display calendar-related content for the user. -->
                 <span class="portal-calendar-item-title">{{ item.module_code }} · {{ item.title }}</span>
               </a>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if day.extra_count %}
+              <!-- Display calendar-related content for the user. -->
               <div class="portal-calendar-more">+{{ day.extra_count }} more</div>
+            <!-- End this conditional template block. -->
             {% endif %}
           </div>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
     </div>
 
+    <!-- Group items under a shared label or timeframe. -->
     <div class="week-block">
+      <!-- Display the subsection heading for assessments this month. -->
       <h3 class="week-title">Assessments This Month</h3>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if calendar_items %}
+        <!-- Begin a list of related items. -->
         <ul class="profile-assessment-list">
+          <!-- Loop through each item from calendar items. -->
           {% for item in calendar_items %}
+            <!-- Render one item within the current list. -->
             <li class="profile-assessment-row">
+              <!-- Render profile-related content for this page. -->
               <div class="profile-assessment-main">
+                <!-- Show the assessment type badge. -->
                 <span class="assessment-badge {{ item.kind_class }}">{{ item.kind_label }}</span>
+                <!-- Render profile-related content for this page. -->
                 <a href="{{ item.url }}" class="profile-assessment-link">
+                  <!-- Render the item value here. -->
                   {{ item.module_code }} – {{ item.title }}
                 </a>
               </div>
 
+              <!-- Render profile-related content for this page. -->
               <span class="profile-metric">
+                <!-- Render the item value here. -->
                 {{ item.date_text }} {{ item.timestamp|date:"Y-m-d H:i" }}
               </span>
             </li>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </ul>
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">No assignments or quizzes fall in this month.</p>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section portal-timetable-section">
+    <!-- Arrange the card heading details in one row. -->
     <div class="assessment-card-topline">
+      <!-- Display the section heading for timetable. -->
       <h2 class="section-title">Timetable</h2>
+      <!-- Provide a compact action button or link. -->
       <a href="{{ timetable_url }}" target="_blank" rel="noopener noreferrer" class="small-button">
         Open in new tab
       </a>
     </div>
 
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
       If the embedded timetable does not load in your browser, use the button above to open it directly.
     </p>
 
+    <!-- Render portal-related content for this page. -->
     <div class="portal-embed-frame-wrap">
+      <!-- Embed external content directly into the page. -->
       <iframe
         src="{{ timetable_url }}"
         title="TU Dublin Timetable"
@@ -223,4 +343,5 @@
     </div>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

@@ -1,342 +1,597 @@
+<!-- Use the shared base template for this page. -->
 {% extends "accounts/base.html" %}
+<!-- Load Django's static tag library for asset references. -->
 {% load static %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}{{ quiz.title }} – {{ module.code }} | Eagna{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container assessment-detail-page quiz-detail-page">
-  <section class="dashboard-section">
-    <a href="{{ back_url }}" class="return-link">← Return</a>
-    {% if read_only %}
-      <div class="flash-message flash-message--info">
-        This is a previous academic year. Content is read-only.
+  <!-- Group a related section of dashboard content. -->
+    <section class="dashboard-section">
+      <!-- Wrap the assessment detail toolbar area for layout or styling. -->
+      <div class="assessment-detail-toolbar">
+        <!-- Wrap the return link area for layout or styling. -->
+        <a href="{{ back_url }}" class="return-link">← Return</a>
+
+        <!-- Conditionally render this block when the data is available. -->
+        {% if role == "lecturer" and not read_only %}
+          <!-- Wrap the assessment detail toolbar actions area for layout or styling. -->
+          <div class="assessment-detail-toolbar__actions">
+            <!-- Conditionally render this block when the data is available. -->
+            {% if can_edit_quiz %}
+              <!-- Provide a compact action button or link. -->
+              <a href="{% url 'accounts:offering_edit_quiz' offering.id quiz.id %}?next={{ request.get_full_path|urlencode }}"
+                class="small-button">
+                Edit
+              </a>
+            <!-- End this conditional template block. -->
+            {% endif %}
+
+            <!-- Conditionally render this block when the data is available. -->
+            {% if can_delete_quiz %}
+              <!-- Render admin interface content for this page. -->
+              <form method="post"
+                    action="{% url 'accounts:offering_delete_quiz' offering.id quiz.id %}"
+                    class="admin-inline-form">
+                <!-- Insert the CSRF token for secure form submission. -->
+                {% csrf_token %}
+                <!-- Provide a compact action button or link. -->
+                <button type="submit"
+                        class="small-button small-button--danger"
+                        onclick="return confirm('Delete this quiz? This will also remove all saved attempts and answers.');">
+                  Delete
+                </button>
+              </form>
+            <!-- End this conditional template block. -->
+            {% endif %}
+          </div>
+        <!-- End this conditional template block. -->
+        {% endif %}
       </div>
+
+      <!-- Conditionally render this block when the data is available. -->
+      {% if read_only %}
+        <!-- Display one flash message to the user. -->
+        <div class="flash-message flash-message--info">
+          This is a previous academic year. Content is read-only.
+        </div>
+      <!-- Handle the next possible condition for this block. -->
+      {% elif role == "lecturer" and not can_edit_quiz %}
+        <!-- Display one flash message to the user. -->
+        <div class="flash-message flash-message--info">
+          This quiz can no longer be edited because it has already opened.
+        </div>
+      <!-- End this conditional template block. -->
+      {% endif %}
+    <!-- Conditionally render this block when the data is available. -->
+    {% if role == "lecturer" and not read_only and not can_delete_quiz %}
+      <!-- Display one flash message to the user. -->
+      <div class="flash-message flash-message--warning">
+        This quiz cannot be deleted while a student attempt is in progress.
+      </div>
+    <!-- End this conditional template block. -->
     {% endif %}
+    <!-- Render quiz-related content for this page. -->
     <div class="assessment-hero-card quiz-overview-card">
+      <!-- Wrap the assessment detail header area for layout or styling. -->
       <div class="assessment-detail-header">
+        <!-- Wrap this part of the page for layout and styling. -->
         <div>
+          <!-- Wrap the assessment detail kicker area for layout or styling. -->
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <!-- Display the main page heading. -->
           <h1 class="section-title">{{ quiz.title }}</h1>
         </div>
 
+        <!-- Show the assessment type badge. -->
         <span class="assessment-badge quiz">Quiz</span>
       </div>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if quiz.description %}
+        <!-- Render quiz-related content for this page. -->
         <div class="assessment-surface quiz-overview-panel quiz-description-panel">
+          <!-- Display the subsection heading for description. -->
           <h3 class="week-title">Description</h3>
+          <!-- Wrap the assessment body text area for layout or styling. -->
           <p class="assessment-body-text">{{ quiz.description }}</p>
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+      <!-- Render quiz-related content for this page. -->
       <div class="assessment-meta-grid quiz-overview-meta-grid">
+        <!-- Render quiz-related content for this page. -->
         <div class="assessment-meta-card quiz-overview-panel">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">Opens</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ quiz.open_datetime|date:"Y-m-d H:i" }}</span>
         </div>
 
+        <!-- Render quiz-related content for this page. -->
         <div class="assessment-meta-card quiz-overview-panel">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">Closes</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ quiz.close_datetime|date:"Y-m-d H:i" }}</span>
         </div>
 
+        <!-- Render quiz-related content for this page. -->
         <div class="assessment-meta-card quiz-overview-panel">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">Time limit</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ quiz.time_limit_minutes }} minutes</span>
         </div>
 
+        <!-- Render quiz-related content for this page. -->
         <div class="assessment-meta-card quiz-overview-panel">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">Attempts allowed</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ quiz.max_attempts }}</span>
         </div>
 
+        <!-- Render quiz-related content for this page. -->
         <div class="assessment-meta-card quiz-overview-panel">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">% of Module</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ quiz.max_mark }}%</span>
         </div>
       </div>
     </div>
   </section>
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if role == "lecturer" %}
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-panel-shell">
+        <!-- Wrap the workflow panel header area for layout or styling. -->
         <div class="workflow-panel-header">
+          <!-- Wrap this part of the page for layout and styling. -->
           <div>
+            <!-- Display the section heading for question bank. -->
             <h2 class="workflow-panel-title">Question Bank</h2>
           </div>
         </div>
+        <!-- Wrap the workflow panel subtitle area for layout or styling. -->
         <p class="workflow-panel-subtitle">
           Review the question structure, answer options, and marks awarded per question.
         </p>
 
+        <!-- Render quiz-related content for this page. -->
         <div class="quiz-question-stack">
+          <!-- Loop through each row from question rows. -->
           {% for row in question_rows %}
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-question-editor">
+              <!-- Display the subsection heading for question {{ row.number }}. -->
               <h3 class="card-title">Question {{ row.number }}</h3>
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">{{ row.prompt }}</p>
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">Type: {{ row.question_type }}</p>
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">Marks: {{ row.marks }}</p>
 
+              <!-- Begin a list of related items. -->
               <ul class="week-files">
+                <!-- Loop through each option from row. -->
                 {% for option in row.options %}
+                  <!-- Render one item within the current list. -->
                   <li>
+                    <!-- Render the option value here. -->
                     {{ option.text }}
+                    <!-- Conditionally render this block when the data is available. -->
                     {% if option.is_correct %}
+                      <!-- Highlight important text within this area. -->
                       <strong>(correct)</strong>
+                    <!-- End this conditional template block. -->
                     {% endif %}
                   </li>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </ul>
             </div>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </div>
       </div>
     </section>
 
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-panel-shell">
+        <!-- Wrap the workflow panel header area for layout or styling. -->
         <div class="workflow-panel-header">
+          <!-- Wrap this part of the page for layout and styling. -->
           <div>
+            <!-- Display the section heading for student attempts. -->
             <h2 class="workflow-panel-title">Student Attempts</h2>
           </div>
         </div>
+        <!-- Wrap the workflow panel subtitle area for layout or styling. -->
         <p class="workflow-panel-subtitle">
           Track each attempt, whether it is still in progress, and the weighted score returned.
         </p>
+        <!-- Conditionally render this block when the data is available. -->
         {% if attempts %}
+          <!-- Render submission-related content for this page. -->
           <div class="assessment-submissions-grid">
+            <!-- Loop through each attempt from attempts. -->
             {% for attempt in attempts %}
+              <!-- Render submission-related content for this page. -->
               <div class="assessment-surface assessment-submission-card attempt-summary-card">
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="week-title">
+                  <!-- Render the attempt value here. -->
                   {{ attempt.student.user.get_full_name|default:attempt.student.user.username }}
                 </h3>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
                   Attempt {{ attempt.attempt_number }}<br>
                   Status: {{ attempt.status }}
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
                   Weighted score: {{ attempt.weighted_score }}/{{ quiz.max_mark }}
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if attempt.submitted_at %}
                     Submitted: {{ attempt.submitted_at|date:"Y-m-d H:i" }}
+                  <!-- Show the fallback content for the alternative case. -->
                   {% else %}
                     In progress
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </p>
               </div>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </div>
+        <!-- Show the fallback content for the alternative case. -->
         {% else %}
+          <!-- Wrap the muted area for layout or styling. -->
           <p class="muted">No student attempts yet.</p>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
     </section>
 
+  <!-- Handle the next possible condition for this block. -->
   {% elif role == "student" %}
+    <!-- Conditionally render this block when the data is available. -->
     {% if active_attempt and not read_only %}
+      <!-- Group a related section of dashboard content. -->
       <section class="dashboard-section">
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface workflow-panel-shell">
+          <!-- Wrap the workflow panel header area for layout or styling. -->
           <div class="workflow-panel-header">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Wrap the assessment detail kicker area for layout or styling. -->
               <div class="assessment-detail-kicker">Attempt {{ active_attempt.attempt_number }} of {{ quiz.max_attempts }}</div>
+              <!-- Display a secondary heading for this section. -->
               <h2 class="workflow-panel-title">Quiz<br>Attempt</h2>
             </div>
 
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-timer-banner">
               Time remaining:
+              <!-- Highlight important text within this area. -->
               <strong id="quiz-timer-display"></strong>
             </div>
           </div>
 
+          <!-- Wrap the workflow panel subtitle area for layout or styling. -->
           <p class="workflow-panel-subtitle">
             Questions only appear once the attempt has started. Your answers are saved as you work.
           </p>
 
+          <!-- Render quiz-related content for this page. -->
           <form method="post"
                 action="{% url 'accounts:offering_submit_quiz_attempt' offering.id quiz.id %}"
                 id="quiz-attempt-form"
                 data-save-url="{% url 'accounts:offering_save_quiz_progress' offering.id quiz.id %}"
                 data-remaining-seconds="{{ remaining_seconds }}">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
 
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-question-stack">
+              <!-- Loop through each row from question rows. -->
               {% for row in question_rows %}
                 <fieldset class="quiz-question-editor">
                   <legend class="card-title">Question {{ row.number }}</legend>
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">{{ row.prompt }}</p>
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">Marks: {{ row.marks }}</p>
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if row.question_type == "FILL_BLANK" %}
+                    <!-- Render quiz-related content for this page. -->
                     <p class="quiz-fill-preview">
                       Selected answer:
+                      <!-- Render quiz-related content for this page. -->
                       <span class="quiz-blank-selected" data-question-id="{{ row.id }}">
+                        <!-- Conditionally render this block when the data is available. -->
                         {% if row.selected_answer_text != "No answer selected" %}
+                          <!-- Render the row value here. -->
                           {{ row.selected_answer_text }}
+                        <!-- Show the fallback content for the alternative case. -->
                         {% else %}
                           _____
+                        <!-- End this conditional template block. -->
                         {% endif %}
                       </span>
                     </p>
+                  <!-- End this conditional template block. -->
                   {% endif %}
 
+                  <!-- Render quiz-related content for this page. -->
                   <div class="quiz-options-list">
+                    <!-- Loop through each option from row. -->
                     {% for option in row.options %}
+                      <!-- Label the related form control for accessibility. -->
                       <label class="quiz-option-row">
+                        <!-- Conditionally render this block when the data is available. -->
                         {% if row.question_type == "MULTIPLE_SELECT" %}
+                          <!-- Render a checkbox input for user entry. -->
                           <input type="checkbox"
                                 name="question_{{ row.id }}"
                                 value="{{ option.id }}"
                                 {% if option.selected %}checked{% endif %}>
+                        <!-- Show the fallback content for the alternative case. -->
                         {% else %}
+                          <!-- Render a radio input for user entry. -->
                           <input type="radio"
                                 name="question_{{ row.id }}"
                                 value="{{ option.id }}"
                                 {% if option.selected %}checked{% endif %}>
+                        <!-- End this conditional template block. -->
                         {% endif %}
+                        <!-- Display inline text or status information. -->
                         <span>{{ option.text }}</span>
                       </label>
+                    <!-- End the loop for this repeated content. -->
                     {% endfor %}
                   </div>
                 </fieldset>
+              <!-- End the loop for this repeated content. -->
               {% endfor %}
             </div>
 
+            <!-- Wrap the workflow submit row area for layout or styling. -->
             <div class="workflow-submit-row">
+              <!-- Provide a compact action button or link. -->
               <button type="submit" class="small-button">Submit quiz</button>
             </div>
           </form>
         </div>
       </section>
 
+    <!-- Handle the next possible condition for this block. -->
     {% elif submitted_attempt %}
+      <!-- Group a related section of dashboard content. -->
       <section class="dashboard-section">
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface workflow-panel-shell">
+          <!-- Wrap the workflow panel header area for layout or styling. -->
           <div class="workflow-panel-header">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Display the section heading for attempt summary. -->
               <h2 class="workflow-panel-title">Attempt Summary</h2>
             </div>
           </div>
 
+          <!-- Render quiz-related content for this page. -->
           <div class="quiz-meta-grid">
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
+              <!-- Highlight important text within this area. -->
               <strong>Attempt</strong>
+              <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.attempt_number }}</span>
             </div>
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
+              <!-- Highlight important text within this area. -->
               <strong>Status</strong>
+              <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.status }}</span>
             </div>
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
+              <!-- Highlight important text within this area. -->
               <strong>Raw score</strong>
+              <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.raw_score }}</span>
             </div>
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
+              <!-- Highlight important text within this area. -->
               <strong>Weighted score</strong>
+              <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.weighted_score }}/{{ quiz.max_mark }}</span>
             </div>
+            <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
+              <!-- Highlight important text within this area. -->
               <strong>Submitted</strong>
+              <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.submitted_at|date:"Y-m-d H:i" }}</span>
             </div>
           </div>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if can_start_attempt and not read_only %}
+            <!-- Wrap the workflow submit row area for layout or styling. -->
             <div class="workflow-submit-row workflow-submit-row--start">
+              <!-- Begin the form used to submit this page data. -->
               <form method="post" action="{% url 'accounts:offering_start_quiz_attempt' offering.id quiz.id %}">
+                <!-- Insert the CSRF token for secure form submission. -->
                 {% csrf_token %}
+                <!-- Provide a compact action button or link. -->
                 <button type="submit" class="small-button">Start another attempt</button>
               </form>
             </div>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
       </section>
 
+      <!-- Group a related section of dashboard content. -->
       <section class="dashboard-section">
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface workflow-panel-shell">
+          <!-- Wrap the workflow panel header area for layout or styling. -->
           <div class="workflow-panel-header">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Display the section heading for question review. -->
               <h2 class="workflow-panel-title">Question Review</h2>
             </div>
           </div>
 
+          <!-- Render quiz-related content for this page. -->
           <div class="quiz-question-stack">
+            <!-- Loop through each row from question rows. -->
             {% for row in question_rows %}
+              <!-- Render quiz-related content for this page. -->
               <div class="quiz-question-editor">
+                <!-- Display the subsection heading for question {{ row.number }}. -->
                 <h3 class="card-title">Question {{ row.number }}</h3>
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">{{ row.prompt }}</p>
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
 
+                <!-- Begin a list of related items. -->
                 <ul class="week-files">
+                  <!-- Loop through each option from row. -->
                   {% for option in row.options %}
+                    <!-- Render one item within the current list. -->
                     <li>
+                      <!-- Render the option value here. -->
                       {{ option.text }}
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if option.selected %}
+                        <!-- Highlight important text within this area. -->
                         <strong>(your choice)</strong>
+                      <!-- End this conditional template block. -->
                       {% endif %}
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if option.is_correct %}
+                        <!-- Highlight important text within this area. -->
                         <strong>(correct)</strong>
+                      <!-- End this conditional template block. -->
                       {% endif %}
                     </li>
+                  <!-- End the loop for this repeated content. -->
                   {% endfor %}
                 </ul>
               </div>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </div>
         </div>
       </section>
 
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Group a related section of dashboard content. -->
       <section class="dashboard-section">
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface workflow-panel-shell assessment-availability-card">
+          <!-- Wrap the workflow panel header area for layout or styling. -->
           <div class="workflow-panel-header">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Display the section heading for quiz availability. -->
               <h2 class="workflow-panel-title">Quiz Availability</h2>
             </div>
           </div>
 
+          <!-- Wrap the workflow panel subtitle area for layout or styling. -->
           <p class="workflow-panel-subtitle">
             Questions become visible once you start an attempt.
           </p>
 
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">
             Attempts used: {{ state.attempts_used }} / {{ quiz.max_attempts }}
           </p>
 
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">
             Status:
+            <!-- Style this status as upcoming or not yet open. -->
             <span class="assessment-status{% if state.status_label == 'Closed' or state.status_label == 'Submitted' %} assessment-status--dark{% elif state.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+              <!-- Render the state value here. -->
               {{ state.status_label }}
             </span>
           </p>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if read_only %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">This quiz belongs to a previous academic year, so attempts are read-only.</p>
+          <!-- Handle the next possible condition for this block. -->
           {% elif can_start_attempt %}
+            <!-- Wrap the workflow submit row area for layout or styling. -->
             <div class="workflow-submit-row workflow-submit-row--start">
+              <!-- Begin the form used to submit this page data. -->
               <form method="post" action="{% url 'accounts:offering_start_quiz_attempt' offering.id quiz.id %}">
+                <!-- Insert the CSRF token for secure form submission. -->
                 {% csrf_token %}
+                <!-- Provide a compact action button or link. -->
                 <button type="submit" class="small-button">Start quiz</button>
               </form>
             </div>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">This quiz is not currently available to start.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
       </section>
+    <!-- End this conditional template block. -->
     {% endif %}
+  <!-- End this conditional template block. -->
   {% endif %}
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}
 
+<!-- Allow child templates to add page-specific scripts. -->
 {% block extra_scripts %}
+  <!-- Conditionally render this block when the data is available. -->
   {% if role == "student" and active_attempt %}
+    <!-- Load JavaScript required for this page. -->
     <script src="{% static 'accounts/quiz_attempt.js' %}" defer></script>
+  <!-- End this conditional template block. -->
   {% endif %}
+<!-- End this template block for the parent layout. -->
 {% endblock %}

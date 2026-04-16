@@ -2,7 +2,7 @@
 {% extends "accounts/base.html" %}
 
 <!-- Set the browser tab title for the lecturer dashboard page -->
-{% block title %}Lecturer Dashboard - Eagna{% endblock %}
+{% block title %}Lecturer Dashboard | Eagna{% endblock %}
 
 <!-- Begin the main content area injected into the base template -->
 {% block content %}
@@ -42,16 +42,21 @@
               {% if s.assignment.description %}
                 <!-- Shortened version of the assignment description for quick context -->
                 <p class="card-meta">
+                  <!-- Render the s value here. -->
                   {{ s.assignment.description|truncatechars:120 }}
                 </p>
+              <!-- End this conditional template block. -->
               {% endif %}
             </article>
           </a>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
       <!-- Message shown when there are no ungraded submissions currently pending -->
       <p class="muted">No ungraded submissions at the moment.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
@@ -59,41 +64,66 @@
   <!-- Your Modules -->
   <!-- Semantic section element for the lecturer's modules list -->
   <section class="dashboard-section dashboard-card-section dashboard-modules-section">
+    <!-- Display the section heading for your modules. -->
     <h2 class="section-title">Your Modules</h2>
+    <!-- Conditionally render this block when the data is available. -->
     {% if current_module_rows %}
+      <!-- Arrange the module cards in a responsive grid. -->
       <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
+        <!-- Loop through each row from current module rows. -->
         {% for row in current_module_rows %}
+          <!-- Wrap the card link wrapper area for layout or styling. -->
           <a href="{{ row.url }}" class="card-link-wrapper">
+            <!-- Display one module card in the dashboard. -->
             <article class="card card-clickable dashboard-card-panel dashboard-module-card">
 
+              <!-- Display a subsection heading within this area. -->
               <h3 class="card-title">{{ row.title }}</h3>
 
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
+                <!-- Display inline text or status information. -->
                 <span>{{ row.code }}</span>
               </p>
 
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
                 Number of Students: {{ row.student_count }}
               </p>
 
             </article>
           </a>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No modules are currently assigned.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
+  <!-- Wrap this content in a card-style dashboard section. -->
   <section class="dashboard-section dashboard-card-section">
+    <!-- Display the section heading for global announcements. -->
     <h2 class="section-title">Global Announcements</h2>
+    <!-- Conditionally render this block when the data is available. -->
     {% if global_announcements %}
+      <!-- Lay out the announcement cards in a grid. -->
       <div class="card-grid dashboard-cards-grid dashboard-announcements-grid">
+        <!-- Loop through each announcement from global announcements. -->
         {% for announcement in global_announcements %}
+          <!-- Display one announcement card on the dashboard. -->
           <article class="announcement-card dashboard-card-panel dashboard-announcement-card">
+            <!-- Display a subsection heading within this area. -->
             <h3 class="card-title">{{ announcement.title }}</h3>
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
+            <!-- Display the main announcement text. -->
             <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+            <!-- Hold actions related to this announcement. -->
             <div class="announcement-actions">
+              <!-- Provide a compact action button or link. -->
               <button type="button"
                       class="small-button"
                       hx-get="{% url 'accounts:global_announcement_modal' announcement.id %}"
@@ -103,54 +133,82 @@
               </button>
             </div>
           </article>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No global announcements have been posted yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
   
+  <!-- Group module-related content on the dashboard. -->
   <section class="dashboard-section dashboard-card-section dashboard-modules-section">
+    <!-- Display the section heading for previous years. -->
     <h2 class="section-title">Previous Years</h2>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if previous_year_groups %}
+      <!-- Loop through each group from previous year groups. -->
       {% for group in previous_year_groups %}
+        <!-- Group items under a shared label or timeframe. -->
         <div class="week-block">
+          <!-- Display a subsection heading within this area. -->
           <h3 class="week-title">{{ group.academic_year_label }}</h3>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if group.rows %}
+            <!-- Arrange the module cards in a responsive grid. -->
             <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
+              <!-- Loop through each row from group. -->
               {% for row in group.rows %}
+                <!-- Wrap the card link wrapper area for layout or styling. -->
                 <a href="{{ row.url }}" class="card-link-wrapper">
+                  <!-- Display one module card in the dashboard. -->
                   <article class="card card-clickable dashboard-card-panel dashboard-module-card">
+                    <!-- Display a subsection heading within this area. -->
                     <h3 class="card-title">{{ row.title }}</h3>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
+                      <!-- Display inline text or status information. -->
                       <span>{{ row.code }}</span>
                     </p>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
                       Number of Students: {{ row.student_count }}
                     </p>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
+                      <!-- Render the row value here. -->
                       {{ row.academic_year_label }}
                     </p>
                   </article>
                 </a>
+              <!-- End the loop for this repeated content. -->
               {% endfor %}
             </div>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">No historical modules recorded for this year.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No previous-year modules are available yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
 </div>
 <!-- End of the main content block for this template -->
 {% endblock %}
-

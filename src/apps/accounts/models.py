@@ -1,920 +1,1054 @@
-from django.contrib.auth.models import AbstractUser  # Import Django's base user model that can be extended
-from django.db import models  # Import Django's ORM model base classes and field types, and transaction management for atomic operations
-from django.utils import timezone # Import timezone utilities to work with date and time fields in a timezone-aware manner
-from django.conf import settings  # Import project settings to reference AUTH_USER_MODEL, etc.
-from django.db.models import Sum, Q # Import aggregation function for summing marks, etc. and Q for complex queries
-from django.core.exceptions import ValidationError  # Import exception for validating model data 
-import os  # Import os module for file path operations
+# =======
+# Imports
+# =======
+from django.contrib.auth.models import AbstractUser  # Extend Django's base user model.
+from django.db import models  # Use Django model fields.
+from django.utils import timezone  # Work with timezone-aware datetimes.
+from django.conf import settings  # Reference project settings.
+from django.db.models import Sum, Q  # Use aggregate and query helpers.
+from django.core.exceptions import ValidationError  # Raise model validation errors.
+import os  # Handle path utilities.
 
-class User(AbstractUser):  # Custom user model extending Django's AbstractUser
-    class Role(models.TextChoices):  # Inner class defining choices for the user's role
-        STUDENT = "STUDENT", "Student"  # Database value and human-readable label for student role
-        LECTURER = "LECTURER", "Lecturer"  # Database value and human-readable label for lecturer role
-        ADMIN = "ADMIN", "Admin"  # Database value and human-readable label for admin role
+# ==================
+# Users and Profiles
+# ==================
+class User(AbstractUser):  # Define the User model.
+    """Represent an application user."""
+    class Role(models.TextChoices):  # Define the Role choices.
+        """Define role choices."""
+        STUDENT = "STUDENT", "Student"  # Define the student option.
+        LECTURER = "LECTURER", "Lecturer"  # Define the lecturer option.
+        ADMIN = "ADMIN", "Admin"  # Define the admin option.
 
-    class ColourScheme(models.TextChoices):
-        DEFAULT = "default", "Default"
-        PROTANOPIA = "protanopia", "Protanopia"
-        DEUTERANOPIA = "deuteranopia", "Deuteranopia"
-        TRITANOPIA = "tritanopia", "Tritanopia"
-        ACHROMATOPSIA = "achromatopsia", "Achromatopsia"
-        HIGH_CONTRAST = "high-contrast", "High Contrast"
+    class ColourScheme(models.TextChoices):  # Define colour scheme choices.
+        """Define colour scheme choices."""
+        DEFAULT = "default", "Default"  # Define the default option.
+        PROTANOPIA = "protanopia", "Protanopia"  # Define the protanopia option.
+        DEUTERANOPIA = "deuteranopia", "Deuteranopia"  # Define the deuteranopia option.
+        TRITANOPIA = "tritanopia", "Tritanopia"  # Define the tritanopia option.
+        ACHROMATOPSIA = "achromatopsia", "Achromatopsia"  # Define the achromatopsia option.
+        HIGH_CONTRAST = "high-contrast", "High Contrast"  # Define the high contrast option.
 
-    class FontScheme(models.TextChoices):
-        DEFAULT = "default", "Default"
-        OPEN_DYSLEXIC = "open-dyslexic", "Open Dyslexic"
-        ATKINSON_HYPERLEGIBLE = "atkinson-hyperlegible", "Atkinson Hyperlegible"
+    class FontScheme(models.TextChoices):  # Define font scheme choices.
+        """Define font scheme choices."""
+        DEFAULT = "default", "Default"  # Define the default option.
+        OPEN_DYSLEXIC = "open-dyslexic", "Open Dyslexic"  # Define the open dyslexic option.
+        ATKINSON_HYPERLEGIBLE = "atkinson-hyperlegible", "Atkinson Hyperlegible"  # Define the atkinson hyperlegible option.
 
-    role = models.CharField(  # Field storing whether this user is a student or lecturer
-        max_length=20,  # Maximum length of the string stored for the role
-        choices=Role.choices,  # Restricts allowed values to the Role enum choices
-        default=Role.STUDENT,  # Default role if none is specified when creating a user
+    role = models.CharField(  # Store role.
+        max_length=20,  # Limit stored text length.
+        choices=Role.choices,  # Restrict allowed values.
+        default=Role.STUDENT,  # Set the default value.
     )
 
-    colour_scheme = models.CharField(
-        max_length=24,
-        choices=ColourScheme.choices,
-        default=ColourScheme.DEFAULT,
+    colour_scheme = models.CharField(  # Store colour scheme.
+        max_length=24,  # Limit stored text length.
+        choices=ColourScheme.choices,  # Restrict allowed values.
+        default=ColourScheme.DEFAULT,  # Set the default value.
     )
 
-    font_scheme = models.CharField(
-        max_length=32,
-        choices=FontScheme.choices,
-        default=FontScheme.DEFAULT,
+    font_scheme = models.CharField(  # Store font scheme.
+        max_length=32,  # Limit stored text length.
+        choices=FontScheme.choices,  # Restrict allowed values.
+        default=FontScheme.DEFAULT,  # Set the default value.
     )
 
-    def is_student(self):  # Helper method to check if user is a student
-        return self.role == self.Role.STUDENT  # Returns True if role field equals the STUDENT choice
+    def is_student(self):  # Define is_student.
+        """Return whether the user is a student."""
+        return self.role == self.Role.STUDENT  # Return the computed value.
 
-    def is_lecturer(self):  # Helper method to check if user is a lecturer
-        return self.role == self.Role.LECTURER  # Returns True if role field equals the LECTURER choice
-    
-    def is_admin(self): # Helper method to check if user is an admin
-        return self.role == self.Role.ADMIN # Returns True if role field equals the ADMIN choice
+    def is_lecturer(self):  # Define is_lecturer.
+        """Return whether the user is a lecturer."""
+        return self.role == self.Role.LECTURER  # Return the computed value.
 
-class StudentProfile(models.Model):  # Extra data model for users who are students
+    def is_admin(self):  # Define is_admin.
+        """Return whether the user is an admin."""
+        return self.role == self.Role.ADMIN  # Return the computed value.
 
-    class Status(models.TextChoices):
-        ACTIVE = "ACTIVE", "Active"
-        COMPLETED = "COMPLETED", "Completed"
-        LOCKED = "LOCKED", "Locked"
+class StudentProfile(models.Model):  # Define the StudentProfile model.
+    """Represent a student profile."""
+    class Status(models.TextChoices):  # Define status choices.
+        """Define status choices."""
+        ACTIVE = "ACTIVE", "Active"  # Define the active option.
+        COMPLETED = "COMPLETED", "Completed"  # Define the completed option.
+        LOCKED = "LOCKED", "Locked"  # Define the locked option.
 
-    user = models.OneToOneField(  # One-to-one link between StudentProfile and User
-        User,  # Related model is the custom User model
-        on_delete=models.CASCADE,  # Delete student profile if the user is deleted
-        related_name="student_profile",  # Allows reverse access via user.student_profile
+    user = models.OneToOneField(  # Link to the related user.
+        User,  # Reference the related user model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="student_profile",  # Define reverse relation access.
     )
-    student_number = models.CharField(max_length=32, unique=True)  # Unique identifier for a student (e.g. student ID)
-    course = models.CharField(
-        max_length=10,
-        null=True,
-        blank=True,
-        help_text="Course Code(e.g. TU856 - No Name Included)"
-    )
-
-    status = models.CharField(
-        max_length=16,
-        choices=Status.choices,
-        default=Status.ACTIVE,
+    student_number = models.CharField(max_length=32, unique=True)  # Store student number.
+    course = models.CharField(  # Store course.
+        max_length=10,  # Limit stored text length.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+        help_text="Course Code(e.g. TU856 - No Name Included)"  # Show form help text.
     )
 
-    def is_active_student(self):
-        return self.status == self.Status.ACTIVE
-
-    def is_completed_student(self):
-        return self.status == self.Status.COMPLETED
-
-    def is_locked_student(self):
-        return self.status == self.Status.LOCKED
-
-    def __str__(self):  # String representation used in admin and shell
-        return f"{self.student_number} - {self.user.get_full_name() or self.user.username}"  # Shows ID plus student name or username
-
-class LecturerProfile(models.Model):  # Extra data model for users who are lecturers
-    user = models.OneToOneField(  # One-to-one link between LecturerProfile and User
-        User,  # Related user model
-        on_delete=models.CASCADE,  # Delete lecturer profile if the user is deleted
-        related_name="lecturer_profile",  # Allows reverse access via user.lecturer_profile
+    status = models.CharField(  # Store status.
+        max_length=16,  # Limit stored text length.
+        choices=Status.choices,  # Restrict allowed values.
+        default=Status.ACTIVE,  # Set the default value.
     )
-    staff_id = models.CharField(max_length=32, unique=True)  # Unique staff ID identifier for a lecturer
 
-    def __str__(self):  # String representation for lecturer profile
-        return f"{self.staff_id} - {self.user.get_full_name() or self.user.username}"  # Shows staff ID and lecturer name/username
-    
-# =========================
+    def is_active_student(self):  # Define is_active_student.
+        """Return whether the student is active."""
+        return self.status == self.Status.ACTIVE  # Return the computed value.
+
+    def is_completed_student(self):  # Define is_completed_student.
+        """Return whether the student is completed."""
+        return self.status == self.Status.COMPLETED  # Return the computed value.
+
+    def is_locked_student(self):  # Define is_locked_student.
+        """Return whether the student is locked."""
+        return self.status == self.Status.LOCKED  # Return the computed value.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.student_number} - {self.user.get_full_name() or self.user.username}"  # Return the display string.
+
+class LecturerProfile(models.Model):  # Define the LecturerProfile model.
+    """Represent a lecturer profile."""
+    user = models.OneToOneField(  # Link to the related user.
+        User,  # Reference the related user model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="lecturer_profile",  # Define reverse relation access.
+    )
+    staff_id = models.CharField(max_length=32, unique=True)  # Store staff id.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.staff_id} - {self.user.get_full_name() or self.user.username}"  # Return the display string.
+
+
+# =======
 # Courses
-# =========================
+# =======
+class Course(models.Model):  # Define the Course model.
+    """Represent a course."""
+    code = models.CharField(max_length=16, unique=True)  # Store code.
+    title = models.CharField(max_length=255)  # Store title.
+    length_years = models.PositiveSmallIntegerField(default=4)  # Store length years.
+    is_active = models.BooleanField(default=True)  # Store is active.
 
-class Course(models.Model):
-    code = models.CharField(max_length=16, unique=True)
-    title = models.CharField(max_length=255)
-    length_years = models.PositiveSmallIntegerField(default=4)
-    is_active = models.BooleanField(default=True)
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["code"]  # Define default ordering.
 
-    class Meta:
-        ordering = ["code"]
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.code} - {self.title}"  # Return the display string.
 
-    def __str__(self):
-        return f"{self.code} - {self.title}"
-    
-# =========================
-# Academic Year
-# =========================
 
-class AcademicYear(models.Model):
-    label = models.CharField(max_length=16, unique=True)
-    start_date = models.DateField()
-    end_date = models.DateField()
-    is_current = models.BooleanField(default=False)
+# ==============
+# Academic Years
+# ==============
+class AcademicYear(models.Model):  # Define the AcademicYear model.
+    """Represent an academic year."""
+    label = models.CharField(max_length=16, unique=True)  # Store the academic year label.
+    start_date = models.DateField()  # Store start date.
+    end_date = models.DateField()  # Store end date.
+    is_current = models.BooleanField(default=False)  # Store is current.
 
-    class Meta:
-        ordering = ["-start_date"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["is_current"],
-                condition=Q(is_current=True),
-                name="unique_current_academic_year",
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["-start_date"]  # Define default ordering.
+        constraints = [  # Define model constraints.
+            models.UniqueConstraint(  # Define a unique constraint.
+                fields=["is_current"],  # Target these constraint fields.
+                condition=Q(is_current=True),  # Apply the constraint condition.
+                name="unique_current_academic_year",  # Name the database constraint.
             )
         ]
 
-    def clean(self):
-        if self.start_date >= self.end_date:
-            raise ValidationError("Academic year end date must be after the start date.")
+    def clean(self):  # Define clean.
+        """Validate the model state."""
+        if self.start_date >= self.end_date:  # Check the current condition.
+            raise ValidationError("Academic year end date must be after the start date.")  # Raise a validation error.
 
-    def __str__(self):
-        return self.label
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.label  # Return the computed value.
 
-# =========================
-# Modules & Enrolment
-# =========================
+# =====================
+# Modules and Enrolment
+# =====================
+class Module(models.Model):  # Define the Module model.
+    """Represent a module."""
+    code = models.CharField(max_length=32, unique=True)  # Store code.
+    title = models.CharField(max_length=255)  # Store title.
+    is_active = models.BooleanField(default=True)  # Store is active.
 
-class Module(models.Model):
-    code = models.CharField(max_length=32, unique=True)
-    title = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.code} - {self.title}"  # Return the display string.
 
-    def __str__(self):
-        return f"{self.code} - {self.title}"
-
-class ModulePlacement(models.Model):
-    module = models.ForeignKey(
-        Module,
-        on_delete=models.CASCADE,
-        related_name="placements",
+class ModulePlacement(models.Model):  # Define the ModulePlacement model.
+    """Represent a module placement."""
+    module = models.ForeignKey(  # Link to the related module.
+        Module,  # Reference the related module model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="placements",  # Define reverse relation access.
     )
-    course = models.ForeignKey(
-        Course,
-        on_delete=models.CASCADE,
-        related_name="module_placements",
+    course = models.ForeignKey(  # Link to the related course.
+        Course,  # Reference the related course model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="module_placements",  # Define reverse relation access.
     )
-    available_now = models.BooleanField(default=True)
-    available_next_rollover = models.BooleanField(default=True)
+    available_now = models.BooleanField(default=True)  # Store available now.
+    available_next_rollover = models.BooleanField(default=True)  # Store available next rollover.
 
-    class Meta:
-        ordering = ["course__code", "module__code"]
-        unique_together = ("module", "course")
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["course__code", "module__code"]  # Define default ordering.
+        unique_together = ("module", "course")  # Enforce unique combinations.
 
-    def __str__(self):
-        return f"{self.module.code} -> {self.course.code}"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.module.code} -> {self.course.code}"  # Return the display string.
 
-class ModuleOffering(models.Model):
-    module = models.ForeignKey(
-        Module,
-        on_delete=models.CASCADE,
-        related_name="offerings",
+class ModuleOffering(models.Model):  # Define the ModuleOffering model.
+    """Represent a module offering."""
+    module = models.ForeignKey(  # Link to the related module.
+        Module,  # Reference the related module model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="offerings",  # Define reverse relation access.
     )
-    academic_year = models.ForeignKey(
-        AcademicYear,
-        on_delete=models.CASCADE,
-        related_name="module_offerings",
+    academic_year = models.ForeignKey(  # Link to the related academic year.
+        AcademicYear,  # Reference the related academic year model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="module_offerings",  # Define reverse relation access.
     )
-    is_current = models.BooleanField(default=False)
-    is_read_only = models.BooleanField(default=False)
+    is_current = models.BooleanField(default=False)  # Store is current.
+    is_read_only = models.BooleanField(default=False)  # Store is read only.
 
-    class Meta:
-        ordering = ["module__code", "academic_year__start_date"]
-        unique_together = ("module", "academic_year")
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["module__code", "academic_year__start_date"]  # Define default ordering.
+        unique_together = ("module", "academic_year")  # Enforce unique combinations.
 
-    @property
-    def course_codes(self):
-        return list(
-            self.module.placements
-            .select_related("course")
-            .filter(course__is_active=True)
-            .order_by("course__code")
-            .values_list("course__code", flat=True)
-            .distinct()
+    @property  # Expose a computed property.
+    def course_codes(self):  # Define course_codes.
+        """Return related course codes."""
+        return list(  # Return the computed value.
+            self.module.placements  # Start from related placements.
+            .select_related("course")  # Join related course rows.
+            .filter(course__is_active=True)  # Keep active courses only.
+            .order_by("course__code")  # Order by course code.
+            .values_list("course__code", flat=True)  # Read course codes only.
+            .distinct()  # Remove duplicate codes.
         )
 
-    @property
-    def course_codes_display(self):
-        return ", ".join(self.course_codes)
+    @property  # Expose a computed property.
+    def course_codes_display(self):  # Define course_codes_display.
+        """Return joined course codes."""
+        return ", ".join(self.course_codes)  # Return the computed value.
 
-    def clean(self):
-        if self.is_current and self.is_read_only:
-            raise ValidationError("A current module offering cannot also be read-only.")
+    def clean(self):  # Define clean.
+        """Validate the model state."""
+        if self.is_current and self.is_read_only:  # Check the current condition.
+            raise ValidationError("A current module offering cannot also be read-only.")  # Raise a validation error.
 
-    def __str__(self):
-        return f"{self.module.code} ({self.academic_year.label})"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.module.code} ({self.academic_year.label})"  # Return the display string.
 
-class ModuleOfferingEnrollmentStudent(models.Model):
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.CASCADE,
-        related_name="student_enrolments",
+class ModuleOfferingEnrollmentStudent(models.Model):  # Define the student enrolment model.
+    """Represent a student enrolment."""
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="student_enrolments",  # Define reverse relation access.
     )
-    student = models.ForeignKey(
-        StudentProfile,
-        on_delete=models.CASCADE,
-        related_name="offering_enrolments",
+    student = models.ForeignKey(  # Link to the related student.
+        StudentProfile,  # Reference the related student profile model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="offering_enrolments",  # Define reverse relation access.
     )
-    enrolled_on = models.DateField(auto_now_add=True)
+    enrolled_on = models.DateField(auto_now_add=True)  # Store enrolled on.
 
-    class Meta:
-        unique_together = ("offering", "student")
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        unique_together = ("offering", "student")  # Enforce unique combinations.
 
-    def __str__(self):
-        return f"{self.student} -> {self.offering}"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.student} -> {self.offering}"  # Return the display string.
 
-class ModuleOfferingEnrollmentLecturer(models.Model):
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.CASCADE,
-        related_name="lecturer_enrolments",
+class ModuleOfferingEnrollmentLecturer(models.Model):  # Define the lecturer enrolment model.
+    """Represent a lecturer enrolment."""
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="lecturer_enrolments",  # Define reverse relation access.
     )
-    lecturer = models.ForeignKey(
-        LecturerProfile,
-        on_delete=models.CASCADE,
-        related_name="offering_enrolments",
+    lecturer = models.ForeignKey(  # Link to the related lecturer.
+        LecturerProfile,  # Reference the related lecturer profile model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="offering_enrolments",  # Define reverse relation access.
     )
-    is_primary = models.BooleanField(default=False)
+    is_primary = models.BooleanField(default=False)  # Store is primary.
 
-    class Meta:
-        unique_together = ("offering", "lecturer")
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        unique_together = ("offering", "lecturer")  # Enforce unique combinations.
 
-    def __str__(self):
-        return f"{self.lecturer} -> {self.offering}"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.lecturer} -> {self.offering}"  # Return the display string.
 
-# =========================
-# Assignments & Submissions
-# =========================
-
-class Assignment(models.Model):
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.CASCADE,
-        related_name="assignments",
+# =====================
+# Assignments and Files
+# =====================
+class Assignment(models.Model):  # Define the Assignment model.
+    """Represent an assignment."""
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="assignments",  # Define reverse relation access.
     )
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    due_datetime = models.DateTimeField()
+    title = models.CharField(max_length=255)  # Store title.
+    description = models.TextField(blank=True)  # Store description.
+    due_datetime = models.DateTimeField()  # Store due datetime.
 
-    max_mark = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=100.00,
-    )
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    @property
-    def module(self):
-        return self.offering.module
-
-    @property
-    def course_codes(self):
-        return self.offering.course_codes
-
-    @property
-    def course_codes_display(self):
-        return self.offering.course_codes_display
-
-    @property
-    def academic_year(self):
-        return self.offering.academic_year
-
-    def __str__(self):
-        return f"{self.module.code} - {self.title}"
-
-class AssignmentSubmission(models.Model):  # Represents a student's submission for an assignment
-    class Status(models.TextChoices):  # Inner choices class to represent submission status
-        SUBMITTED = "SUBMITTED", "Submitted"  # Normal on-time submission
-        LATE = "LATE", "Late"  # Submission made after the due date
-
-    assignment = models.ForeignKey(  # Link to the assignment being submitted
-        Assignment,  # Related assignment model
-        on_delete=models.CASCADE,  # Delete submission if assignment is deleted
-        related_name="submissions",  # Reverse access: assignment.submissions
-    )
-    student = models.ForeignKey(  # Link to the student who made this submission
-        StudentProfile,  # Related student profile
-        on_delete=models.CASCADE,  # Delete submission if student profile is deleted
-        related_name="submissions",  # Reverse access: student_profile.submissions
-    )
-    status = models.CharField(  # Current status of the submission (e.g. submitted or late)
-        max_length=16,  # Maximum length for the status string
-        choices=Status.choices,  # Restrict to the Status enum choices
-        default=Status.SUBMITTED,  # Default value is normal submitted (on time)
-    )
-    submitted_at = models.DateTimeField(auto_now_add=True)  # Timestamp when the submission was first created
-
-    class Meta:  # Meta options for assignment submissions
-        unique_together = ("assignment", "student")  # Each student can have at most one submission per assignment
-
-    @property
-    def grade_safe(self):
-        try:
-            return self.grade
-        except AssignmentGrade.DoesNotExist:
-            return None
-
-    def __str__(self):  # String representation for a submission
-        return f"{self.assignment} - {self.student}"  # Shows assignment and student together
-
-def submission_file_upload_path(instance, filename):
-    return (
-        f"submission_files/{instance.submission.assignment.offering.id}/"
-        f"{instance.submission.assignment.module.code}/"
-        f"{instance.submission.assignment.id}/"
-        f"{instance.submission.student.student_number or instance.submission.student.id}/"
-        f"{filename}"
+    max_mark = models.DecimalField(  # Store max mark.
+        max_digits=5,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        default=100.00,  # Set the default value.
     )
 
-class SubmissionFile(models.Model):  # Represents an individual file attached to a student's submission
-    submission = models.ForeignKey(  # Link to the submission this file belongs to
-        AssignmentSubmission,  # Related model is AssignmentSubmission
-        on_delete=models.CASCADE,  # Delete file record if submission is deleted
-        related_name="files",  # Reverse access: submission.files
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
+    updated_at = models.DateTimeField(auto_now=True)  # Store updated at.
+
+    @property  # Expose a computed property.
+    def module(self):  # Define module.
+        """Return the related module."""
+        return self.offering.module  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def course_codes(self):  # Define course_codes.
+        """Return related course codes."""
+        return self.offering.course_codes  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def course_codes_display(self):  # Define course_codes_display.
+        """Return joined course codes."""
+        return self.offering.course_codes_display  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def academic_year(self):  # Define academic_year.
+        """Return the related academic year."""
+        return self.offering.academic_year  # Return the computed value.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.module.code} - {self.title}"  # Return the display string.
+
+class AssignmentSubmission(models.Model):  # Define the AssignmentSubmission model.
+    """Represent an assignment submission."""
+    class Status(models.TextChoices):  # Define status choices.
+        """Define status choices."""
+        SUBMITTED = "SUBMITTED", "Submitted"  # Define the submitted option.
+        LATE = "LATE", "Late"  # Define the late option.
+
+    assignment = models.ForeignKey(  # Link to the related assignment.
+        Assignment,  # Reference the related assignment model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="submissions",  # Define reverse relation access.
     )
-    file = models.FileField(upload_to=submission_file_upload_path)  # File itself, stored using provided upload path helper
-    original_name = models.CharField(max_length=255, blank=True)  # Original file name as uploaded (optional, for display)
-    uploaded_by = models.ForeignKey(  # Track which user uploaded this file
-        settings.AUTH_USER_MODEL,  # Use the configured user model
-        on_delete=models.SET_NULL,  # Keep file but set uploader to NULL if user is deleted
-        null=True,  # Allow NULL if uploader is removed
-        blank=True,  # Can be left blank when creating the record
+    student = models.ForeignKey(  # Link to the related student.
+        StudentProfile,  # Reference the related student profile model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="submissions",  # Define reverse relation access.
     )
-    uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp when the file was uploaded
-
-    def __str__(self):  # String representation of a submission file
-        return self.original_name or self.file.name  # Prefer original name, fallback to stored file name
-
-class AssignmentGrade(models.Model):  # Represents the grade/mark for a submission
-    submission = models.OneToOneField(  # One-to-one relationship: each submission has at most one grade
-        AssignmentSubmission,  # Related submission model
-        on_delete=models.CASCADE,  # Delete grade if submission is deleted
-        related_name="grade",  # Reverse access: submission.grade
+    status = models.CharField(  # Store status.
+        max_length=16,  # Limit stored text length.
+        choices=Status.choices,  # Restrict allowed values.
+        default=Status.SUBMITTED,  # Set the default value.
     )
-    marker = models.ForeignKey(  # Lecturer who graded this submission
-        LecturerProfile,  # Related lecturer profile
-        on_delete=models.SET_NULL,  # If marker is removed, keep grade but set marker to NULL
-        null=True,  # Allow NULL if marker is deleted or unknown
-        blank=True,  # Field can be left blank
-        related_name="graded_submissions",  # Reverse access: lecturer_profile.graded_submissions
-    )
-    value = models.DecimalField(  # Numeric mark awarded to this submission
-        max_digits=5,  # Total digits for mark (e.g. 100.00)
-        decimal_places=2,  # Number of decimal places (two decimal precision)
-        help_text="Mark awarded for this submission.",  # Helper text shown in forms/admin
-    )
-    feedback_text = models.TextField(blank=True)  # Optional textual feedback for the student
-    graded_at = models.DateTimeField(auto_now_add=True)  # Timestamp when this grade was first created
+    submitted_at = models.DateTimeField(auto_now_add=True)  # Store submitted at.
 
-    def __str__(self):  # String representation of grade
-        return f"{self.submission} - {self.value}/{self.submission.assignment.max_mark}"  # Shows submission and mark over max
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        unique_together = ("assignment", "student")  # Enforce unique combinations.
 
-def assignment_file_upload_path(instance, filename):
-    return (
-        f"assignment_files/{instance.assignment.offering.id}/"
-        f"{instance.assignment.module.code}/"
-        f"{instance.assignment.id}/{filename}"
-    )
+    @property  # Expose a computed property.
+    def grade_safe(self):  # Define grade safe.
+        """Return the grade when present."""
+        try:  # Start guarded parsing.
+            return self.grade  # Return the computed value.
+        except AssignmentGrade.DoesNotExist:  # Handle parsing failures.
+            return None  # Return the computed value.
 
-class AssignmentFile(models.Model):  # Represents files attached by lecturers to an assignment
-    assignment = models.ForeignKey(  # Link to the assignment this file belongs to
-        Assignment,  # Related assignment model
-        on_delete=models.CASCADE,  # Delete file record if assignment is deleted
-        related_name="files",  # Reverse access: assignment.files
-    )
-    file = models.FileField(upload_to=assignment_file_upload_path)  # Uploaded file for assignment resources
-    original_name = models.CharField(max_length=255, blank=True)  # Original file name, optional for nicer display
-    uploaded_by = models.ForeignKey(  # User who uploaded this assignment file (likely a lecturer)
-        settings.AUTH_USER_MODEL,  # Use the project’s configured user model
-        on_delete=models.SET_NULL,  # Keep file record but clear uploader if user removed
-        null=True,  # Allow NULL for uploader
-        blank=True,  # Uploader does not have to be set
-    )
-    uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp when this file was uploaded
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.assignment} - {self.student}"  # Return the display string.
 
-    @property
-    def parsed_document_safe(self):
-        try:
-            return self.parsed_document
-        except ParsedDocument.DoesNotExist:
-            return None
-
-    def __str__(self):  # String representation of assignment file
-        return self.original_name or self.file.name  # Prefer original file name or fallback to stored name
-
-class Quiz(models.Model):
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.CASCADE,
-        related_name="quizzes",
-    )
-    title = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-
-    open_datetime = models.DateTimeField()
-    close_datetime = models.DateTimeField()
-
-    time_limit_minutes = models.PositiveIntegerField(default=20)
-    max_attempts = models.PositiveSmallIntegerField(default=1)
-
-    max_mark = models.DecimalField(
-        max_digits=6,
-        decimal_places=2,
-        default=100.00,
-        help_text="Weighted mark shown to students, similar to assignment max mark.",
+def submission_file_upload_path(instance, filename):  # Define submission file upload path.
+    """Build the submission upload path."""
+    return (  # Return the computed value.
+        f"submission_files/{instance.submission.assignment.offering.id}/"  # Start the submission path.
+        f"{instance.submission.assignment.module.code}/"  # Add the module code.
+        f"{instance.submission.assignment.id}/"  # Add the assignment id.
+        f"{instance.submission.student.student_number or instance.submission.student.id}/"  # Add the student folder.
+        f"{filename}"  # Add the original filename.
     )
 
-    is_published = models.BooleanField(default=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ["close_datetime", "title"]
-
-    @property
-    def module(self):
-        return self.offering.module
-
-    @property
-    def course_codes(self):
-        return self.offering.course_codes
-
-    @property
-    def course_codes_display(self):
-        return self.offering.course_codes_display
-
-    @property
-    def academic_year(self):
-        return self.offering.academic_year
-
-    def __str__(self):
-        return f"{self.module.code} - Quiz - {self.title}"
-
-    def has_started(self, now=None):
-        now = now or timezone.now()
-        return now >= self.open_datetime
-
-    def has_closed(self, now=None):
-        now = now or timezone.now()
-        return now > self.close_datetime
-
-    def is_open(self, now=None):
-        now = now or timezone.now()
-        return self.is_published and self.has_started(now=now) and not self.has_closed(now=now)
-
-    def total_question_marks(self):
-        return self.questions.aggregate(total=Sum("marks"))["total"] or 0
-
-
-class QuizQuestion(models.Model):
-    class Type(models.TextChoices):
-        MULTIPLE_CHOICE = "MULTIPLE_CHOICE", "Multiple choice"
-        MULTIPLE_SELECT = "MULTIPLE_SELECT", "Multiple select"
-        TRUE_FALSE = "TRUE_FALSE", "True / False"
-        FILL_BLANK = "FILL_BLANK", "Fill in the blank"
-
-    quiz = models.ForeignKey(
-        Quiz,
-        on_delete=models.CASCADE,
-        related_name="questions",
+class SubmissionFile(models.Model):  # Define the SubmissionFile model.
+    """Represent a submission file."""
+    submission = models.ForeignKey(  # Link to the related submission.
+        AssignmentSubmission,  # Reference the related submission model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="files",  # Define reverse relation access.
     )
-    prompt = models.TextField()
-    question_type = models.CharField(
-        max_length=32,
-        choices=Type.choices,
+    file = models.FileField(upload_to=submission_file_upload_path)  # Store the uploaded file.
+    original_name = models.CharField(max_length=255, blank=True)  # Store original name.
+    uploaded_by = models.ForeignKey(  # Link to the related uploaded by.
+        settings.AUTH_USER_MODEL,  # Reference the configured user model.
+        on_delete=models.SET_NULL,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
     )
-    marks = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=1.00,
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # Store uploaded at.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.original_name or self.file.name  # Return the computed value.
+
+class AssignmentGrade(models.Model):  # Define the AssignmentGrade model.
+    """Represent an assignment grade."""
+    submission = models.OneToOneField(  # Link to the related submission.
+        AssignmentSubmission,  # Reference the related submission model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="grade",  # Define reverse relation access.
     )
-    display_order = models.PositiveIntegerField(default=1)
-
-    class Meta:
-        ordering = ["display_order", "id"]
-
-    def __str__(self):
-        return f"{self.quiz.title} - Q{self.display_order}"
-
-
-class QuizOption(models.Model):
-    question = models.ForeignKey(
-        QuizQuestion,
-        on_delete=models.CASCADE,
-        related_name="options",
+    marker = models.ForeignKey(  # Link to the related marker.
+        LecturerProfile,  # Reference the related lecturer profile model.
+        on_delete=models.SET_NULL,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+        related_name="graded_submissions",  # Define reverse relation access.
     )
-    text = models.CharField(max_length=255)
-    display_order = models.PositiveIntegerField(default=1)
-    is_correct = models.BooleanField(default=False)
-
-    class Meta:
-        ordering = ["display_order", "id"]
-
-    def __str__(self):
-        return self.text
-
-
-class QuizAttempt(models.Model):
-    class Status(models.TextChoices):
-        IN_PROGRESS = "IN_PROGRESS", "In Progress"
-        SUBMITTED = "SUBMITTED", "Submitted"
-        AUTO_SUBMITTED = "AUTO_SUBMITTED", "Auto Submitted"
-
-    quiz = models.ForeignKey(
-        Quiz,
-        on_delete=models.CASCADE,
-        related_name="attempts",
+    value = models.DecimalField(  # Store value.
+        max_digits=5,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        help_text="Mark awarded for this submission.",  # Show form help text.
     )
-    student = models.ForeignKey(
-        StudentProfile,
-        on_delete=models.CASCADE,
-        related_name="quiz_attempts",
-    )
-    attempt_number = models.PositiveSmallIntegerField()
+    feedback_text = models.TextField(blank=True)  # Store feedback text.
+    graded_at = models.DateTimeField(auto_now_add=True)  # Store graded at.
 
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.IN_PROGRESS,
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.submission} - {self.value}/{self.submission.assignment.max_mark}"  # Return the display string.
+
+def assignment_file_upload_path(instance, filename):  # Define assignment file upload path.
+    """Build the assignment upload path."""
+    return (  # Return the computed value.
+        f"assignment_files/{instance.assignment.offering.id}/"  # Start the assignment path.
+        f"{instance.assignment.module.code}/"  # Add the module code.
+        f"{instance.assignment.id}/{filename}"  # Add the assignment file name.
     )
 
-    started_at = models.DateTimeField(auto_now_add=True)
-    expires_at = models.DateTimeField()
-    submitted_at = models.DateTimeField(null=True, blank=True)
-
-    raw_score = models.DecimalField(
-        max_digits=7,
-        decimal_places=2,
-        default=0.00,
+class AssignmentFile(models.Model):  # Define the AssignmentFile model.
+    """Represent an assignment file."""
+    assignment = models.ForeignKey(  # Link to the related assignment.
+        Assignment,  # Reference the related assignment model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="files",  # Define reverse relation access.
     )
-    weighted_score = models.DecimalField(
-        max_digits=7,
-        decimal_places=2,
-        default=0.00,
+    file = models.FileField(upload_to=assignment_file_upload_path)  # Store the uploaded file.
+    original_name = models.CharField(max_length=255, blank=True)  # Store original name.
+    uploaded_by = models.ForeignKey(  # Link to the related uploaded by.
+        settings.AUTH_USER_MODEL,  # Reference the configured user model.
+        on_delete=models.SET_NULL,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
     )
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # Store uploaded at.
 
-    class Meta:
-        ordering = ["-started_at"]
-        unique_together = ("quiz", "student", "attempt_number")
+    @property  # Expose a computed property.
+    def parsed_document_safe(self):  # Define parsed document safe.
+        """Return the parsed document when present."""
+        try:  # Start guarded parsing.
+            return self.parsed_document  # Return the computed value.
+        except ParsedDocument.DoesNotExist:  # Handle parsing failures.
+            return None  # Return the computed value.
 
-    def __str__(self):
-        return f"{self.quiz.title} - {self.student} - Attempt {self.attempt_number}"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.original_name or self.file.name  # Return the computed value.
 
-    def is_active(self):
-        return self.status == self.Status.IN_PROGRESS and self.submitted_at is None
-
-    def is_expired(self, now=None):
-        now = now or timezone.now()
-        return now >= self.expires_at
-
-
-class QuizAnswer(models.Model):
-    attempt = models.ForeignKey(
-        QuizAttempt,
-        on_delete=models.CASCADE,
-        related_name="answers",
+# =======
+# Quizzes
+# =======
+class Quiz(models.Model):  # Define the Quiz model.
+    """Represent a quiz."""
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="quizzes",  # Define reverse relation access.
     )
-    question = models.ForeignKey(
-        QuizQuestion,
-        on_delete=models.CASCADE,
-        related_name="answers",
-    )
+    title = models.CharField(max_length=255)  # Store title.
+    description = models.TextField(blank=True)  # Store description.
 
-    selected_option = models.ForeignKey(
-        QuizOption,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="+",
-    )
-    selected_option_ids = models.JSONField(default=list, blank=True)
+    open_datetime = models.DateTimeField()  # Store open datetime.
+    close_datetime = models.DateTimeField()  # Store close datetime.
 
-    is_correct = models.BooleanField(default=False)
-    awarded_marks = models.DecimalField(
-        max_digits=7,
-        decimal_places=2,
-        default=0.00,
+    time_limit_minutes = models.PositiveIntegerField(default=20)  # Store time limit minutes.
+    max_attempts = models.PositiveSmallIntegerField(default=1)  # Store max attempts.
+
+    max_mark = models.DecimalField(  # Store max mark.
+        max_digits=6,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        default=100.00,  # Set the default value.
+        help_text="Weighted mark shown to students, similar to assignment max mark.",  # Show form help text.
     )
 
-    class Meta:
-        unique_together = ("attempt", "question")
+    is_published = models.BooleanField(default=True)  # Store is published.
 
-    def __str__(self):
-        return f"{self.attempt} - {self.question}"
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
+    updated_at = models.DateTimeField(auto_now=True)  # Store updated at.
 
-class ModuleWeek(models.Model):
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.CASCADE,
-        related_name="weeks",
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["close_datetime", "title"]  # Define default ordering.
+
+    @property  # Expose a computed property.
+    def module(self):  # Define module.
+        """Return the related module."""
+        return self.offering.module  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def course_codes(self):  # Define course_codes.
+        """Return related course codes."""
+        return self.offering.course_codes  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def course_codes_display(self):  # Define course_codes_display.
+        """Return joined course codes."""
+        return self.offering.course_codes_display  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def academic_year(self):  # Define academic_year.
+        """Return the related academic year."""
+        return self.offering.academic_year  # Return the computed value.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.module.code} - Quiz - {self.title}"  # Return the display string.
+
+    def has_started(self, now=None):  # Define has_started.
+        """Return whether the quiz has started."""
+        now = now or timezone.now()  # Set now.
+        return now >= self.open_datetime  # Return the computed value.
+
+    def has_closed(self, now=None):  # Define has_closed.
+        """Return whether the quiz has closed."""
+        now = now or timezone.now()  # Set now.
+        return now > self.close_datetime  # Return the computed value.
+
+    def is_open(self, now=None):  # Define is_open.
+        """Return whether the quiz is open."""
+        now = now or timezone.now()  # Set now.
+        return self.is_published and self.has_started(now=now) and not self.has_closed(now=now)  # Return the computed value.
+
+    def total_question_marks(self):  # Define total_question_marks.
+        """Return total question marks."""
+        return self.questions.aggregate(total=Sum("marks"))["total"] or 0  # Return the computed value.
+
+class QuizQuestion(models.Model):  # Define the QuizQuestion model.
+    """Represent a quiz question."""
+    class Type(models.TextChoices):  # Define type choices.
+        """Define type choices."""
+        MULTIPLE_CHOICE = "MULTIPLE_CHOICE", "Multiple choice"  # Define the multiple choice option.
+        MULTIPLE_SELECT = "MULTIPLE_SELECT", "Multiple select"  # Define the multiple select option.
+        TRUE_FALSE = "TRUE_FALSE", "True / False"  # Define the true / false option.
+        FILL_BLANK = "FILL_BLANK", "Fill in the blank"  # Define the fill in the blank option.
+
+    quiz = models.ForeignKey(  # Link to the related quiz.
+        Quiz,  # Reference the related quiz model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="questions",  # Define reverse relation access.
     )
-    week_number = models.PositiveSmallIntegerField()
-    title = models.CharField(max_length=255, blank=True, default="")
-    description = models.TextField(blank=True)
+    prompt = models.TextField()  # Store prompt.
+    question_type = models.CharField(  # Store question type.
+        max_length=32,  # Limit stored text length.
+        choices=Type.choices,  # Restrict allowed values.
+    )
+    marks = models.DecimalField(  # Store marks.
+        max_digits=5,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        default=1.00,  # Set the default value.
+    )
+    display_order = models.PositiveIntegerField(default=1)  # Store display order.
 
-    class Meta:
-        unique_together = ("offering", "week_number")
-        ordering = ["week_number"]
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["display_order", "id"]  # Define default ordering.
 
-    @property
-    def module(self):
-        return self.offering.module
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.quiz.title} - Q{self.display_order}"  # Return the display string.
 
-    @property
-    def course_codes(self):
-        return self.offering.course_codes
+class QuizOption(models.Model):  # Define the QuizOption model.
+    """Represent a quiz option."""
+    question = models.ForeignKey(  # Link to the related question.
+        QuizQuestion,  # Reference the related quiz question model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="options",  # Define reverse relation access.
+    )
+    text = models.CharField(max_length=255)  # Escape the run text.
+    display_order = models.PositiveIntegerField(default=1)  # Store display order.
+    is_correct = models.BooleanField(default=False)  # Store is correct.
 
-    @property
-    def course_codes_display(self):
-        return self.offering.course_codes_display
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["display_order", "id"]  # Define default ordering.
 
-    @property
-    def academic_year(self):
-        return self.offering.academic_year
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.text  # Return the computed value.
 
-    def __str__(self):
-        return f"{self.module.code} - Week {self.week_number}"
+class QuizAttempt(models.Model):  # Define the QuizAttempt model.
+    """Represent a quiz attempt."""
+    class Status(models.TextChoices):  # Define status choices.
+        """Define status choices."""
+        IN_PROGRESS = "IN_PROGRESS", "In Progress"  # Define the in progress option.
+        SUBMITTED = "SUBMITTED", "Submitted"  # Define the submitted option.
+        AUTO_SUBMITTED = "AUTO_SUBMITTED", "Auto Submitted"  # Define the auto submitted option.
 
-def module_week_file_upload_path(instance, filename):
-    return (
-        f"module_files/{instance.week.offering.id}/"
-        f"{instance.week.module.code}/"
-        f"week-{instance.week.week_number}/{filename}"
+    quiz = models.ForeignKey(  # Link to the related quiz.
+        Quiz,  # Reference the related quiz model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="attempts",  # Define reverse relation access.
+    )
+    student = models.ForeignKey(  # Link to the related student.
+        StudentProfile,  # Reference the related student profile model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="quiz_attempts",  # Define reverse relation access.
+    )
+    attempt_number = models.PositiveSmallIntegerField()  # Store attempt number.
+
+    status = models.CharField(  # Store status.
+        max_length=20,  # Limit stored text length.
+        choices=Status.choices,  # Restrict allowed values.
+        default=Status.IN_PROGRESS,  # Set the default value.
     )
 
-class ModuleWeekFile(models.Model):  # Represents a file resource attached to a specific teaching week
-    week = models.ForeignKey(  # Link to the week this file belongs to
-        ModuleWeek,  # Related ModuleWeek model
-        on_delete=models.CASCADE,  # Delete file record if week is deleted
-        related_name="files",  # Reverse access: week.files
+    started_at = models.DateTimeField(auto_now_add=True)  # Store started at.
+    expires_at = models.DateTimeField()  # Store expires at.
+    submitted_at = models.DateTimeField(null=True, blank=True)  # Store submitted at.
+
+    raw_score = models.DecimalField(  # Store raw score.
+        max_digits=7,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        default=0.00,  # Set the default value.
     )
-    file = models.FileField(upload_to=module_week_file_upload_path)  # Actual file stored for this week
-    original_name = models.CharField(max_length=255, blank=True)  # Optional original filename for display
-    uploaded_by = models.ForeignKey(  # User who uploaded this weekly file
-        settings.AUTH_USER_MODEL,  # Use configured user model
-        on_delete=models.SET_NULL,  # Keep file but clear uploader if user is removed
-        null=True,  # Allow NULL uploader
-        blank=True,  # Uploader not required
-    )
-    uploaded_at = models.DateTimeField(auto_now_add=True)  # Timestamp when this file was uploaded
-
-    @property
-    def parsed_document_safe(self):
-        try:
-            return self.parsed_document
-        except ParsedDocument.DoesNotExist:
-            return None
-
-    def __str__(self):  # String representation for a weekly module file
-        return self.original_name or self.file.name  # Prefer original name, or fallback to stored filename
-
-def parsed_document_image_upload_path(instance, filename):
-    return f"parsed_documents/{instance.parsed_document_id}/{filename}"
-
-class ParsedDocument(models.Model):
-    class Status(models.TextChoices):
-        PROCESSING = "PROCESSING", "Processing"
-        READY = "READY", "Ready"
-        FAILED = "FAILED", "Failed"
-
-    week_file = models.OneToOneField(
-        "ModuleWeekFile",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="parsed_document",
-    )
-    assignment_file = models.OneToOneField(
-        "AssignmentFile",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="parsed_document",
+    weighted_score = models.DecimalField(  # Store weighted score.
+        max_digits=7,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        default=0.00,  # Set the default value.
     )
 
-    source_extension = models.CharField(max_length=10)
-    parser_status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.PROCESSING,
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["-started_at"]  # Define default ordering.
+        unique_together = ("quiz", "student", "attempt_number")  # Enforce unique combinations.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.quiz.title} - {self.student} - Attempt {self.attempt_number}"  # Return the display string.
+
+    def is_active(self):  # Define is_active.
+        """Return whether the attempt is active."""
+        return self.status == self.Status.IN_PROGRESS and self.submitted_at is None  # Return the computed value.
+
+    def is_expired(self, now=None):  # Define is_expired.
+        """Return whether the attempt expired."""
+        now = now or timezone.now()  # Set now.
+        return now >= self.expires_at  # Return the computed value.
+
+class QuizAnswer(models.Model):  # Define the QuizAnswer model.
+    """Represent a quiz answer."""
+    attempt = models.ForeignKey(  # Link to the related attempt.
+        QuizAttempt,  # Reference the related quiz attempt model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="answers",  # Define reverse relation access.
     )
-    parsed_blocks = models.JSONField(default=list, blank=True)
-    rendered_html = models.TextField(blank=True)
-    parse_error = models.TextField(blank=True)
-    page_count = models.PositiveIntegerField(default=0)
+    question = models.ForeignKey(  # Link to the related question.
+        QuizQuestion,  # Reference the related quiz question model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="answers",  # Define reverse relation access.
+    )
 
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    selected_option = models.ForeignKey(  # Link to the related selected option.
+        QuizOption,  # Reference the related quiz option model.
+        on_delete=models.SET_NULL,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+        related_name="+",  # Define reverse relation access.
+    )
+    selected_option_ids = models.JSONField(default=list, blank=True)  # Store selected option ids.
 
-    def clean(self):
-        has_week_file = bool(self.week_file_id)
-        has_assignment_file = bool(self.assignment_file_id)
-        if has_week_file == has_assignment_file:
-            raise ValidationError(
-                "ParsedDocument must be linked to exactly one source file: "
-                "either week_file or assignment_file."
+    is_correct = models.BooleanField(default=False)  # Store is correct.
+    awarded_marks = models.DecimalField(  # Store awarded marks.
+        max_digits=7,  # Limit total decimal digits.
+        decimal_places=2,  # Set decimal precision.
+        default=0.00,  # Set the default value.
+    )
+
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        unique_together = ("attempt", "question")  # Enforce unique combinations.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.attempt} - {self.question}"  # Return the display string.
+
+# ==========================
+# Weeks and Parsed Documents
+# ==========================
+class ModuleWeek(models.Model):  # Define the ModuleWeek model.
+    """Represent a module week."""
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="weeks",  # Define reverse relation access.
+    )
+    week_number = models.PositiveSmallIntegerField()  # Store week number.
+    title = models.CharField(max_length=255, blank=True, default="")  # Store title.
+    description = models.TextField(blank=True)  # Store description.
+
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        unique_together = ("offering", "week_number")  # Enforce unique combinations.
+        ordering = ["week_number"]  # Define default ordering.
+
+    @property  # Expose a computed property.
+    def module(self):  # Define module.
+        """Return the related module."""
+        return self.offering.module  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def course_codes(self):  # Define course_codes.
+        """Return related course codes."""
+        return self.offering.course_codes  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def course_codes_display(self):  # Define course_codes_display.
+        """Return joined course codes."""
+        return self.offering.course_codes_display  # Return the computed value.
+
+    @property  # Expose a computed property.
+    def academic_year(self):  # Define academic_year.
+        """Return the related academic year."""
+        return self.offering.academic_year  # Return the computed value.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.module.code} - Week {self.week_number}"  # Return the display string.
+
+def module_week_file_upload_path(instance, filename):  # Define module week file upload path.
+    """Build the week file upload path."""
+    return (  # Return the computed value.
+        f"module_files/{instance.week.offering.id}/"  # Start the week file path.
+        f"{instance.week.module.code}/"  # Build this path segment.
+        f"week-{instance.week.week_number}/{filename}"  # Add the week folder.
+    )
+
+class ModuleWeekFile(models.Model):  # Define the ModuleWeekFile model.
+    """Represent a weekly module file."""
+    week = models.ForeignKey(  # Link to the related week.
+        ModuleWeek,  # Reference the related module week model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="files",  # Define reverse relation access.
+    )
+    file = models.FileField(upload_to=module_week_file_upload_path)  # Store the uploaded file.
+    original_name = models.CharField(max_length=255, blank=True)  # Store original name.
+    uploaded_by = models.ForeignKey(  # Link to the related uploaded by.
+        settings.AUTH_USER_MODEL,  # Reference the configured user model.
+        on_delete=models.SET_NULL,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)  # Store uploaded at.
+
+    @property  # Expose a computed property.
+    def parsed_document_safe(self):  # Define parsed document safe.
+        """Return the parsed document when present."""
+        try:  # Start guarded parsing.
+            return self.parsed_document  # Return the computed value.
+        except ParsedDocument.DoesNotExist:  # Handle parsing failures.
+            return None  # Return the computed value.
+
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.original_name or self.file.name  # Return the computed value.
+
+def parsed_document_image_upload_path(instance, filename):  # Define parsed document image upload path.
+    """Build the parsed image upload path."""
+    return f"parsed_documents/{instance.parsed_document_id}/{filename}"  # Return the display string.
+
+class ParsedDocument(models.Model):  # Define the ParsedDocument model.
+    """Represent a parsed document."""
+    class Status(models.TextChoices):  # Define status choices.
+        """Define status choices."""
+        PROCESSING = "PROCESSING", "Processing"  # Define the processing option.
+        READY = "READY", "Ready"  # Define the ready option.
+        FAILED = "FAILED", "Failed"  # Define the failed option.
+
+    week_file = models.OneToOneField(  # Link to the related week file.
+        "ModuleWeekFile",  # Allow the ModuleWeekFile entry.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+        related_name="parsed_document",  # Define reverse relation access.
+    )
+    assignment_file = models.OneToOneField(  # Link to the related assignment file.
+        "AssignmentFile",  # Allow the AssignmentFile entry.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+        related_name="parsed_document",  # Define reverse relation access.
+    )
+
+    source_extension = models.CharField(max_length=10)  # Store source extension.
+    parser_status = models.CharField(  # Store parser status.
+        max_length=20,  # Limit stored text length.
+        choices=Status.choices,  # Restrict allowed values.
+        default=Status.PROCESSING,  # Set the default value.
+    )
+    parsed_blocks = models.JSONField(default=list, blank=True)  # Store parsed blocks.
+    rendered_html = models.TextField(blank=True)  # Store rendered html.
+    parse_error = models.TextField(blank=True)  # Store parse error.
+    page_count = models.PositiveIntegerField(default=0)  # Store page count.
+
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
+    updated_at = models.DateTimeField(auto_now=True)  # Store updated at.
+
+    def clean(self):  # Define clean.
+        """Validate the model state."""
+        has_week_file = bool(self.week_file_id)  # Set has week file.
+        has_assignment_file = bool(self.assignment_file_id)  # Set has assignment file.
+        if has_week_file == has_assignment_file:  # Check the current condition.
+            raise ValidationError(  # Raise a validation error.
+                "ParsedDocument must be linked to exactly one source file: "  # Explain the validation rule.
+                "either week_file or assignment_file."  # Complete the validation message.
             )
 
-    def get_source_module(self):
-        if self.week_file_id:
-            return self.week_file.week.offering.module
-        if self.assignment_file_id:
-            return self.assignment_file.assignment.offering.module
-        return None
+    def get_source_module(self):  # Define get_source_module.
+        """Return the source module."""
+        if self.week_file_id:  # Check the current condition.
+            return self.week_file.week.offering.module  # Return the computed value.
+        if self.assignment_file_id:  # Check the current condition.
+            return self.assignment_file.assignment.offering.module  # Return the computed value.
+        return None  # Return the computed value.
 
-    def get_source_file(self):
-        if self.week_file_id:
-            return self.week_file
-        if self.assignment_file_id:
-            return self.assignment_file
-        return None
+    def get_source_file(self):  # Define get_source_file.
+        """Return the source file."""
+        if self.week_file_id:  # Check the current condition.
+            return self.week_file  # Return the computed value.
+        if self.assignment_file_id:  # Check the current condition.
+            return self.assignment_file  # Return the computed value.
+        return None  # Return the computed value.
 
-    def get_source_name(self):
-        source = self.get_source_file()
-        if not source:
-            return "Unknown file"
-        return source.original_name or os.path.basename(source.file.name)
+    def get_source_name(self):  # Define get_source_name.
+        """Return the source file name."""
+        source = self.get_source_file()  # Set source.
+        if not source:  # Check the current condition.
+            return "Unknown file"  # Return the computed value.
+        return source.original_name or os.path.basename(source.file.name)  # Return the computed value.
 
-    def __str__(self):
-        return f"Parsed: {self.get_source_name()}"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"Parsed: {self.get_source_name()}"  # Return the display string.
 
-class ParsedDocumentImage(models.Model):
-    parsed_document = models.ForeignKey(
-        ParsedDocument,
-        on_delete=models.CASCADE,
-        related_name="images",
+class ParsedDocumentImage(models.Model):  # Define the ParsedDocumentImage model.
+    """Represent a parsed document image."""
+    parsed_document = models.ForeignKey(  # Link to the related parsed document.
+        ParsedDocument,  # Reference the parsed document model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="images",  # Define reverse relation access.
     )
-    token = models.CharField(max_length=50)
-    image = models.ImageField(upload_to=parsed_document_image_upload_path)
-    display_order = models.PositiveIntegerField(default=0)
-    page_number = models.PositiveIntegerField(null=True, blank=True)
-    original_name = models.CharField(max_length=255, blank=True)
-    alt_text = models.TextField(blank=True)
+    token = models.CharField(max_length=50)  # Build a stable image token.
+    image = models.ImageField(upload_to=parsed_document_image_upload_path)  # Store the uploaded image.
+    display_order = models.PositiveIntegerField(default=0)  # Store display order.
+    page_number = models.PositiveIntegerField(null=True, blank=True)  # Store page number.
+    original_name = models.CharField(max_length=255, blank=True)  # Store original name.
+    alt_text = models.TextField(blank=True)  # Build the image alt text.
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
 
-    class Meta:
-        ordering = ["display_order", "id"]
-        unique_together = ("parsed_document", "token")
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["display_order", "id"]  # Define default ordering.
+        unique_together = ("parsed_document", "token")  # Enforce unique combinations.
 
-    def __str__(self):
-        return self.original_name or self.token
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.original_name or self.token  # Return the computed value.
 
-class Notification(models.Model):
-    class Type(models.TextChoices):
-        GENERAL = "GENERAL", "General"
+# ===============================
+# Notifications and Announcements
+# ===============================
+class Notification(models.Model):  # Define the Notification model.
+    """Represent a notification."""
+    class Type(models.TextChoices):  # Define type choices.
+        """Define type choices."""
+        GENERAL = "GENERAL", "General"  # Define the general option.
 
-        ASSIGNMENT_NEW = "ASSIGNMENT_NEW", "New assignment"
-        ASSIGNMENT_DUE_3D = "ASSIGNMENT_DUE_3D", "Assignment due in 3 days"
-        ASSIGNMENT_DUE_24H = "ASSIGNMENT_DUE_24H", "Assignment due in 24 hours"
-        ASSIGNMENT_SUBMITTED = "ASSIGNMENT_SUBMITTED", "Assignment submitted"
-        ASSIGNMENT_GRADED = "ASSIGNMENT_GRADED", "Assignment graded"
-        ASSIGNMENT_CLOSED_SUMMARY = "ASSIGNMENT_CLOSED_SUMMARY", "Assignment closed summary"
-        ASSIGNMENT_GRADING_REMINDER = "ASSIGNMENT_GRADING_REMINDER", "Assignment grading reminder"
+        ASSIGNMENT_NEW = "ASSIGNMENT_NEW", "New assignment"  # Define the new assignment option.
+        ASSIGNMENT_DUE_3D = "ASSIGNMENT_DUE_3D", "Assignment due in 3 days"  # Define the three-day reminder.
+        ASSIGNMENT_DUE_24H = "ASSIGNMENT_DUE_24H", "Assignment due in 24 hours"  # Define the one-day reminder.
+        ASSIGNMENT_SUBMITTED = "ASSIGNMENT_SUBMITTED", "Assignment submitted"  # Define the assignment submitted option.
+        ASSIGNMENT_GRADED = "ASSIGNMENT_GRADED", "Assignment graded"  # Define the assignment graded option.
+        ASSIGNMENT_CLOSED_SUMMARY = "ASSIGNMENT_CLOSED_SUMMARY", "Assignment closed summary"  # Define the assignment closed summary option.
+        ASSIGNMENT_GRADING_REMINDER = "ASSIGNMENT_GRADING_REMINDER", "Assignment grading reminder"  # Define the assignment grading reminder option.
 
-        QUIZ_NEW = "QUIZ_NEW", "New quiz"
-        QUIZ_OPENED = "QUIZ_OPENED", "Quiz opened"
-        QUIZ_CLOSED = "QUIZ_CLOSED", "Quiz closed"
-        QUIZ_SUBMITTED = "QUIZ_SUBMITTED", "Quiz submitted"
-        QUIZ_CLOSED_SUMMARY = "QUIZ_CLOSED_SUMMARY", "Quiz closed summary"
+        QUIZ_NEW = "QUIZ_NEW", "New quiz"  # Define the new quiz option.
+        QUIZ_OPENED = "QUIZ_OPENED", "Quiz opened"  # Define the quiz opened option.
+        QUIZ_CLOSED = "QUIZ_CLOSED", "Quiz closed"  # Define the quiz closed option.
+        QUIZ_SUBMITTED = "QUIZ_SUBMITTED", "Quiz submitted"  # Define the quiz submitted option.
+        QUIZ_CLOSED_SUMMARY = "QUIZ_CLOSED_SUMMARY", "Quiz closed summary"  # Define the quiz closed summary option.
 
-        WEEK_AVAILABLE = "WEEK_AVAILABLE", "New week available"
+        WEEK_AVAILABLE = "WEEK_AVAILABLE", "New week available"  # Define the new week available option.
 
-        PARSER_SUCCESS = "PARSER_SUCCESS", "Parser success"
-        PARSER_FAILURE = "PARSER_FAILURE", "Parser failure"
+        PARSER_SUCCESS = "PARSER_SUCCESS", "Parser success"  # Define the parser success option.
+        PARSER_FAILURE = "PARSER_FAILURE", "Parser failure"  # Define the parser failure option.
 
-    recipient = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="notifications",
+    recipient = models.ForeignKey(  # Link to the related recipient.
+        settings.AUTH_USER_MODEL,  # Reference the configured user model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="notifications",  # Define reverse relation access.
     )
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="notifications",
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.SET_NULL,  # Define delete behaviour.
+        null=True,  # Allow null database values.
+        blank=True,  # Allow blank form values.
+        related_name="notifications",  # Define reverse relation access.
     )
-    notification_type = models.CharField(
-        max_length=40,
-        choices=Type.choices,
-        default=Type.GENERAL,
+    notification_type = models.CharField(  # Store notification type.
+        max_length=40,  # Limit stored text length.
+        choices=Type.choices,  # Restrict allowed values.
+        default=Type.GENERAL,  # Set the default value.
     )
-    title = models.CharField(max_length=255)
-    redirect_url = models.CharField(max_length=500, blank=True)
-    event_key = models.CharField(max_length=255, null=True, blank=True)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    read_at = models.DateTimeField(null=True, blank=True)
+    title = models.CharField(max_length=255)  # Store title.
+    redirect_url = models.CharField(max_length=500, blank=True)  # Store redirect url.
+    event_key = models.CharField(max_length=255, null=True, blank=True)  # Store event key.
+    is_read = models.BooleanField(default=False)  # Store is read.
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
+    read_at = models.DateTimeField(null=True, blank=True)  # Store read at.
 
-    class Meta:
-        ordering = ["-created_at", "-id"]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["recipient", "event_key"],
-                name="unique_notification_event_per_user",
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["-created_at", "-id"]  # Define default ordering.
+        constraints = [  # Define model constraints.
+            models.UniqueConstraint(  # Define a unique constraint.
+                fields=["recipient", "event_key"],  # Target these constraint fields.
+                name="unique_notification_event_per_user",  # Read the uploaded filename.
             )
         ]
 
-    @property
-    def module(self):
-        return self.offering.module if self.offering_id else None
+    @property  # Expose a computed property.
+    def module(self):  # Define module.
+        """Return the related module."""
+        return self.offering.module if self.offering_id else None  # Return the computed value.
 
-    def mark_as_read(self):
-        if not self.is_read:
-            self.is_read = True
-            self.read_at = timezone.now()
-            self.save(update_fields=["is_read", "read_at"])
+    def mark_as_read(self):  # Define mark_as_read.
+        """Mark the notification as read."""
+        if not self.is_read:  # Check the current condition.
+            self.is_read = True  # Update the model field.
+            self.read_at = timezone.now()  # Update the model field.
+            self.save(update_fields=["is_read", "read_at"])  # Update the model field.
 
-    def __str__(self):
-        return f"{self.recipient} - {self.title}"
-    
-class GlobalAnnouncement(models.Model):
-    title = models.CharField(max_length=255)
-    content = models.TextField()
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="global_announcements_created",
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.recipient} - {self.title}"  # Return the display string.
+
+class GlobalAnnouncement(models.Model):  # Define the GlobalAnnouncement model.
+    """Represent a global announcement."""
+    title = models.CharField(max_length=255)  # Store title.
+    content = models.TextField()  # Store content.
+    created_by = models.ForeignKey(  # Link to the related created by.
+        settings.AUTH_USER_MODEL,  # Reference the configured user model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="global_announcements_created",  # Define reverse relation access.
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
+    updated_at = models.DateTimeField(auto_now=True)  # Store updated at.
 
-    class Meta:
-        ordering = ["-created_at", "-id"]
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["-created_at", "-id"]  # Define default ordering.
 
-    def __str__(self):
-        return self.title
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return self.title  # Return the computed value.
 
-    @classmethod
-    def trim_to_latest_three(cls):
-        stale_ids = list(
-            cls.objects.order_by("-created_at", "-id")
-            .values_list("id", flat=True)[3:]
+    @classmethod  # Define a class-level helper.
+    def trim_to_latest_three(cls):  # Define trim_to_latest_three.
+        """Trim to the latest three announcements."""
+        stale_ids = list(  # Set stale ids.
+            cls.objects.order_by("-created_at", "-id")  # Order newest announcements first.
+            .values_list("id", flat=True)[3:]  # Keep ids beyond the latest three.
         )
-        if stale_ids:
-            cls.objects.filter(id__in=stale_ids).delete()
+        if stale_ids:  # Check the current condition.
+            cls.objects.filter(id__in=stale_ids).delete()  # Delete older announcements.
 
-class ModuleAnnouncement(models.Model):
-    offering = models.ForeignKey(
-        ModuleOffering,
-        on_delete=models.CASCADE,
-        related_name="module_announcements",
+class ModuleAnnouncement(models.Model):  # Define the ModuleAnnouncement model.
+    """Represent a module announcement."""
+    offering = models.ForeignKey(  # Link to the related offering.
+        ModuleOffering,  # Reference the related module offering model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="module_announcements",  # Define reverse relation access.
     )
-    title = models.CharField(max_length=255)
-    content = models.TextField()
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="module_announcements_created",
+    title = models.CharField(max_length=255)  # Store title.
+    content = models.TextField()  # Store content.
+    created_by = models.ForeignKey(  # Link to the related created by.
+        settings.AUTH_USER_MODEL,  # Reference the configured user model.
+        on_delete=models.CASCADE,  # Define delete behaviour.
+        related_name="module_announcements_created",  # Define reverse relation access.
     )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)  # Store created at.
+    updated_at = models.DateTimeField(auto_now=True)  # Store updated at.
 
-    class Meta:
-        ordering = ["-created_at", "-id"]
+    class Meta:  # Define the Meta class.
+        """Configure model metadata."""
+        ordering = ["-created_at", "-id"]  # Define default ordering.
 
-    @property
-    def module(self):
-        return self.offering.module
+    @property  # Expose a computed property.
+    def module(self):  # Define module.
+        """Return the related module."""
+        return self.offering.module  # Return the computed value.
 
-    @property
-    def course_codes(self):
-        return self.offering.course_codes
+    @property  # Expose a computed property.
+    def course_codes(self):  # Define course_codes.
+        """Return related course codes."""
+        return self.offering.course_codes  # Return the computed value.
 
-    @property
-    def course_codes_display(self):
-        return self.offering.course_codes_display
+    @property  # Expose a computed property.
+    def course_codes_display(self):  # Define course_codes_display.
+        """Return joined course codes."""
+        return self.offering.course_codes_display  # Return the computed value.
 
-    @property
-    def academic_year(self):
-        return self.offering.academic_year
+    @property  # Expose a computed property.
+    def academic_year(self):  # Define academic_year.
+        """Return the related academic year."""
+        return self.offering.academic_year  # Return the computed value.
 
-    def __str__(self):
-        return f"{self.module.code} - {self.title}"
+    def __str__(self):  # Define __str__.
+        """Return the string representation."""
+        return f"{self.module.code} - {self.title}"  # Return the display string.
 
-    @classmethod
-    def trim_to_latest_three_for_offering(cls, offering):
-        stale_ids = list(
-            cls.objects.filter(offering=offering)
-            .order_by("-created_at", "-id")
-            .values_list("id", flat=True)[3:]
+    @classmethod  # Define a class-level helper.
+    def trim_to_latest_three_for_offering(cls, offering):  # Define trim_to_latest_three_for_offering.
+        """Trim to the latest three module announcements."""
+        stale_ids = list(  # Set stale ids.
+            cls.objects.filter(offering=offering)  # Limit results to this offering.
+            .order_by("-created_at", "-id")  # Order newest announcements first.
+            .values_list("id", flat=True)[3:]  # Keep ids beyond the latest three.
         )
-        if stale_ids:
-            cls.objects.filter(id__in=stale_ids).delete()
+        if stale_ids:  # Check the current condition.
+            cls.objects.filter(id__in=stale_ids).delete()  # Delete older announcements.

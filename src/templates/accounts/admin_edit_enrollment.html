@@ -1,206 +1,335 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Edit Enrollment | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Edit Enrollment{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
+    <!-- Provide a compact action button or link. -->
     <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for edit enrollment. -->
     <h1 class="section-title">Edit Enrollment</h1>
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">Search for a student or lecturer username, then add or remove module enrolments.</p>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Render admin interface content for this page. -->
     <div class="admin-two-column">
+      <!-- Group items under a shared label or timeframe. -->
       <div class="week-block">
+        <!-- Display the section heading for add student to module. -->
         <h2 class="week-title">Add Student to Module</h2>
 
+        <!-- Render admin interface content for this page. -->
         <form method="get" class="admin-stacked-form">
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
+            <!-- Label the student username field. -->
             <label for="id_add_student_username">Student Username</label>
+            <!-- Render a text input for user entry. -->
             <input type="text" id="id_add_student_username" name="add_student_username" value="{{ add_student_username }}" placeholder="student@mytudublin.ie">
           </div>
+          <!-- Provide the search student button for this action. -->
           <button type="submit">Search Student</button>
         </form>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if add_student_username and not add_student_profile %}
+          <!-- Begin a list of related items. -->
           <ul class="error-list">
+            <!-- Render one item within the current list. -->
             <li>No student account was found for that username.</li>
           </ul>
+        <!-- End this conditional template block. -->
         {% endif %}
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if add_student_profile %}
+          <!-- Render admin interface content for this page. -->
           <div class="admin-entity-summary">
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">
               {{ add_student_profile.user.get_full_name|default:add_student_profile.user.username }}<br>
               {{ add_student_profile.user.username }}<br>
+              <!-- Render the add student profile value here. -->
               {{ add_student_profile.course|default:"N/A" }}
             </p>
           </div>
 
+          <!-- Render admin interface content for this page. -->
           <form method="post" class="admin-stacked-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="action" value="add_student">
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="student_id" value="{{ add_student_profile.id }}">
 
+            <!-- Group a label, field, and help text together. -->
             <div class="form-group">
+              <!-- Label the module field. -->
               <label for="id_student_module_id">Module</label>
+              <!-- Render a dropdown control for selection. -->
               <select id="id_student_module_id" name="module_id">
+                <!-- Loop through each module from add student modules. -->
                 {% for module in add_student_modules %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                <!-- Use a Django template directive for this page. -->
                 {% empty %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="">No available modules</option>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </select>
             </div>
 
+            <!-- Provide the add student to module button for this action. -->
             <button type="submit">Add Student to Module</button>
           </form>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
 
+      <!-- Group items under a shared label or timeframe. -->
       <div class="week-block">
+        <!-- Display the section heading for remove student from module. -->
         <h2 class="week-title">Remove Student from Module</h2>
 
+        <!-- Render admin interface content for this page. -->
         <form method="get" class="admin-stacked-form">
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
+            <!-- Label the student username field. -->
             <label for="id_remove_student_username">Student Username</label>
+            <!-- Render a text input for user entry. -->
             <input type="text" id="id_remove_student_username" name="remove_student_username" value="{{ remove_student_username }}" placeholder="student@mytudublin.ie">
           </div>
+          <!-- Provide the search student button for this action. -->
           <button type="submit">Search Student</button>
         </form>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if remove_student_username and not remove_student_profile %}
+          <!-- Begin a list of related items. -->
           <ul class="error-list">
+            <!-- Render one item within the current list. -->
             <li>No student account was found for that username.</li>
           </ul>
+        <!-- End this conditional template block. -->
         {% endif %}
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if remove_student_profile %}
+          <!-- Render admin interface content for this page. -->
           <div class="admin-entity-summary">
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">
               {{ remove_student_profile.user.get_full_name|default:remove_student_profile.user.username }}<br>
+              <!-- Render the remove student profile value here. -->
               {{ remove_student_profile.user.username }}
             </p>
           </div>
 
+          <!-- Render admin interface content for this page. -->
           <form method="post" class="admin-stacked-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="action" value="remove_student">
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="student_id" value="{{ remove_student_profile.id }}">
 
+            <!-- Group a label, field, and help text together. -->
             <div class="form-group">
+              <!-- Label the module field. -->
               <label for="id_remove_student_module_id">Module</label>
+              <!-- Render a dropdown control for selection. -->
               <select id="id_remove_student_module_id" name="module_id">
+                <!-- Loop through each module from remove student modules. -->
                 {% for module in remove_student_modules %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                <!-- Use a Django template directive for this page. -->
                 {% empty %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="">No enrolled modules</option>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </select>
             </div>
 
+            <!-- Provide the remove student from module button for this action. -->
             <button type="submit">Remove Student from Module</button>
           </form>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
 
+      <!-- Group items under a shared label or timeframe. -->
       <div class="week-block">
+        <!-- Display the section heading for add lecturer to module. -->
         <h2 class="week-title">Add Lecturer to Module</h2>
 
+        <!-- Render admin interface content for this page. -->
         <form method="get" class="admin-stacked-form">
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
+            <!-- Label the lecturer username field. -->
             <label for="id_add_lecturer_username">Lecturer Username</label>
+            <!-- Render a text input for user entry. -->
             <input type="text" id="id_add_lecturer_username" name="add_lecturer_username" value="{{ add_lecturer_username }}" placeholder="lecturer@mytudublin.ie">
           </div>
+          <!-- Provide the search lecturer button for this action. -->
           <button type="submit">Search Lecturer</button>
         </form>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if add_lecturer_username and not add_lecturer_profile %}
+          <!-- Begin a list of related items. -->
           <ul class="error-list">
+            <!-- Render one item within the current list. -->
             <li>No lecturer account was found for that username.</li>
           </ul>
+        <!-- End this conditional template block. -->
         {% endif %}
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if add_lecturer_profile %}
+          <!-- Render admin interface content for this page. -->
           <div class="admin-entity-summary">
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">
               {{ add_lecturer_profile.user.get_full_name|default:add_lecturer_profile.user.username }}<br>
+              <!-- Render the add lecturer profile value here. -->
               {{ add_lecturer_profile.user.username }}
             </p>
           </div>
 
+          <!-- Render admin interface content for this page. -->
           <form method="post" class="admin-stacked-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="action" value="add_lecturer">
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="lecturer_id" value="{{ add_lecturer_profile.id }}">
 
+            <!-- Group a label, field, and help text together. -->
             <div class="form-group">
+              <!-- Label the module field. -->
               <label for="id_add_lecturer_module_id">Module</label>
+              <!-- Render a dropdown control for selection. -->
               <select id="id_add_lecturer_module_id" name="module_id">
+                <!-- Loop through each module from add lecturer modules. -->
                 {% for module in add_lecturer_modules %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                <!-- Use a Django template directive for this page. -->
                 {% empty %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="">No available modules</option>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </select>
             </div>
 
+            <!-- Provide the add lecturer to module button for this action. -->
             <button type="submit">Add Lecturer to Module</button>
           </form>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
 
+      <!-- Group items under a shared label or timeframe. -->
       <div class="week-block">
+        <!-- Display the section heading for remove lecturer from module. -->
         <h2 class="week-title">Remove Lecturer from Module</h2>
 
+        <!-- Render admin interface content for this page. -->
         <form method="get" class="admin-stacked-form">
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
+            <!-- Label the lecturer username field. -->
             <label for="id_remove_lecturer_username">Lecturer Username</label>
+            <!-- Render a text input for user entry. -->
             <input type="text" id="id_remove_lecturer_username" name="remove_lecturer_username" value="{{ remove_lecturer_username }}" placeholder="lecturer@mytudublin.ie">
           </div>
+          <!-- Provide the search lecturer button for this action. -->
           <button type="submit">Search Lecturer</button>
         </form>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if remove_lecturer_username and not remove_lecturer_profile %}
+          <!-- Begin a list of related items. -->
           <ul class="error-list">
+            <!-- Render one item within the current list. -->
             <li>No lecturer account was found for that username.</li>
           </ul>
+        <!-- End this conditional template block. -->
         {% endif %}
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if remove_lecturer_profile %}
+          <!-- Render admin interface content for this page. -->
           <div class="admin-entity-summary">
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">
               {{ remove_lecturer_profile.user.get_full_name|default:remove_lecturer_profile.user.username }}<br>
+              <!-- Render the remove lecturer profile value here. -->
               {{ remove_lecturer_profile.user.username }}
             </p>
           </div>
 
+          <!-- Render admin interface content for this page. -->
           <form method="post" class="admin-stacked-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="action" value="remove_lecturer">
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="lecturer_id" value="{{ remove_lecturer_profile.id }}">
 
+            <!-- Group a label, field, and help text together. -->
             <div class="form-group">
+              <!-- Label the module field. -->
               <label for="id_remove_lecturer_module_id">Module</label>
+              <!-- Render a dropdown control for selection. -->
               <select id="id_remove_lecturer_module_id" name="module_id">
+                <!-- Loop through each module from remove lecturer modules. -->
                 {% for module in remove_lecturer_modules %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="{{ module.id }}">{{ module.code }} – {{ module.title }}</option>
+                <!-- Use a Django template directive for this page. -->
                 {% empty %}
+                  <!-- Provide one selectable option in the dropdown. -->
                   <option value="">No assigned modules</option>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </select>
             </div>
 
+            <!-- Provide the remove lecturer from module button for this action. -->
             <button type="submit">Remove Lecturer from Module</button>
           </form>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
     </div>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

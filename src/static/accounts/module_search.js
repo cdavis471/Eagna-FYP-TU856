@@ -1,208 +1,210 @@
-﻿(function () {
-  function byId(id) {
-    return document.getElementById(id);
+﻿// =============
+// Module Search
+// =============
+(function () { // Scope module search behaviour.
+  function byId(id) { // Fetch an element by id.
+    return document.getElementById(id); // Return the matching element.
   }
 
-  function normalizeCourseCode(value) {
-    return (value || "")
-      .trim()
-      .toUpperCase()
-      .replace(/\s+/g, "");
+  function normalizeCourseCode(value) { // Normalise entered course codes.
+    return (value || "") // Start with a safe string.
+      .trim() // Remove outer whitespace.
+      .toUpperCase() // Standardise casing for matching.
+      .replace(/\s+/g, ""); // Remove inner spaces.
   }
 
-  function getCourseValue() {
-    const courseEl = byId("id_course");
-    return normalizeCourseCode(courseEl?.value || "");
+  function getCourseValue() { // Read the current course input.
+    const courseEl = byId("id_course"); // Get the course field element.
+    return normalizeCourseCode(courseEl?.value || ""); // Return the normalised course code.
   }
 
-  function parseCourses(datasetCourses) {
-    return (datasetCourses || "")
-      .split(",")
-      .map((s) => normalizeCourseCode(s))
-      .filter(Boolean);
+  function parseCourses(datasetCourses) { // Split allowed course codes.
+    return (datasetCourses || "") // Start with a safe string.
+      .split(",") // Split the dataset into values.
+      .map((s) => normalizeCourseCode(s)) // Normalise each course code.
+      .filter(Boolean); // Remove empty values.
   }
 
-  function buildModuleIndex() {
-    const select = byId("id_module_ids");
-    const modules = [];
+  function buildModuleIndex() { // Build a searchable module list.
+    const select = byId("id_module_ids"); // Get the backing select element.
+    const modules = []; // Store indexed module details.
 
-    if (!select) return modules;
+    if (!select) return modules; // Exit when the select is missing.
 
-    for (const opt of select.options) {
-      modules.push({
-        id: opt.value,
-        label: opt.text,
-        allowedCourses: parseCourses(opt.dataset.courses),
-        optionEl: opt,
+    for (const opt of select.options) { // Walk every option in the select.
+      modules.push({ // Store searchable metadata for each module.
+        id: opt.value, // Preserve the option value.
+        label: opt.text, // Preserve the visible label.
+        allowedCourses: parseCourses(opt.dataset.courses), // Parse supported course codes.
+        optionEl: opt, // Keep a reference to the source option.
       });
     }
 
-    return modules;
+    return modules; // Return the indexed module list.
   }
 
-  function setSelected(module, selected) {
-    module.optionEl.selected = selected;
+  function setSelected(module, selected) { // Toggle a module selection.
+    module.optionEl.selected = selected; // Update the backing option state.
   }
 
-  function isSelected(module) {
-    return !!module.optionEl.selected;
+  function isSelected(module) { // Check whether a module is selected.
+    return !!module.optionEl.selected; // Return the option selected state.
   }
 
-  function clearAllSelections(modules) {
-    for (const module of modules) {
-      setSelected(module, false);
+  function clearAllSelections(modules) { // Clear every selected module.
+    for (const module of modules) { // Walk all indexed modules.
+      setSelected(module, false); // Deselect the current module.
     }
   }
 
-  function renderSelected(modules) {
-    const container = byId("selected-modules");
-    if (!container) return;
+  function renderSelected(modules) { // Render chips for selected modules.
+    const container = byId("selected-modules"); // Get the chip container.
+    if (!container) return; // Exit when chip markup is absent.
 
-    container.replaceChildren();
-    const selected = modules.filter(isSelected);
+    container.replaceChildren(); // Clear existing chips first.
+    const selected = modules.filter(isSelected); // Collect selected modules only.
 
-    selected.forEach((m) => {
-      const chip = document.createElement("div");
-      chip.className = "module-chip";
-      chip.title = "Click to remove";
+    selected.forEach((m) => { // Render one chip per selection.
+      const chip = document.createElement("div"); // Create the chip wrapper.
+      chip.className = "module-chip"; // Apply chip styling.
+      chip.title = "Click to remove"; // Add a removal hint.
 
-      const label = document.createElement("span");
-      label.textContent = m.label;
+      const label = document.createElement("span"); // Create the chip label.
+      label.textContent = m.label; // Show the module name.
 
-      const close = document.createElement("span");
-      close.className = "chip-x";
-      close.textContent = "×";
+      const close = document.createElement("span"); // Create the close marker.
+      close.className = "chip-x"; // Apply close styling.
+      close.textContent = "×"; // Show the close glyph.
 
-      chip.append(label, close);
+      chip.append(label, close); // Append chip contents.
 
-      chip.addEventListener("click", () => {
-        setSelected(m, false);
-        renderSelected(modules);
-        renderDropdown(modules);
+      chip.addEventListener("click", () => { // Remove a selection on click.
+        setSelected(m, false); // Deselect the clicked module.
+        renderSelected(modules); // Refresh the selected chips.
+        renderDropdown(modules); // Refresh dropdown selection states.
       });
 
-      container.appendChild(chip);
+      container.appendChild(chip); // Append the completed chip.
     });
   }
 
-  function showHelper(msg) {
-    const helper = byId("module-helper");
-    if (!helper) return;
-    helper.textContent = msg || "";
+  function showHelper(msg) { // Update helper text below search.
+    const helper = byId("module-helper"); // Get the helper text element.
+    if (!helper) return; // Exit when helper markup is absent.
+    helper.textContent = msg || ""; // Show the supplied helper message.
   }
 
-  function renderDropdown(modules) {
-    const dropdown = byId("module-dropdown");
-    const input = byId("module-search");
-    if (!dropdown || !input) return;
+  function renderDropdown(modules) { // Render matching dropdown modules.
+    const dropdown = byId("module-dropdown"); // Get the dropdown container.
+    const input = byId("module-search"); // Get the search input.
+    if (!dropdown || !input) return; // Exit when required markup is absent.
 
-    const q = (input.value || "").trim().toLowerCase();
-    const course = getCourseValue();
+    const q = (input.value || "").trim().toLowerCase(); // Normalise the search query.
+    const course = getCourseValue(); // Read the selected course code.
 
-    dropdown.hidden = false;
-    dropdown.replaceChildren();
+    dropdown.hidden = false; // Keep the dropdown visible while active.
+    dropdown.replaceChildren(); // Clear previous dropdown items.
 
-    if (!course) {
-      const item = document.createElement("div");
-      item.className = "dropdown-item dropdown-item--disabled";
-      item.textContent = "Enter a course first to see matching modules.";
-      dropdown.appendChild(item);
-      showHelper("Enter or select your course first, then choose modules.");
-      return;
+    if (!course) { // Prompt for a course when missing.
+      const item = document.createElement("div"); // Create a disabled dropdown item.
+      item.className = "dropdown-item dropdown-item--disabled"; // Apply disabled item styling.
+      item.textContent = "Enter a course first to see matching modules."; // Show the missing-course prompt.
+      dropdown.appendChild(item); // Append the prompt item.
+      showHelper("Enter or select your course first, then choose modules."); // Show helper guidance.
+      return; // Stop before trying to match modules.
     }
 
-    const matches = modules
-      .filter((m) => m.allowedCourses.includes(course))
-      .filter((m) => m.label.toLowerCase().includes(q))
-      .slice(0, 50);
+    const matches = modules // Start matching against indexed modules.
+      .filter((m) => m.allowedCourses.includes(course)) // Keep modules allowed for the course.
+      .filter((m) => m.label.toLowerCase().includes(q)) // Keep modules matching the query.
+      .slice(0, 50); // Limit the number of rendered items.
 
-    if (matches.length === 0) {
-      const item = document.createElement("div");
-      item.className = "dropdown-item dropdown-item--disabled";
-      item.textContent = "No matching modules for this course.";
-      dropdown.appendChild(item);
-      showHelper("");
-      return;
+    if (matches.length === 0) { // Show an empty result message.
+      const item = document.createElement("div"); // Create a disabled dropdown item.
+      item.className = "dropdown-item dropdown-item--disabled"; // Apply disabled item styling.
+      item.textContent = "No matching modules for this course."; // Show the empty-state message.
+      dropdown.appendChild(item); // Append the empty-state item.
+      showHelper(""); // Clear the helper message.
+      return; // Stop after rendering the empty state.
     }
 
-    matches.forEach((m) => {
-      const item = document.createElement("div");
-      item.className = "dropdown-item";
-      item.textContent = m.label;
+    matches.forEach((m) => { // Render one item per match.
+      const item = document.createElement("div"); // Create the dropdown item.
+      item.className = "dropdown-item"; // Apply dropdown item styling.
+      item.textContent = m.label; // Show the module label.
 
-      if (isSelected(m)) {
-        item.classList.add("dropdown-item--selected");
+      if (isSelected(m)) { // Mark already selected modules.
+        item.classList.add("dropdown-item--selected"); // Apply selected item styling.
       }
 
-      item.addEventListener("click", () => {
-        setSelected(m, !isSelected(m));
-        renderSelected(modules);
-        renderDropdown(modules);
-        input.focus();
+      item.addEventListener("click", () => { // Toggle selection on click.
+        setSelected(m, !isSelected(m)); // Flip the selection state.
+        renderSelected(modules); // Refresh the selected chips.
+        renderDropdown(modules); // Refresh dropdown highlighting.
+        input.focus(); // Return focus to the search field.
       });
 
-      dropdown.appendChild(item);
+      dropdown.appendChild(item); // Append the dropdown item.
     });
 
-    showHelper("");
+    showHelper(""); // Clear helper text when matches exist.
   }
 
-  function wireUp() {
-    const modules = buildModuleIndex();
-    const courseEl = byId("id_course");
-    const searchEl = byId("module-search");
-    const dropdown = byId("module-dropdown");
+  function wireUp() { // Attach module search handlers.
+    const modules = buildModuleIndex(); // Build the searchable module list.
+    const courseEl = byId("id_course"); // Get the course input.
+    const searchEl = byId("module-search"); // Get the search input.
+    const dropdown = byId("module-dropdown"); // Get the dropdown container.
 
-    if (!courseEl || !searchEl || !dropdown) return;
+    if (!courseEl || !searchEl || !dropdown) return; // Exit when required markup is absent.
 
-    let previousCourseValue = getCourseValue();
+    let previousCourseValue = getCourseValue(); // Track the last known course value.
 
-    renderSelected(modules);
-    renderDropdown(modules);
+    renderSelected(modules); // Render any existing selections.
+    renderDropdown(modules); // Render the initial dropdown state.
 
-    const onCourseChangedExplicitly = () => {
-      const nextCourseValue = getCourseValue();
+    const onCourseChangedExplicitly = () => { // Reset modules after course changes.
+      const nextCourseValue = getCourseValue(); // Read the latest course value.
 
-      if (nextCourseValue !== previousCourseValue) {
-        previousCourseValue = nextCourseValue;
-        searchEl.value = "";
-        clearAllSelections(modules);
-        renderSelected(modules);
-        renderDropdown(modules);
+      if (nextCourseValue !== previousCourseValue) { // React only to actual changes.
+        previousCourseValue = nextCourseValue; // Store the latest course value.
+        searchEl.value = ""; // Clear the module search query.
+        clearAllSelections(modules); // Remove incompatible selected modules.
+        renderSelected(modules); // Refresh the selected chips.
+        renderDropdown(modules); // Refresh the dropdown items.
 
-        if (nextCourseValue) {
-          showHelper("Course changed. Please choose modules again for this course.");
-        } else {
-          showHelper("Enter your course first, then choose modules.");
+        if (nextCourseValue) { // Show course-changed guidance when present.
+          showHelper("Course changed. Please choose modules again for this course."); // Prompt for reselection.
+        } else { // Otherwise no course is selected.
+          showHelper("Enter your course first, then choose modules."); // Prompt for a course first.
         }
-      } else {
-        renderDropdown(modules);
+      } else { // Otherwise the course value stayed the same.
+        renderDropdown(modules); // Refresh dropdown results only.
       }
     };
 
-    courseEl.addEventListener("input", onCourseChangedExplicitly);
-    courseEl.addEventListener("change", onCourseChangedExplicitly);
+    courseEl.addEventListener("input", onCourseChangedExplicitly); // Track typing in the course field.
+    courseEl.addEventListener("change", onCourseChangedExplicitly); // Track committed course changes.
 
-    searchEl.addEventListener("input", () => renderDropdown(modules));
-    searchEl.addEventListener("focus", () => renderDropdown(modules));
+    searchEl.addEventListener("input", () => renderDropdown(modules)); // Filter results as the user types.
+    searchEl.addEventListener("focus", () => renderDropdown(modules)); // Refresh results when focused.
 
-    document.addEventListener("click", (e) => {
-      if (
-        dropdown.contains(e.target) ||
-        searchEl.contains(e.target) ||
-        courseEl.contains(e.target)
+    document.addEventListener("click", (e) => { // Manage outside-click dropdown behaviour.
+      if ( // Ignore clicks inside related controls.
+        dropdown.contains(e.target) || // Keep dropdown clicks active.
+        searchEl.contains(e.target) || // Keep search clicks active.
+        courseEl.contains(e.target) // Keep course clicks active.
       ) {
-        return;
+        return; // Stop when click is inside controls.
       }
 
-      if (getCourseValue()) {
-        dropdown.hidden = false;
-      } else {
-        dropdown.hidden = true;
+      if (getCourseValue()) { // Keep the dropdown visible with a course.
+        dropdown.hidden = false; // Leave the dropdown open.
+      } else { // Otherwise hide it without a course.
+        dropdown.hidden = true; // Hide the dropdown completely.
       }
     });
   }
 
-  document.addEventListener("DOMContentLoaded", wireUp);
-  
+  document.addEventListener("DOMContentLoaded", wireUp); // Initialise after the DOM loads.
 })();

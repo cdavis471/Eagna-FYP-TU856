@@ -1,34 +1,54 @@
-﻿{% extends "accounts/base.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base.html" %}
+<!-- Load Django's static tag library for asset references. -->
 {% load static %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Join Modules | Eagna{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Wrap the return link area for layout or styling. -->
     <a href="{% url 'accounts:dashboard' %}" class="return-link">← Return</a>
+    <!-- Display the main heading for manage modules. -->
     <h1 class="section-title">Manage Modules</h1>
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
       Course: {{ course_code }}
     </p>
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
       Select any current academic year modules on your course that you still need to join. Existing enrolments are kept.
     </p>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Group items under a shared label or timeframe. -->
     <div class="week-block">
+      <!-- Begin the student registration form. -->
       <form method="post" class="registration-form" autocomplete="off">
+        <!-- Insert the CSRF token for secure form submission. -->
         {% csrf_token %}
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group" hidden>
+          <!-- Label the course field. -->
           <label for="id_course">Course</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_course" name="course" value="{{ course_code }}" readonly>
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the modules field. -->
           <label for="module-search" class="registration-form-label">MODULES</label>
 
+          <!-- Render a text input for user entry. -->
           <input
             type="text"
             id="module-search"
@@ -36,14 +56,20 @@
             autocomplete="off"
           >
 
+          <!-- Wrap the dropdown area for layout or styling. -->
           <div id="module-dropdown" class="dropdown" hidden></div>
 
+          <!-- List the modules selected by the student. -->
           <div id="selected-modules" class="selected-modules"></div>
 
+          <!-- Show helper text for the related input. -->
           <div id="module-helper" class="registration-hint" aria-live="polite"></div>
 
+          <!-- Render a dropdown control for selection. -->
           <select id="id_module_ids" name="module_ids" multiple hidden>
+            <!-- Loop through each row from module rows. -->
             {% for row in module_rows %}
+              <!-- Provide one selectable option in the dropdown. -->
               <option
                 value="{{ row.id }}"
                 data-courses="{{ row.course_codes|join:',' }}"
@@ -51,13 +77,17 @@
                   selected
                 {% endif %}
               >
+                <!-- Render the row value here. -->
                 {{ row.label }}
               </option>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </select>
         </div>
 
+        <!-- Wrap the registration action group area for layout or styling. -->
         <div class="registration-action-group">
+          <!-- Wrap the auth action button area for layout or styling. -->
           <button type="submit" class="auth-action-button auth-action-button--primary">
             SAVE MODULES
           </button>
@@ -66,8 +96,12 @@
     </div>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}
 
+<!-- Allow child templates to add page-specific scripts. -->
 {% block extra_scripts %}
+<!-- Load JavaScript required for this page. -->
 <script src="{% static 'accounts/module_search.js' %}" defer></script>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

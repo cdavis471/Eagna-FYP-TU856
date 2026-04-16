@@ -1,20 +1,32 @@
-﻿<div class="announcement-modal-body">
+﻿<!-- Wrap the announcement modal body area for layout or styling. -->
+<div class="announcement-modal-body">
+  <!-- Arrange the modal heading and actions. -->
   <div class="parsed-modal-topbar">
+    <!-- Wrap this part of the page for layout and styling. -->
     <div>
+      <!-- Display a secondary heading for this section. -->
       <h2 id="parsed-modal-title" class="section-title">{{ announcement.title }}</h2>
+      <!-- Wrap the card meta area for layout or styling. -->
       <p class="card-meta">
+        <!-- Render the scope label }} · {{ announcement value here. -->
         {{ scope_label }} · {{ announcement.created_at|date:"Y-m-d H:i" }}
+        <!-- Conditionally render this block when the data is available. -->
         {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
           · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+        <!-- End this conditional template block. -->
         {% endif %}
+        <!-- Conditionally render this block when the data is available. -->
         {% if announcement.created_by %}
           · {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
+        <!-- End this conditional template block. -->
         {% endif %}
       </p>
     </div>
   </div>
 
+  <!-- Wrap the assessment surface area for layout or styling. -->
   <div class="assessment-surface">
+    <!-- Display the main announcement text. -->
     <div class="announcement-content">{{ announcement.content|linebreaksbr }}</div>
   </div>
 </div>

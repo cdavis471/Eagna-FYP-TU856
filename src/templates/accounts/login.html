@@ -1,16 +1,26 @@
+<!-- Use the shared base template for this page. -->
 {% extends "accounts/base.html" %}
+<!-- Load Django's static tag library for asset references. -->
 {% load static %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Login | Eagna{% endblock %}
+<!-- Provide a page-specific body class for styling. -->
 {% block body_class %}login-page{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+  <!-- Show the intro splash overlay for the login page. -->
   <div id="login-splash" class="login-splash" aria-hidden="true">
+    <!-- Render the background for the login splash. -->
     <div class="login-splash__bg"></div>
 
+    <!-- Wrap the content displayed in the splash. -->
     <div class="login-splash__content">
+      <!-- Display the decorative splash ring. -->
       <div class="login-splash__ring"></div>
 
+      <!-- Show the logo used in the splash animation. -->
       <img
         src="{% static 'accounts/logos/eagna-logo-white-condensed.png' %}"
         alt="Eagna"
@@ -18,38 +28,60 @@
     </div>
   </div>
 
+  <!-- Wrap the login page layout. -->
   <div class="login-layout-shell">
+    <!-- Wrap the login form card. -->
     <div id="login-form-shell" class="auth-container auth-container--intro login-card" inert>
+      <!-- Display the main heading for welcome. -->
       <h1 class="login-form-title">WELCOME</h1>
 
+      <!-- Show validation errors when the form has problems. -->
       {% if form.errors %}
+        <!-- Begin a list of related items. -->
         <ul class="error-list">
+          <!-- Loop through each form entry and its values. -->
           {% for field, errors in form.errors.items %}
+            <!-- Loop through each error from errors. -->
             {% for error in errors %}
+              <!-- Render one item within the current list. -->
               <li>{{ error }}</li>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </ul>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+      <!-- Wrap the login form area for layout or styling. -->
       <form method="post" action="{% url 'accounts:login' %}" autocomplete="off" class="login-form">
+        <!-- Insert the CSRF token for secure form submission. -->
         {% csrf_token %}
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the email field. -->
           <label for="{{ form.username.id_for_label }}" class="login-form-label">EMAIL</label>
+          <!-- Render the form value here. -->
           {{ form.username }}
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the password field. -->
           <label for="{{ form.password.id_for_label }}" class="login-form-label">PASSWORD</label>
+          <!-- Render the form value here. -->
           {{ form.password }}
         </div>
 
+        <!-- Group the primary login actions together. -->
         <div class="login-action-group">
+          <!-- Wrap the auth action button area for layout or styling. -->
           <button type="submit" class="auth-action-button auth-action-button--primary">
             LOGIN
           </button>
 
+          <!-- Wrap the auth action button area for layout or styling. -->
           <a href="{% url 'accounts:register' %}" class="auth-action-button auth-action-button--secondary">
             STUDENT REGISTRATION
           </a>
@@ -57,8 +89,12 @@
       </form>
     </div>
   </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}
 
+<!-- Allow child templates to add page-specific scripts. -->
 {% block extra_scripts %}
+<!-- Load JavaScript required for this page. -->
 <script src="{% static 'accounts/login_intro.js' %}" defer></script>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

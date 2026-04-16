@@ -1,50 +1,62 @@
-﻿from django.core.management.base import BaseCommand, CommandError
-from apps.accounts.models import User
+﻿# =======
+# Imports
+# =======
+from django.core.management.base import BaseCommand, CommandError  # Import Django command helpers.
+from apps.accounts.models import User  # Import the custom user model.
 
+# ==================
+# Admin User Command
+# ==================
 class Command(BaseCommand):
-    help = "Create or update a custom Eagna admin user."
+    """Create or update an admin user."""
+
+    help = "Create or update a custom Eagna admin user."  # Describe the command purpose.
 
     def add_arguments(self, parser):
-        parser.add_argument("email")
-        parser.add_argument("password")
-        parser.add_argument("--first-name", default="Admin")
-        parser.add_argument("--last-name", default="User")
+        """Register command line arguments."""
+
+        parser.add_argument("email")  # Require the admin email.
+        parser.add_argument("password")  # Require the admin password.
+        parser.add_argument("--first-name", default="Admin")  # Accept an optional first name.
+        parser.add_argument("--last-name", default="User")  # Accept an optional last name.
 
     def handle(self, *args, **options):
-        email = (options["email"] or "").strip().lower()
-        password = options["password"]
-        first_name = (options["first_name"] or "").strip()
-        last_name = (options["last_name"] or "").strip()
+        """Create or update the admin account."""
 
-        if not email or "@" not in email:
-            raise CommandError("Please provide a valid email address.")
+        email = (options["email"] or "").strip().lower()  # Normalise the supplied email.
+        password = options["password"]  # Read the supplied password.
+        first_name = (options["first_name"] or "").strip()  # Clean the first name.
+        last_name = (options["last_name"] or "").strip()  # Clean the last name.
 
-        user = User.objects.filter(username__iexact=email).first()
-        created = user is None
+        if not email or "@" not in email:  # Reject invalid email values.
+            raise CommandError("Please provide a valid email address.")  # Stop on invalid input.
 
-        if created:
+        user = User.objects.filter(username__iexact=email).first()  # Find an existing matching user.
+        created = user is None  # Track whether a new user is needed.
+
+        if created:  # Build a new admin user.
             user = User(
-                username=email,
-                email=email,
-                first_name=first_name,
-                last_name=last_name,
-                role=User.Role.ADMIN,
-                is_active=True,
+                username=email,  # Set the username from email.
+                email=email,  # Store the same email value.
+                first_name=first_name,  # Set the first name.
+                last_name=last_name,  # Set the last name.
+                role=User.Role.ADMIN,  # Mark the user as admin.
+                is_active=True,  # Ensure the account is active.
             )
-        else:
-            user.username = email
-            user.email = email
-            user.first_name = first_name
-            user.last_name = last_name
-            user.role = User.Role.ADMIN
-            user.is_active = True
+        else:  # Update the existing user.
+            user.username = email  # Keep username aligned to email.
+            user.email = email  # Keep email stored consistently.
+            user.first_name = first_name  # Refresh the first name.
+            user.last_name = last_name  # Refresh the last name.
+            user.role = User.Role.ADMIN  # Enforce the admin role.
+            user.is_active = True  # Reactivate the user account.
 
-        user.set_password(password)
-        user.is_staff = False
-        user.is_superuser = False
-        user.save()
+        user.set_password(password)  # Hash and save the password.
+        user.is_staff = False  # Keep staff access disabled.
+        user.is_superuser = False  # Keep superuser access disabled.
+        user.save()  # Persist the user changes.
 
-        if created:
-            self.stdout.write(self.style.SUCCESS(f"Created admin user: {email}"))
-        else:
-            self.stdout.write(self.style.SUCCESS(f"Updated existing user as admin: {email}"))
+        if created:  # Confirm a new user was created.
+            self.stdout.write(self.style.SUCCESS(f"Created admin user: {email}"))  # Print the success message.
+        else:  # Confirm an existing user was updated.
+            self.stdout.write(self.style.SUCCESS(f"Updated existing user as admin: {email}"))  # Print the success message.

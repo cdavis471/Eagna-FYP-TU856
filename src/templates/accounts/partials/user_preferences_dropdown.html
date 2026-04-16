@@ -1,70 +1,112 @@
-﻿<div class="user-menu" data-user-menu>
+﻿<!-- Wrap the user menu area for layout or styling. -->
+<div class="user-menu" data-user-menu>
+  <!-- Wrap the user chip area for layout or styling. -->
   <button
     type="button"
     class="user-chip user-menu-trigger"
     data-user-menu-trigger
     aria-haspopup="true"
     aria-expanded="false">
+    <!-- Wrap the user menu trigger text area for layout or styling. -->
     <span class="user-menu-trigger-text">{{ user.get_full_name|default:user.username }}</span>
+    <!-- Wrap the user menu caret area for layout or styling. -->
     <span class="user-menu-caret" aria-hidden="true">▾</span>
   </button>
 
+  <!-- Wrap the user menu dropdown area for layout or styling. -->
   <div class="user-menu-dropdown" data-user-menu-dropdown>
+    <!-- Wrap the user menu link area for layout or styling. -->
     <a href="{% url 'accounts:profile' %}" class="user-menu-link">View Profile</a>
 
+    <!-- Wrap the user menu form area for layout or styling. -->
     <form method="post"
           action="{% url 'accounts:update_accessibility_preferences' %}"
           class="user-menu-form"
           data-user-menu-form>
+      <!-- Insert the CSRF token for secure form submission. -->
       {% csrf_token %}
+      <!-- Render a hidden input for user entry. -->
       <input type="hidden" name="next" value="{{ request.get_full_path }}">
 
+      <!-- Wrap the user menu divider area for layout or styling. -->
       <div class="user-menu-divider"></div>
 
+      <!-- Wrap the user menu section area for layout or styling. -->
       <section class="user-menu-section">
+        <!-- Display the subsection heading for colour schemes. -->
         <h3 class="user-menu-section-title">Colour Schemes</h3>
 
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="colour_scheme" value="default" {% if user.colour_scheme == 'default' %}checked{% endif %}>
+          <!-- Display inline text for default. -->
           <span>Default</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="colour_scheme" value="protanopia" {% if user.colour_scheme == 'protanopia' %}checked{% endif %}>
+          <!-- Display inline text for protanopia. -->
           <span>Protanopia</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="colour_scheme" value="deuteranopia" {% if user.colour_scheme == 'deuteranopia' %}checked{% endif %}>
+          <!-- Display inline text for deuteranopia. -->
           <span>Deuteranopia</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="colour_scheme" value="tritanopia" {% if user.colour_scheme == 'tritanopia' %}checked{% endif %}>
+          <!-- Display inline text for tritanopia. -->
           <span>Tritanopia</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="colour_scheme" value="achromatopsia" {% if user.colour_scheme == 'achromatopsia' %}checked{% endif %}>
+          <!-- Display inline text for achromatopsia. -->
           <span>Achromatopsia</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="colour_scheme" value="high-contrast" {% if user.colour_scheme == 'high-contrast' %}checked{% endif %}>
+          <!-- Display inline text for high contrast. -->
           <span>High Contrast</span>
         </label>
       </section>
 
+      <!-- Wrap the user menu divider area for layout or styling. -->
       <div class="user-menu-divider"></div>
 
+      <!-- Wrap the user menu section area for layout or styling. -->
       <section class="user-menu-section">
+        <!-- Display the subsection heading for font schemes. -->
         <h3 class="user-menu-section-title">Font Schemes</h3>
 
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="font_scheme" value="default" {% if user.font_scheme == 'default' %}checked{% endif %}>
+          <!-- Display inline text for default. -->
           <span>Default</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="font_scheme" value="open-dyslexic" {% if user.font_scheme == 'open-dyslexic' %}checked{% endif %}>
+          <!-- Display inline text for open dyslexic. -->
           <span>Open Dyslexic</span>
         </label>
+        <!-- Label the related form control for accessibility. -->
         <label class="user-menu-option">
+          <!-- Render a radio input for user entry. -->
           <input type="radio" name="font_scheme" value="atkinson-hyperlegible" {% if user.font_scheme == 'atkinson-hyperlegible' %}checked{% endif %}>
+          <!-- Display inline text for atkinson hyperlegible. -->
           <span>Atkinson Hyperlegible</span>
         </label>
       </section>

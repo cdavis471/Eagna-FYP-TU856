@@ -1,27 +1,43 @@
+<!-- Wrap the parsed document modal content. -->
 <div class="parsed-modal-content">
+  <!-- Arrange the modal heading and actions. -->
   <div class="parsed-modal-topbar">
+    <!-- Display a secondary heading for this section. -->
     <h2 id="parsed-modal-title" class="section-title">{{ document_title }}</h2>
 
+    <!-- Hold actions for the parsed document modal. -->
     <div class="parsed-modal-actions">
+      <!-- Provide a compact action button or link. -->
       <a href="{{ source_file.file.url }}" target="_blank" rel="noopener noreferrer" class="small-button">
         Download Original
       </a>
 
+      <!-- Only show this action when image editing is allowed. -->
       {% if can_edit_images and parsed_document.images.all %}
+        <!-- Provide a compact action button or link. -->
         <a href="{% url 'accounts:edit_parsed_document_images' parsed_document.id %}" class="small-button">
           Edit Image Descriptions
         </a>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </div>
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if parsed_document.parser_status == "READY" %}
+    <!-- Display the parsed document preview content. -->
     <div class="parsed-document-body">
+      <!-- Render the parsed document value here. -->
       {{ parsed_document.rendered_html|safe }}
     </div>
+  <!-- Handle the next possible condition for this block. -->
   {% elif parsed_document.parser_status == "PROCESSING" %}
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">This file is still being processed.</p>
+  <!-- Show the fallback content for the alternative case. -->
   {% else %}
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">The parsed preview is unavailable for this file.</p>
+  <!-- End this conditional template block. -->
   {% endif %}
 </div>

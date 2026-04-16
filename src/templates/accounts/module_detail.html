@@ -1,225 +1,366 @@
+<!-- Use the shared base template for this page. -->
 {% extends "accounts/base.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}{{ module.code }} – {{ module.title }} | Eagna{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Wrap the return link area for layout or styling. -->
     <a href="{{ back_url }}" class="return-link">← Return</a>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if read_only %}
+      <!-- Display one flash message to the user. -->
       <div class="flash-message flash-message--info">
         This is a previous academic year. Content is read-only.
       </div>
+    <!-- End this conditional template block. -->
     {% endif %}
 
+    <!-- Display the main page heading. -->
     <h1 class="section-title">
+      <!-- Render the module value here. -->
       {{ module.code }} – {{ module.title }}
     </h1>
 
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
+      <!-- Conditionally render this block when the data is available. -->
       {% if run_start and run_end %}
         Academic Period: {{ run_start|date:"Y-m-d" }} → {{ run_end|date:"Y-m-d" }}
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
         Academic Period: N/A
+      <!-- End this conditional template block. -->
       {% endif %}
     </p>
   </section>
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if role == "student" %}
+    <!-- Wrap this content in a card-style dashboard section. -->
     <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
+      <!-- Display the section heading for assignments & quizzes. -->
       <h2 class="section-title">Assignments &amp; Quizzes</h2>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if assessment_items %}
+        <!-- Arrange the cards in a responsive grid. -->
         <div class="card-grid dashboard-cards-grid module-assessments-grid">
+          <!-- Loop through each item from assessment items. -->
           {% for item in assessment_items %}
+            <!-- Conditionally render this block when the data is available. -->
             {% if item.is_clickable %}
+              <!-- Wrap the card link wrapper area for layout or styling. -->
               <a href="{{ item.url }}" class="card-link-wrapper">
+                <!-- Wrap one dashboard card panel. -->
                 <article class="card card-clickable dashboard-card-panel module-assessment-card">
+                  <!-- Arrange the card heading details in one row. -->
                   <div class="assessment-card-topline">
+                    <!-- Show the assessment type badge. -->
                     <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                    <!-- Show the status text when one is available. -->
                     {% if item.status_label %}
+                      <!-- Style this status as upcoming or not yet open. -->
                       <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                        <!-- Render the item value here. -->
                         {{ item.status_label }}
                       </span>
+                    <!-- End this conditional template block. -->
                     {% endif %}
                   </div>
 
+                  <!-- Display a subsection heading within this area. -->
                   <h3 class="card-title">{{ item.title }}</h3>
 
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
+                    <!-- Render the item value here. -->
                     {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
                   </p>
 
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
                     Percentage of Module: {{ item.max_mark }}%
                   </p>
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if item.detail_line %}
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">{{ item.detail_line }}</p>
+                  <!-- End this conditional template block. -->
                   {% endif %}
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if item.description %}
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                  <!-- End this conditional template block. -->
                   {% endif %}
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if item.file_names %}
+                    <!-- Begin a list of related items. -->
                     <ul class="week-files">
+                      <!-- Loop through each file name from item. -->
                       {% for file_name in item.file_names %}
+                        <!-- Render one item within the current list. -->
                         <li>{{ file_name }}</li>
+                      <!-- End the loop for this repeated content. -->
                       {% endfor %}
                     </ul>
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </article>
               </a>
+            <!-- Show the fallback content for the alternative case. -->
             {% else %}
+              <!-- Wrap the card link wrapper area for layout or styling. -->
               <div class="card-link-wrapper card-link-wrapper-disabled">
+                <!-- Style this card as locked until it becomes available. -->
                 <article class="card card-disabled dashboard-card-panel module-assessment-card{% if item.status_label == 'Not open yet' %} module-assessment-card--locked{% endif %}">
+                  <!-- Arrange the card heading details in one row. -->
                   <div class="assessment-card-topline">
+                    <!-- Show the assessment type badge. -->
                     <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                    <!-- Show the status text when one is available. -->
                     {% if item.status_label %}
+                      <!-- Style this status as upcoming or not yet open. -->
                       <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                        <!-- Render the item value here. -->
                         {{ item.status_label }}
                       </span>
+                    <!-- End this conditional template block. -->
                     {% endif %}
                   </div>
 
+                  <!-- Display a subsection heading within this area. -->
                   <h3 class="card-title">{{ item.title }}</h3>
 
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
+                    <!-- Render the item value here. -->
                     {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
                   </p>
 
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
                     Max mark: {{ item.max_mark }}
                   </p>
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if item.detail_line %}
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">{{ item.detail_line }}</p>
+                  <!-- End this conditional template block. -->
                   {% endif %}
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if item.description %}
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                  <!-- End this conditional template block. -->
                   {% endif %}
 
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if item.file_names %}
+                    <!-- Begin a list of related items. -->
                     <ul class="week-files">
+                      <!-- Loop through each file name from item. -->
                       {% for file_name in item.file_names %}
+                        <!-- Render one item within the current list. -->
                         <li>{{ file_name }}</li>
+                      <!-- End the loop for this repeated content. -->
                       {% endfor %}
                     </ul>
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </article>
               </div>
+            <!-- End this conditional template block. -->
             {% endif %}
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </div>
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+      <!-- End this conditional template block. -->
       {% endif %}
     </section>
 
+  <!-- Handle the next possible condition for this block. -->
   {% elif role == "lecturer" %}
+    <!-- Wrap this content in a card-style dashboard section. -->
     <section class="dashboard-section dashboard-card-section module-page-section module-assessments-section">
+      <!-- Wrap the module section heading and actions. -->
       <div class="module-section-header">
+        <!-- Display the section heading for assignments & quizzes. -->
         <h2 class="section-title">Assignments &amp; Quizzes</h2>
+        <!-- Conditionally render this block when the data is available. -->
         {% if not read_only %}
+          <!-- Hold actions related to the current section. -->
           <div class="module-section-actions">
+            <!-- Provide a compact action button or link. -->
             <a href="{% url 'accounts:offering_create_assignment' offering.id %}?next={{ request.get_full_path|urlencode }}" class="small-button">
               + Create Assignment
             </a>
+            <!-- Provide a compact action button or link. -->
             <a href="{% url 'accounts:offering_create_quiz' offering.id %}?next={{ request.get_full_path|urlencode }}" class="small-button">
               + Create Quiz
             </a>
           </div>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if assessment_items %}
+        <!-- Arrange the cards in a responsive grid. -->
         <div class="card-grid dashboard-cards-grid module-assessments-grid">
+          <!-- Loop through each item from assessment items. -->
           {% for item in assessment_items %}
+            <!-- Wrap the card link wrapper area for layout or styling. -->
             <a href="{{ item.url }}" class="card-link-wrapper">
+              <!-- Wrap one dashboard card panel. -->
               <article class="card card-clickable dashboard-card-panel module-assessment-card">
+                <!-- Arrange the card heading details in one row. -->
                 <div class="assessment-card-topline">
+                  <!-- Show the assessment type badge. -->
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  <!-- Show the status text when one is available. -->
                   {% if item.status_label %}
+                    <!-- Style this status for submitted or closed items. -->
                     <span class="assessment-status{% if item.status_label == 'Closed' or item.status_label == 'Submitted' %} assessment-status--dark{% endif %}">
+                      <!-- Render the item value here. -->
                       {{ item.status_label }}
                     </span>
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </div>
 
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="card-title">{{ item.title }}</h3>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Render the item value here. -->
                   {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
                   Max mark: {{ item.max_mark }}
                 </p>
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.detail_line %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">{{ item.detail_line }}</p>
+                <!-- End this conditional template block. -->
                 {% endif %}
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.description %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">{{ item.description|truncatechars:140 }}</p>
+                <!-- End this conditional template block. -->
                 {% endif %}
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.file_names %}
+                  <!-- Begin a list of related items. -->
                   <ul class="week-files">
+                    <!-- Loop through each file name from item. -->
                     {% for file_name in item.file_names %}
+                      <!-- Render one item within the current list. -->
                       <li>{{ file_name }}</li>
+                    <!-- End the loop for this repeated content. -->
                     {% endfor %}
                   </ul>
+                <!-- End this conditional template block. -->
                 {% endif %}
               </article>
             </a>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </div>
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+      <!-- End this conditional template block. -->
       {% endif %}
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 
+  <!-- Wrap this content in a card-style dashboard section. -->
   <section class="dashboard-section dashboard-card-section module-page-section module-announcements-section">
+    <!-- Wrap the module section heading and actions. -->
     <div class="module-section-header">
+      <!-- Display the section heading for module announcements. -->
       <h2 class="section-title">Module Announcements</h2>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if role == "lecturer" and not read_only %}
+        <!-- Hold actions related to the current section. -->
         <div class="module-section-actions">
+          <!-- Provide a compact action button or link. -->
           <a href="{% url 'accounts:offering_create_module_announcement' offering.id %}?next={{ request.get_full_path|urlencode }}" class="small-button">
             + Create Announcement
           </a>
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if module_announcements %}
+      <!-- Arrange the cards in a responsive grid. -->
       <div class="card-grid dashboard-cards-grid module-announcements-grid">
+        <!-- Loop through each announcement from module announcements. -->
         {% for announcement in module_announcements %}
+          <!-- Display one announcement card on the dashboard. -->
           <article class="announcement-card dashboard-card-panel dashboard-announcement-card module-announcement-card">
+            <!-- Arrange the card heading details in one row. -->
             <div class="assessment-card-topline">
+              <!-- Wrap this part of the page for layout and styling. -->
               <div>
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="card-title">{{ announcement.title }}</h3>
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Render the announcement value here. -->
                   {{ announcement.created_at|date:"Y-m-d H:i" }}
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
                     · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+                  <!-- End this conditional template block. -->
                   {% endif %}
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if announcement.created_by %}
                     · {{ announcement.created_by.get_full_name|default:announcement.created_by.username }}
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </p>
               </div>
             </div>
 
+            <!-- Display the main announcement text. -->
             <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
 
+            <!-- Hold actions related to this announcement. -->
             <div class="announcement-actions module-announcement-actions {% if role != 'lecturer' or read_only %}module-announcement-actions--student{% endif %}">
+              <!-- Wrap the module announcement action slot area for layout or styling. -->
               <div class="module-announcement-action-slot module-announcement-action-slot--view">
+                <!-- Provide a compact action button or link. -->
                 <button type="button"
                         class="small-button module-announcement-action module-announcement-action--view"
                         hx-get="{% url 'accounts:offering_module_announcement_modal' offering.id announcement.id %}"
@@ -229,74 +370,117 @@
                 </button>
               </div>
 
+              <!-- Conditionally render this block when the data is available. -->
               {% if role == "lecturer" and not read_only %}
+                <!-- Render admin interface content for this page. -->
                 <form method="get"
                       action="{% url 'accounts:offering_edit_module_announcement' offering.id announcement.id %}"
                       class="admin-inline-form module-announcement-action-form">
+                  <!-- Render a hidden input for user entry. -->
                   <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <!-- Provide a compact action button or link. -->
                   <button type="submit" class="small-button module-announcement-action">
                     Edit
                   </button>
                 </form>
 
+                <!-- Render admin interface content for this page. -->
                 <form method="post"
                       action="{% url 'accounts:offering_delete_module_announcement' offering.id announcement.id %}"
                       class="admin-inline-form module-announcement-action-form">
+                  <!-- Insert the CSRF token for secure form submission. -->
                   {% csrf_token %}
+                  <!-- Provide a compact action button or link. -->
                   <button type="submit" class="small-button module-announcement-action">
                     Delete
                   </button>
                 </form>
+              <!-- Show the fallback content for the alternative case. -->
               {% else %}
+                <!-- Wrap the module announcement action slot area for layout or styling. -->
                 <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
+                <!-- Wrap the module announcement action slot area for layout or styling. -->
                 <div class="module-announcement-action-slot module-announcement-action-slot--spacer" aria-hidden="true"></div>
+              <!-- End this conditional template block. -->
               {% endif %}
             </div>
           </article>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No module announcements have been posted yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
+  <!-- Wrap this content in a card-style dashboard section. -->
   <section class="dashboard-section dashboard-card-section module-page-section module-calendar-section">
+    <!-- Wrap the module section heading and actions. -->
     <div class="module-section-header">
+      <!-- Display the section heading for academic calendar. -->
       <h2 class="section-title">Academic Calendar</h2>
+      <!-- Conditionally render this block when the data is available. -->
       {% if role == "lecturer" and not read_only %}
+        <!-- Hold actions related to the current section. -->
         <div class="module-section-actions">
+          <!-- Render admin interface content for this page. -->
           <form method="post" action="{% url 'accounts:offering_add_module_week' offering.id %}" class="admin-inline-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Provide a compact action button or link. -->
             <button type="submit" class="small-button">+ Add Week</button>
           </form>
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if role == "student" %}
+      <!-- Conditionally render this block when the data is available. -->
       {% if weeks %}
+        <!-- Loop through each w from weeks. -->
         {% for w in weeks %}
+          <!-- Group items under a shared label or timeframe. -->
           <div class="week-block module-week-card">
+            <!-- Display a subsection heading within this area. -->
             <h3 class="week-title">
               Week {{ w.week_number }}
             </h3>
+            <!-- Conditionally render this block when the data is available. -->
             {% if w.description %}
+              <!-- Wrap the week description text area for layout or styling. -->
               <p class="week-description-text">{{ w.description }}</p>
+            <!-- End this conditional template block. -->
             {% endif %}
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if w.files.all %}
+              <!-- Begin a list of related items. -->
               <ul class="week-files">
+                <!-- Loop through each f from w. -->
                 {% for f in w.files.all %}
+                  <!-- Render one item within the current list. -->
                   <li class="week-file-item">
+                    <!-- Render a link to the related page or resource. -->
                     <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
+                      <!-- Render the f value here. -->
                       {{ f.original_name|default:f.file.name }}
                     </a>
+                    <!-- Wrap the week file meta area for layout or styling. -->
                     <span class="week-file-meta">
                       (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                     </span>
+                    <!-- Conditionally render this block when the data is available. -->
                     {% if f.parsed_document_safe %}
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if f.parsed_document_safe.parser_status == "READY" %}
+                        <!-- Wrap the status badge area for layout or styling. -->
                         <span class="status-badge ready">Ready</span>
+                        <!-- Provide a compact action button or link. -->
                         <button type="button"
                                 class="small-button"
                                 hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document_safe.id %}"
@@ -304,46 +488,73 @@
                                 hx-swap="innerHTML">
                           View
                         </button>
+                      <!-- Handle the next possible condition for this block. -->
                       {% elif f.parsed_document_safe.parser_status == "PROCESSING" %}
+                        <!-- Wrap the status badge area for layout or styling. -->
                         <span class="status-badge processing">Processing</span>
+                      <!-- Handle the next possible condition for this block. -->
                       {% elif f.parsed_document_safe.parser_status == "FAILED" %}
+                        <!-- Wrap the status badge area for layout or styling. -->
                         <span class="status-badge failed">Failed</span>
+                      <!-- End this conditional template block. -->
                       {% endif %}
+                    <!-- End this conditional template block. -->
                     {% endif %}
                   </li>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </ul>
+            <!-- Show the fallback content for the alternative case. -->
             {% else %}
+              <!-- Wrap the muted area for layout or styling. -->
               <p class="muted">No materials uploaded for this week yet.</p>
+            <!-- End this conditional template block. -->
             {% endif %}
           </div>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">No weekly resources have been added yet.</p>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+    <!-- Handle the next possible condition for this block. -->
     {% elif role == "lecturer" %}
+      <!-- Conditionally render this block when the data is available. -->
       {% if weeks %}
+        <!-- Loop through each w from weeks. -->
         {% for w in weeks %}
+          <!-- Group items under a shared label or timeframe. -->
           <div class="week-block module-week-card">
+            <!-- Display a subsection heading within this area. -->
             <h3 class="week-title">
               Week {{ w.week_number }}
             </h3>
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if not read_only %}
+              <!-- Wrap the week upload form area for layout or styling. -->
               <form method="post"
                     action="{% url 'accounts:offering_save_module_week' offering.id w.week_number %}"
                     enctype="multipart/form-data"
                     class="week-upload-form">
+                <!-- Insert the CSRF token for secure form submission. -->
                 {% csrf_token %}
 
+                <!-- Label the description field. -->
                 <label class="week-label">Description</label>
+                <!-- Render a multi-line input for longer text. -->
                 <textarea name="description"
                           rows="2"
                           class="week-description-input">{{ w.description }}</textarea>
 
+                <!-- Label the upload materials field. -->
                 <label class="week-label">Upload Materials</label>
+                <!-- Wrap the upload dropzone area for layout or styling. -->
                 <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+                  <!-- Render a file input for user entry. -->
                   <input
                     type="file"
                     id="week-file-{{ w.week_number }}"
@@ -352,47 +563,72 @@
                     class="upload-dropzone__input"
                     accept=".docx,.pptx">
 
+                  <!-- Label the related form control for accessibility. -->
                   <label for="week-file-{{ w.week_number }}" class="upload-dropzone__label">
+                    <!-- Wrap the upload dropzone title area for layout or styling. -->
                     <span class="upload-dropzone__title">Drag and drop lecture materials here</span>
+                    <!-- Wrap the upload dropzone hint area for layout or styling. -->
                     <span class="upload-dropzone__hint">or click to browse (.docx, .pptx)</span>
                   </label>
 
+                  <!-- Wrap the upload dropzone files area for layout or styling. -->
                   <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
                 </div>
 
+                <!-- Wrap the workflow form help area for layout or styling. -->
                 <p class="workflow-form-help">
                   A description and at least one attachment are required before this week can be saved.
                 </p>
 
+                <!-- Provide a compact action button or link. -->
                 <button type="submit" class="small-button">Save Week</button>
               </form>
+            <!-- Show the fallback content for the alternative case. -->
             {% else %}
+              <!-- Conditionally render this block when the data is available. -->
               {% if w.description %}
+                <!-- Wrap the week description text area for layout or styling. -->
                 <p class="week-description-text">{{ w.description }}</p>
+              <!-- Show the fallback content for the alternative case. -->
               {% else %}
+                <!-- Wrap the muted area for layout or styling. -->
                 <p class="muted">No description has been added for this week.</p>
+              <!-- End this conditional template block. -->
               {% endif %}
+            <!-- End this conditional template block. -->
             {% endif %}
 
+            <!-- Wrap the week files block area for layout or styling. -->
             <div class="week-files-block">
               <h4 class="week-files-title">Attached Materials</h4>
 
+              <!-- Conditionally render this block when the data is available. -->
               {% if w.files.all %}
+                <!-- Begin a list of related items. -->
                 <ul class="week-files">
+                  <!-- Loop through each f from w. -->
                   {% for f in w.files.all %}
+                    <!-- Render one item within the current list. -->
                     <li class="week-file-item">
+                      <!-- Render a link to the related page or resource. -->
                       <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
+                        <!-- Render the f value here. -->
                         {{ f.original_name|default:f.file.name }}
                       </a>
 
+                      <!-- Wrap the week file meta area for layout or styling. -->
                       <span class="week-file-meta">
                         (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                       </span>
 
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if f.parsed_document_safe %}
+                        <!-- Conditionally render this block when the data is available. -->
                         {% if f.parsed_document_safe.parser_status == "READY" %}
+                          <!-- Wrap the status badge area for layout or styling. -->
                           <span class="status-badge ready">Ready</span>
 
+                          <!-- Provide a compact action button or link. -->
                           <button type="button"
                                   class="small-button"
                                   hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document_safe.id %}"
@@ -401,59 +637,96 @@
                             View
                           </button>
 
+                          <!-- Conditionally render this block when the data is available. -->
                           {% if f.parsed_document_safe.images.all %}
+                            <!-- Provide a compact action button or link. -->
                             <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document_safe.id %}?next={{ request.get_full_path|urlencode }}"
                                class="small-button">
                               Edit Image Descriptions
                             </a>
+                          <!-- End this conditional template block. -->
                           {% endif %}
 
+                        <!-- Handle the next possible condition for this block. -->
                         {% elif f.parsed_document_safe.parser_status == "PROCESSING" %}
+                          <!-- Wrap the status badge area for layout or styling. -->
                           <span class="status-badge processing">Processing</span>
+                        <!-- Handle the next possible condition for this block. -->
                         {% elif f.parsed_document_safe.parser_status == "FAILED" %}
+                          <!-- Wrap the status badge area for layout or styling. -->
                           <span class="status-badge failed">Failed</span>
+                        <!-- End this conditional template block. -->
                         {% endif %}
+                      <!-- End this conditional template block. -->
                       {% endif %}
                     </li>
+                  <!-- End the loop for this repeated content. -->
                   {% endfor %}
                 </ul>
+              <!-- Show the fallback content for the alternative case. -->
               {% else %}
+                <!-- Wrap the muted area for layout or styling. -->
                 <p class="muted">No materials uploaded yet for this week.</p>
+              <!-- End this conditional template block. -->
               {% endif %}
             </div>
           </div>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">No weeks have been added to this module yet.</p>
+      <!-- End this conditional template block. -->
       {% endif %}
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if role == "lecturer" %}
+    <!-- Wrap this content in a card-style dashboard section. -->
     <section class="dashboard-section dashboard-card-section module-page-section module-students-section">
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-panel-shell module-students-card">
+        <!-- Wrap the workflow panel header area for layout or styling. -->
         <div class="workflow-panel-header">
+          <!-- Wrap this part of the page for layout and styling. -->
           <div>
+            <!-- Display the section heading for enrolled students. -->
             <h2 class="workflow-panel-title">Enrolled Students</h2>
           </div>
         </div>
 
+        <!-- Wrap the module panel count area for layout or styling. -->
         <p class="module-panel-count">Currently Enrolled: {{ enrolled_student_count }}</p>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if enrolled_students %}
+          <!-- Wrap the enrolled students list area for layout or styling. -->
           <div class="enrolled-students-list">
+            <!-- Loop through each student from enrolled students. -->
             {% for student in enrolled_students %}
+              <!-- Wrap the enrolled student row area for layout or styling. -->
               <div class="enrolled-student-row">
+                <!-- Wrap the enrolled student name area for layout or styling. -->
                 <span class="enrolled-student-name">{{ student.name }}</span>
+                <!-- Wrap the enrolled student email area for layout or styling. -->
                 <span class="enrolled-student-email">{{ student.email }}</span>
               </div>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </div>
+        <!-- Show the fallback content for the alternative case. -->
         {% else %}
+          <!-- Wrap the muted area for layout or styling. -->
           <p class="muted">No students are currently enrolled on this module.</p>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

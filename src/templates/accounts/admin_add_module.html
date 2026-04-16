@@ -1,74 +1,116 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Add Module | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Add Module{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
+    <!-- Provide a compact action button or link. -->
     <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for add module. -->
     <h1 class="section-title">Add Module</h1>
 
+    <!-- Show validation errors when the form has problems. -->
     {% if errors %}
+      <!-- Begin a list of related items. -->
       <ul class="error-list">
+        <!-- Loop through each e from errors. -->
         {% for e in errors %}
+          <!-- Render one item within the current list. -->
           <li>{{ e }}</li>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </ul>
+    <!-- End this conditional template block. -->
     {% endif %}
 
+    <!-- Wrap the authentication card content. -->
     <form method="post" class="auth-container admin-form-shell">
+      <!-- Insert the CSRF token for secure form submission. -->
       {% csrf_token %}
 
+      <!-- Render admin interface content for this page. -->
       <div class="admin-form-grid">
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the module code field. -->
           <label for="id_code">Module Code</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_code" name="code" value="{{ initial.code }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the module title field. -->
           <label for="id_title">Module Title</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_title" name="title" value="{{ initial.title }}">
         </div>
       </div>
 
+      <!-- Group a label, field, and help text together. -->
       <div class="form-group">
+        <!-- Label the course placements field. -->
         <label for="id_placements">Course Placements</label>
+        <!-- Render a multi-line input for longer text. -->
         <textarea
           id="id_placements"
           name="placements"
           rows="5"
           class="week-description-input"
           placeholder="One course code per line, e.g.&#10;TU856&#10;TU857&#10;TU858">{{ initial.placements }}</textarea>
+        <!-- Show helper text for the related field. -->
         <small class="registration-hint">Use one course code per line.</small>
       </div>
 
+      <!-- Group a label, field, and help text together. -->
       <div class="form-group">
+        <!-- Label the related form control for accessibility. -->
         <label class="quiz-checkbox-row">
+          <!-- Render a checkbox input for user entry. -->
           <input type="checkbox" name="available_now" {% if initial.available_now %}checked{% endif %}>
+          <!-- Display inline text for available immediately. -->
           <span>Available Immediately</span>
         </label>
       </div>
 
+      <!-- Group a label, field, and help text together. -->
       <div class="form-group">
+        <!-- Label the related form control for accessibility. -->
         <label class="quiz-checkbox-row">
+          <!-- Render a checkbox input for user entry. -->
           <input type="checkbox" name="available_next_rollover" {% if initial.available_next_rollover %}checked{% endif %}>
+          <!-- Display inline text for available next academic year. -->
           <span>Available Next Academic Year</span>
         </label>
       </div>
 
+      <!-- Group a label, field, and help text together. -->
       <div class="form-group">
+        <!-- Label the related form control for accessibility. -->
         <label class="quiz-checkbox-row">
+          <!-- Render a checkbox input for user entry. -->
           <input type="checkbox" name="is_active" {% if initial.is_active %}checked{% endif %}>
+          <!-- Display inline text for module is active. -->
           <span>Module is active</span>
         </label>
       </div>
 
+      <!-- Provide the create module button for this action. -->
       <button type="submit">Create Module</button>
     </form>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

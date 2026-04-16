@@ -1,11 +1,14 @@
-from django.contrib.auth import get_user_model
+# =======
+# Imports
+# =======
+from django.contrib.auth import get_user_model  # Import user model getter
+from .models import Notification  # Import notification model
+User = get_user_model()  # Get the user model
 
-from .models import Notification
-
-User = get_user_model()
-
-
-def create_notification(
+# ====================
+# Notification Creation
+# ====================
+def create_notification(  # Define function to create a single notification
     *,
     recipient,
     offering=None,
@@ -14,28 +17,29 @@ def create_notification(
     notification_type=Notification.Type.GENERAL,
     event_key=None,
 ):
-    defaults = {
-        "offering": offering,
-        "title": title,
-        "redirect_url": redirect_url,
-        "notification_type": notification_type,
+    """Create a single notification for a user."""
+    defaults = {  # Set default values for notification
+        "offering": offering,  # Offering associated with notification
+        "title": title,  # Notification title
+        "redirect_url": redirect_url,  # URL to redirect to
+        "notification_type": notification_type,  # Type of notification
     }
 
-    if event_key:
-        return Notification.objects.get_or_create(
-            recipient=recipient,
-            event_key=event_key,
-            defaults=defaults,
+    if event_key:  # If event key provided, get or create notification
+        return Notification.objects.get_or_create(  # Get or create notification with event key
+            recipient=recipient,  # Recipient of notification
+            event_key=event_key,  # Unique event key
+            defaults=defaults,  # Default values
         )
 
-    return Notification.objects.create(
-        recipient=recipient,
-        event_key=None,
-        **defaults,
-    ), True
+    return Notification.objects.create(  # Create new notification
+        recipient=recipient,  # Recipient of notification
+        event_key=None,  # No event key
+        **defaults,  # Unpack defaults
+    ), True  # Return created notification and True
 
 
-def create_notifications_for_users(
+def create_notifications_for_users(  # Define function to create notifications for multiple users
     recipients,
     *,
     offering=None,
@@ -44,27 +48,28 @@ def create_notifications_for_users(
     notification_type=Notification.Type.GENERAL,
     event_key=None,
 ):
-    if hasattr(recipients, "distinct"):
-        recipients = recipients.distinct()
+    """Create notifications for multiple users."""
+    if hasattr(recipients, "distinct"):  # Ensure distinct recipients if queryset
+        recipients = recipients.distinct()  # Remove duplicates
 
-    created_count = 0
+    created_count = 0  # Initialize count of created notifications
 
-    for recipient in recipients:
-        _, created = create_notification(
-            recipient=recipient,
-            offering=offering,
-            title=title,
-            redirect_url=redirect_url,
-            notification_type=notification_type,
-            event_key=event_key,
+    for recipient in recipients:  # Loop through each recipient
+        _, created = create_notification(  # Create notification and check if created
+            recipient=recipient,  # Current recipient
+            offering=offering,  # Offering
+            title=title,  # Title
+            redirect_url=redirect_url,  # Redirect URL
+            notification_type=notification_type,  # Notification type
+            event_key=event_key,  # Event key
         )
-        if created:
-            created_count += 1
+        if created:  # If notification was created
+            created_count += 1  # Increment count
 
-    return created_count
+    return created_count  # Return number of created notifications
 
 
-def notify_offering_students(
+def notify_offering_students(  # Define function to notify students in an offering
     offering,
     *,
     title,
@@ -72,21 +77,22 @@ def notify_offering_students(
     notification_type=Notification.Type.GENERAL,
     event_key=None,
 ):
-    recipients = User.objects.filter(
-        student_profile__offering_enrolments__offering=offering
-    ).distinct()
+    """Notify all students enrolled in an offering."""
+    recipients = User.objects.filter(  # Get students enrolled in the offering
+        student_profile__offering_enrolments__offering=offering  # Filter by offering
+    ).distinct()  # Ensure distinct users
 
-    return create_notifications_for_users(
-        recipients,
-        offering=offering,
-        title=title,
-        redirect_url=redirect_url,
-        notification_type=notification_type,
-        event_key=event_key,
+    return create_notifications_for_users(  # Create notifications for recipients
+        recipients,  # List of recipients
+        offering=offering,  # Offering
+        title=title,  # Title
+        redirect_url=redirect_url,  # Redirect URL
+        notification_type=notification_type,  # Notification type
+        event_key=event_key,  # Event key
     )
 
 
-def notify_offering_lecturers(
+def notify_offering_lecturers(  # Define function to notify lecturers in an offering
     offering,
     *,
     title,
@@ -94,15 +100,16 @@ def notify_offering_lecturers(
     notification_type=Notification.Type.GENERAL,
     event_key=None,
 ):
-    recipients = User.objects.filter(
-        lecturer_profile__offering_enrolments__offering=offering
-    ).distinct()
+    """Notify all lecturers enrolled in an offering."""
+    recipients = User.objects.filter(  # Get lecturers enrolled in the offering
+        lecturer_profile__offering_enrolments__offering=offering  # Filter by offering
+    ).distinct()  # Ensure distinct users
 
-    return create_notifications_for_users(
-        recipients,
-        offering=offering,
-        title=title,
-        redirect_url=redirect_url,
-        notification_type=notification_type,
-        event_key=event_key,
+    return create_notifications_for_users(  # Create notifications for recipients
+        recipients,  # List of recipients
+        offering=offering,  # Offering
+        title=title,  # Title
+        redirect_url=redirect_url,  # Redirect URL
+        notification_type=notification_type,  # Notification type
+        event_key=event_key,  # Event key
     )

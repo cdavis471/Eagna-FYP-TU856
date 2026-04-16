@@ -1,5 +1,8 @@
+<!-- Only show this content to authenticated users. -->
 {% if user.is_authenticated %}
+  <!-- Wrap the notification toggle and dropdown. -->
   <div class="notification-shell" id="notificationShell">
+    <!-- Provide the button that opens notifications. -->
     <button
       type="button"
       class="icon-button notification-button"
@@ -7,74 +10,114 @@
       aria-expanded="false"
       aria-controls="notificationDropdown"
       title="Notifications">
+      <!-- Display the notification bell icon. -->
       <span class="notification-bell" aria-hidden="true">🔔</span>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if header_notification_unread_count %}
+        <!-- Show the unread notification count. -->
         <span class="notification-badge">{{ header_notification_unread_display }}</span>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+      <!-- Provide screen-reader-only text for accessibility. -->
       <span class="sr-only">Notifications</span>
     </button>
 
+    <!-- Contain the notifications dropdown panel. -->
     <div class="notification-dropdown" id="notificationDropdown" hidden>
+      <!-- Display the notifications panel heading. -->
       <div class="notification-dropdown-header">
+        <!-- Highlight important text within this area. -->
         <strong>Notifications</strong>
 
+        <!-- Hold actions for the notifications panel. -->
         <div class="notification-dropdown-header-actions">
+          <!-- Conditionally render this block when the data is available. -->
           {% if header_notification_unread_count %}
+            <!-- Display the current unread notification count. -->
             <span class="notification-unread-label">
               {{ header_notification_unread_count }} unread
             </span>
 
+            <!-- Begin the form used to mark notifications as read. -->
             <form method="post"
                   action="{% url 'accounts:read_all_notifications' %}"
                   class="notification-read-all-form">
+              <!-- Insert the CSRF token for secure form submission. -->
               {% csrf_token %}
+              <!-- Render a hidden input for user entry. -->
               <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <!-- Provide the button used to mark all notifications as read. -->
               <button type="submit" class="notification-read-all-button">Read All</button>
             </form>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
       </div>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if header_notifications_initial or header_notifications_extra %}
+        <!-- List the available notifications. -->
         <div class="notification-list" id="notificationList">
+          <!-- Loop through each notification from header notifications initial. -->
           {% for notification in header_notifications_initial %}
             <a
               href="{% url 'accounts:open_notification' notification.id %}"
               class="notification-item {% if notification.is_read %}notification-item--read{% else %}notification-item--unread{% endif %}">
+              <!-- Display the notification title. -->
               <span class="notification-title">{{ notification.title }}</span>
 
+              <!-- Show supporting notification details. -->
               <span class="notification-meta">
+                <!-- Conditionally render this block when the data is available. -->
                 {% if notification.module %}
+                  <!-- Display inline text or status information. -->
                   <span>{{ notification.module.code }} – {{ notification.module.title }}</span>
+                <!-- Show the fallback content for the alternative case. -->
                 {% else %}
+                  <!-- Display inline text for general. -->
                   <span>General</span>
+                <!-- End this conditional template block. -->
                 {% endif %}
+                <!-- Display inline text or status information. -->
                 <span>{{ notification.created_at|date:"Y-m-d H:i" }}</span>
               </span>
             </a>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
 
+          <!-- Loop through each notification from header notifications extra. -->
           {% for notification in header_notifications_extra %}
             <a
               href="{% url 'accounts:open_notification' notification.id %}"
               class="notification-item notification-item-extra {% if notification.is_read %}notification-item--read{% else %}notification-item--unread{% endif %}">
+              <!-- Display the notification title. -->
               <span class="notification-title">{{ notification.title }}</span>
 
+              <!-- Show supporting notification details. -->
               <span class="notification-meta">
+                <!-- Conditionally render this block when the data is available. -->
                 {% if notification.module %}
+                  <!-- Display inline text or status information. -->
                   <span>{{ notification.module.code }} – {{ notification.module.title }}</span>
+                <!-- Show the fallback content for the alternative case. -->
                 {% else %}
+                  <!-- Display inline text for general. -->
                   <span>General</span>
+                <!-- End this conditional template block. -->
                 {% endif %}
+                <!-- Display inline text or status information. -->
                 <span>{{ notification.created_at|date:"Y-m-d H:i" }}</span>
               </span>
             </a>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </div>
 
+        <!-- Show the extra-action control when more items exist. -->
         {% if header_notification_has_more %}
+          <!-- Provide the button used to reveal more notifications. -->
           <button
             type="button"
             class="notification-more-button"
@@ -82,12 +125,17 @@
             aria-expanded="false">
             View more
           </button>
+        <!-- End this conditional template block. -->
         {% endif %}
+      <!-- Show the fallback content for the alternative case. -->
       {% else %}
+        <!-- Show an empty-state message for notifications. -->
         <div class="notification-empty">
           No notifications yet.
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </div>
+<!-- End this conditional template block. -->
 {% endif %}

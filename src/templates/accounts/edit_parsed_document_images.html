@@ -1,81 +1,125 @@
+<!-- Use the shared base template for this page. -->
 {% extends "accounts/base.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Edit Image Descriptions – {{ module.code }} | Eagna{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container workflow-page parsed-image-edit-page">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Wrap the return link area for layout or styling. -->
     <a href="{{ back_url }}" class="return-link">← Return</a>
+    <!-- Wrap the assessment hero card area for layout or styling. -->
     <div class="assessment-hero-card workflow-hero-card">
+      <!-- Wrap the workflow panel header area for layout or styling. -->
       <div class="workflow-panel-header">
+        <!-- Wrap this part of the page for layout and styling. -->
         <div>
+          <!-- Wrap the assessment detail kicker area for layout or styling. -->
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <!-- Display the main heading for edit image descriptions. -->
           <h1 class="section-title">Edit Image Descriptions</h1>
         </div>
       </div>
 
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface">
+        <!-- Display the subsection heading for source file. -->
         <h3 class="week-title">Source File</h3>
+        <!-- Wrap the assessment body text area for layout or styling. -->
         <p class="assessment-body-text">{{ parsed_document.get_source_name }}</p>
       </div>
     </div>
   </section>
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if parsed_document.images.all %}
+    <!-- Begin the form used to submit this page data. -->
     <form method="post">
+      <!-- Insert the CSRF token for secure form submission. -->
       {% csrf_token %}
 
+      <!-- Group a related section of dashboard content. -->
       <section class="dashboard-section">
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface workflow-panel-shell">
+          <!-- Wrap the workflow panel header area for layout or styling. -->
           <div class="workflow-panel-header">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Wrap the assessment detail kicker area for layout or styling. -->
               <div class="assessment-detail-kicker">Extracted Images</div>
+              <!-- Display a secondary heading for this section. -->
               <h2 class="workflow-panel-title">Review and<br>Describe</h2>
             </div>
 
+            <!-- Wrap the workflow panel subtitle area for layout or styling. -->
             <p class="workflow-panel-subtitle">
               Update the alternative text for each extracted image or slide preview below.
             </p>
           </div>
 
+          <!-- Wrap the parsed image grid area for layout or styling. -->
           <div class="parsed-image-grid">
+            <!-- Loop through each image from parsed document. -->
             {% for image in parsed_document.images.all %}
+              <!-- Wrap the assessment surface area for layout or styling. -->
               <div class="assessment-surface parsed-image-card">
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="week-title">
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if image.page_number %}
                     Page / Slide {{ image.page_number }}
+                  <!-- Show the fallback content for the alternative case. -->
                   {% else %}
                     Embedded image
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </h3>
 
+                <!-- Wrap the parsed image preview area for layout or styling. -->
                 <img src="{{ image.image.url }}"
                      alt=""
                      class="parsed-image-preview">
 
+                <!-- Wrap this part of the page for layout and styling. -->
                 <div>
+                  <!-- Label the alternative text field. -->
                   <label class="week-label" for="alt_{{ image.id }}">Alternative text</label>
+                  <!-- Render a multi-line input for longer text. -->
                   <textarea id="alt_{{ image.id }}"
                             name="alt_{{ image.id }}"
                             rows="3"
                             class="week-description-input">{{ image.alt_text }}</textarea>
                 </div>
               </div>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </div>
 
+          <!-- Wrap the workflow submit row area for layout or styling. -->
           <div class="workflow-submit-row">
+            <!-- Provide a compact action button or link. -->
             <button type="submit" class="small-button">Save image descriptions</button>
           </div>
         </div>
       </section>
     </form>
+  <!-- Show the fallback content for the alternative case. -->
   {% else %}
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-form-card">
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">No extracted images were found for this document.</p>
       </div>
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

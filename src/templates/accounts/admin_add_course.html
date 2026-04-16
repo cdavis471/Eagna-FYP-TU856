@@ -1,54 +1,87 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Add Course | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Add Course{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
+    <!-- Provide a compact action button or link. -->
     <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for add course. -->
     <h1 class="section-title">Add Course</h1>
 
+    <!-- Show validation errors when the form has problems. -->
     {% if errors %}
+      <!-- Begin a list of related items. -->
       <ul class="error-list">
+        <!-- Loop through each e from errors. -->
         {% for e in errors %}
+          <!-- Render one item within the current list. -->
           <li>{{ e }}</li>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </ul>
+    <!-- End this conditional template block. -->
     {% endif %}
 
+    <!-- Wrap the authentication card content. -->
     <form method="post" class="auth-container admin-form-shell">
+      <!-- Insert the CSRF token for secure form submission. -->
       {% csrf_token %}
 
+      <!-- Render admin interface content for this page. -->
       <div class="admin-form-grid">
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the course code field. -->
           <label for="id_code">Course Code</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_code" name="code" value="{{ initial.code }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the course title field. -->
           <label for="id_title">Course Title</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_title" name="title" value="{{ initial.title }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the course length (years) field. -->
           <label for="id_length_years">Course Length (Years)</label>
+          <!-- Render a number input for user entry. -->
           <input type="number" id="id_length_years" name="length_years" min="1" value="{{ initial.length_years }}">
         </div>
       </div>
 
+      <!-- Group a label, field, and help text together. -->
       <div class="form-group">
+        <!-- Label the related form control for accessibility. -->
         <label class="quiz-checkbox-row">
+          <!-- Render a checkbox input for user entry. -->
           <input type="checkbox" name="is_active" {% if initial.is_active %}checked{% endif %}>
+          <!-- Display inline text for course is active. -->
           <span>Course is active</span>
         </label>
       </div>
 
+      <!-- Provide the create course button for this action. -->
       <button type="submit">Create Course</button>
     </form>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

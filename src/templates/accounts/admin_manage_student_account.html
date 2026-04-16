@@ -1,67 +1,107 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Manage Student Account | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Manage Student Account{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
+    <!-- Provide a compact action button or link. -->
     <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for manage student account. -->
     <h1 class="section-title">Manage Student Account</h1>
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">Search by the student username/email to lock or unlock access.</p>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Group items under a shared label or timeframe. -->
     <div class="week-block">
+      <!-- Render admin interface content for this page. -->
       <form method="get" class="admin-stacked-form admin-form-shell">
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the student username field. -->
           <label for="id_username">Student Username</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_username" name="username" value="{{ username_query }}" placeholder="student@mytudublin.ie">
         </div>
 
+        <!-- Provide the search student button for this action. -->
         <button type="submit">Search Student</button>
       </form>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if search_error %}
+        <!-- Begin a list of related items. -->
         <ul class="error-list">
+          <!-- Render one item within the current list. -->
           <li>{{ search_error }}</li>
         </ul>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if student_result %}
+        <!-- Render admin interface content for this page. -->
         <div class="admin-entity-summary">
+          <!-- Display a secondary heading for this section. -->
           <h2 class="week-title">{{ student_result.user.get_full_name|default:student_result.user.username }}</h2>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">
             Username: {{ student_result.user.username }}<br>
             Student Number: {{ student_result.student_number }}<br>
             Course: {{ student_result.course|default:"N/A" }}<br>
             Status:
+            <!-- Render admin interface content for this page. -->
             <span class="admin-status-pill admin-status-pill--{{ student_result.status|lower }}">
+              <!-- Render the student result value here. -->
               {{ student_result.get_status_display }}
             </span>
           </p>
         </div>
 
+        <!-- Hold actions related to this announcement. -->
         <div class="announcement-actions">
+          <!-- Render admin interface content for this page. -->
           <form method="post" class="admin-inline-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="student_id" value="{{ student_result.id }}">
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="action" value="lock_student">
+            <!-- Provide a compact action button or link. -->
             <button type="submit" class="small-button">Lock Student Account</button>
           </form>
 
+          <!-- Render admin interface content for this page. -->
           <form method="post" class="admin-inline-form">
+            <!-- Insert the CSRF token for secure form submission. -->
             {% csrf_token %}
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="student_id" value="{{ student_result.id }}">
+            <!-- Render a hidden input for user entry. -->
             <input type="hidden" name="action" value="unlock_student">
+            <!-- Provide a compact action button or link. -->
             <button type="submit" class="small-button">Unlock Student Account</button>
           </form>
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

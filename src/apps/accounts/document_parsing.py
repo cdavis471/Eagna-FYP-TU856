@@ -1,554 +1,587 @@
-from __future__ import annotations
+# =======
+# Imports
+# =======
+from __future__ import annotations  # Enable postponed type hints.
+import io  # Handle in-memory byte streams.
+import os  # Handle path utilities.
+import zipfile  # Inspect Office archive files.
+import mammoth  # Convert DOCX content to HTML.
+import nh3  # Sanitize extracted HTML.
+from html import escape  # Escape unsafe HTML text.
+from typing import Any  # Support flexible type hints.
+from bs4 import BeautifulSoup, NavigableString, Tag  # Parse extracted HTML content.
+from mammoth.images import img_element  # Convert DOCX images during parsing.
+from PIL import Image, UnidentifiedImageError  # Normalise extracted image formats.
+from pptx import Presentation  # Read PowerPoint presentations.
+from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER  # Inspect PowerPoint shape types.
 
-import io
-import os
-import zipfile
-import mammoth
-import nh3
-from html import escape
-from typing import Any
-from bs4 import BeautifulSoup, NavigableString, Tag
-from mammoth.images import img_element
-from PIL import Image, UnidentifiedImageError
-from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
+# ======
+# Limits
+# ======
+SUPPORTED_EXTENSIONS = {".docx", ".pptx"}  # Define allowed Office extensions.
+MAX_PARSED_UPLOAD_BYTES = 50 * 1024 * 1024  # Set the upload size limit.
+MAX_OFFICE_ARCHIVE_MEMBERS = 2000  # Limit archive member count.
+MAX_OFFICE_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # Limit expanded archive size.
 
-SUPPORTED_EXTENSIONS = {".docx", ".pptx"}
-MAX_PARSED_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
-MAX_OFFICE_ARCHIVE_MEMBERS = 2000
-MAX_OFFICE_UNCOMPRESSED_BYTES = 100 * 1024 * 1024  # 100 MB
-
-SAFE_TAGS = {
-    "a",
-    "blockquote",
-    "br",
-    "em",
-    "figcaption",
-    "figure",
-    "h1",
-    "h2",
-    "h3",
-    "h4",
-    "h5",
-    "h6",
-    "hr",
-    "img",
-    "li",
-    "ol",
-    "p",
-    "strong",
-    "table",
-    "tbody",
-    "td",
-    "th",
-    "thead",
-    "tr",
-    "ul",
+# ==============
+# Sanitised HTML
+# ==============
+SAFE_TAGS = {  # Define allowed HTML tags.
+    "a",  # Allow anchor tags.
+    "blockquote",  # Allow blockquote tags.
+    "br",  # Allow line breaks.
+    "em",  # Allow emphasis tags.
+    "figcaption",  # Allow figure captions.
+    "figure",  # Allow figure wrappers.
+    "h1",  # Allow level one headings.
+    "h2",  # Allow level two headings.
+    "h3",  # Allow level three headings.
+    "h4",  # Allow level four headings.
+    "h5",  # Allow level five headings.
+    "h6",  # Allow level six headings.
+    "hr",  # Allow horizontal rules.
+    "img",  # Allow image tags.
+    "li",  # Allow list items.
+    "ol",  # Allow ordered lists.
+    "p",  # Allow paragraph tags.
+    "strong",  # Allow strong emphasis.
+    "table",  # Allow table tags.
+    "tbody",  # Allow table bodies.
+    "td",  # Allow table cells.
+    "th",  # Allow table headers.
+    "thead",  # Allow table headers.
+    "tr",  # Allow table rows.
+    "ul",  # Allow unordered lists.
 }
 
-SAFE_ATTRIBUTES = {
-    "a": {"href", "target"},
-    "img": {"src", "alt"},
-    "th": {"colspan", "rowspan"},
-    "td": {"colspan", "rowspan"},
+SAFE_ATTRIBUTES = {  # Define allowed HTML attributes.
+    "a": {"href", "target"},  # Allow anchor attributes.
+    "img": {"src", "alt"},  # Allow image attributes.
+    "th": {"colspan", "rowspan"},  # Allow table-header attributes.
+    "td": {"colspan", "rowspan"},  # Allow table-cell attributes.
 }
 
-def validate_supported_upload(uploaded_file) -> str:
-    name = getattr(uploaded_file, "name", "") or ""
-    _, ext = os.path.splitext(name)
-    ext = ext.lower()
+# ==============
+# Public Parsing
+# ==============
+def validate_supported_upload(uploaded_file) -> str:  # Define the upload validator.
+    """Validate the uploaded file."""
+    name = getattr(uploaded_file, "name", "") or ""  # Read the uploaded filename.
+    _, ext = os.path.splitext(name)  # Split the filename extension.
+    ext = ext.lower()  # Extract the file extension.
 
-    size = getattr(uploaded_file, "size", 0) or 0
+    size = getattr(uploaded_file, "size", 0) or 0  # Read the uploaded file size.
 
-    if ext not in SUPPORTED_EXTENSIONS:
-        raise ValueError(
-            "Only .docx and .pptx files are allowed for weekly notes and lecturer assignment materials."
+    if ext not in SUPPORTED_EXTENSIONS:  # Check the current condition.
+        raise ValueError(  # Raise a validation error.
+            "Only .docx and .pptx files are allowed for weekly notes and lecturer assignment materials."  # Explain the allowed file types.
         )
 
-    if size <= 0:
-        raise ValueError("The uploaded file is empty.")
+    if size <= 0:  # Check the current condition.
+        raise ValueError("The uploaded file is empty.")  # Raise a validation error.
 
-    if size > MAX_PARSED_UPLOAD_BYTES:
-        raise ValueError("The uploaded file exceeds the 15 MB limit.")
+    if size > MAX_PARSED_UPLOAD_BYTES:  # Check the current condition.
+        raise ValueError("The uploaded file exceeds the 15 MB limit.")  # Raise a validation error.
 
-    return ext
+    return ext  # Return the computed value.
 
-def _validate_office_container(file_bytes: bytes, extension: str) -> None:
-    try:
-        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
-            infos = archive.infolist()
-            names = set(archive.namelist())
+def _validate_office_container(file_bytes: bytes, extension: str) -> None:  # Define the archive validator.
+    """Validate the Office archive container."""
+    try:  # Start guarded parsing.
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:  # Open the resource safely.
+            infos = archive.infolist()  # Read archive member metadata.
+            names = set(archive.namelist())  # Collect archive member names.
 
-            if len(infos) > MAX_OFFICE_ARCHIVE_MEMBERS:
-                raise ValueError("The uploaded file is too complex to process safely.")
+            if len(infos) > MAX_OFFICE_ARCHIVE_MEMBERS:  # Check the current condition.
+                raise ValueError("The uploaded file is too complex to process safely.")  # Raise a validation error.
 
-            total_uncompressed = sum(info.file_size for info in infos)
-            if total_uncompressed > MAX_OFFICE_UNCOMPRESSED_BYTES:
-                raise ValueError("The uploaded file expands beyond the safe processing limit.")
+            total_uncompressed = sum(info.file_size for info in infos)  # Sum expanded archive size.
+            if total_uncompressed > MAX_OFFICE_UNCOMPRESSED_BYTES:  # Check the current condition.
+                raise ValueError("The uploaded file expands beyond the safe processing limit.")  # Raise a validation error.
 
-    except zipfile.BadZipFile as exc:
-        raise ValueError("The uploaded file is not a valid Office document.") from exc
+    except zipfile.BadZipFile as exc:  # Handle parsing failures.
+        raise ValueError("The uploaded file is not a valid Office document.") from exc  # Raise a validation error.
 
-    required_entries = {
-        ".docx": {"[Content_Types].xml", "word/document.xml"},
-        ".pptx": {"[Content_Types].xml", "ppt/presentation.xml"},
-    }[extension]
+    required_entries = {  # Define required Office entries.
+        ".docx": {"[Content_Types].xml", "word/document.xml"},  # Require core DOCX entries.
+        ".pptx": {"[Content_Types].xml", "ppt/presentation.xml"},  # Require core PPTX entries.
+    }[extension]  # Select entries for this extension.
 
-    if not required_entries.issubset(names):
-        raise ValueError("The uploaded file is not a valid Office document.")
+    if not required_entries.issubset(names):  # Check the current condition.
+        raise ValueError("The uploaded file is not a valid Office document.")  # Raise a validation error.
 
-def parse_uploaded_office_file(uploaded_file) -> dict[str, Any]:
+def parse_uploaded_office_file(uploaded_file) -> dict[str, Any]:  # Define the upload parser.
+    """Parse an uploaded Office file."""
+    extension = validate_supported_upload(uploaded_file)  # Store the detected extension.
+    file_bytes = uploaded_file.read()  # Read the uploaded file bytes.
 
-    extension = validate_supported_upload(uploaded_file) # Check the uploaded file type and return the allowed extension
-    file_bytes = uploaded_file.read() # Read the uploaded file into memory as raw bytes
+    if hasattr(uploaded_file, "seek"):  # Check the current condition.
+        uploaded_file.seek(0)  # Reset the file pointer.
 
-    # Reset the file pointer so the file can be read again later if needed
-    if hasattr(uploaded_file, "seek"):
-        uploaded_file.seek(0)
+    if not file_bytes:  # Check the current condition.
+        raise ValueError("The uploaded file is empty.")  # Raise a validation error.
 
-    # Stop immediately if the upload contains no data
-    if not file_bytes:
-        raise ValueError("The uploaded file is empty.")
-    
-    # Confirm the file is a valid Office container for the detected extension
-    _validate_office_container(file_bytes, extension)
 
-    # Send Word documents to the Word parser
-    if extension == ".docx":
-        parsed = parse_docx_file(file_bytes)
+    _validate_office_container(file_bytes, extension)  # Validate the Office archive.
 
-    # Send PowerPoint files to the PowerPoint parser
-    else:
-        parsed = parse_pptx_file(file_bytes)
+    if extension == ".docx":  # Check the current condition.
+        parsed = parse_docx_file(file_bytes)  # Store the parsed document payload.
 
-    parsed["extension"] = extension.lstrip(".") # Store the extension in the returned payload without the leading dot
-    return parsed # Return one normalized parsed payload for the system to use
+    else:  # Handle the fallback case.
+        parsed = parse_pptx_file(file_bytes)  # Store the parsed document payload.
 
-def parse_docx_file(file_bytes: bytes) -> dict[str, Any]:
-    captured_images: list[dict[str, Any]] = []
-    image_counter = 0
+    parsed["extension"] = extension.lstrip(".")  # Store the extension without the dot.
+    return parsed  # Return the computed value.
 
-    def convert_image(image):
-        nonlocal image_counter
+# ============
+# DOCX Helpers
+# ============
+def parse_docx_file(file_bytes: bytes) -> dict[str, Any]:  # Define the DOCX parser.
+    """Parse a DOCX file."""
+    captured_images: list[dict[str, Any]] = []  # Initialise captured images.
+    image_counter = 0  # Track extracted image order.
 
-        image_counter += 1
-        token = f"img-{image_counter}"
+    def convert_image(image):  # Define convert image.
+        """Capture a DOCX image."""
+        nonlocal image_counter  # Reuse the outer counter.
 
-        extension = _extension_from_content_type(getattr(image, "content_type", "")) or "png"
-        filename = f"{token}.{extension}"
+        image_counter += 1  # Increment the image counter.
+        token = f"img-{image_counter}"  # Build a stable image token.
 
-        with image.open() as image_bytes:
-            blob = image_bytes.read()
+        extension = _extension_from_content_type(getattr(image, "content_type", "")) or "png"  # Store the detected extension.
+        filename = f"{token}.{extension}"  # Build the stored image name.
 
-        blob, extension, filename = _normalise_image_blob(blob, extension, filename)
+        with image.open() as image_bytes:  # Open the resource safely.
+            blob = image_bytes.read()  # Read the raw image bytes.
 
-        captured_images.append(
-            {
-                "token": token,
-                "filename": filename,
-                "content": blob,
-                "page_number": None,
-                "alt_text": getattr(image, "alt_text", "") or "",
-                "display_order": image_counter,
+        blob, extension, filename = _normalise_image_blob(blob, extension, filename)  # Normalise the extracted image.
+
+        captured_images.append(  # Store the extracted image.
+            {  # Build the payload dictionary.
+                "token": token,  # Store the image token.
+                "filename": filename,  # Store the image filename.
+                "content": blob,  # Store raw image bytes.
+                "page_number": None,  # Leave the page unset.
+                "alt_text": getattr(image, "alt_text", "") or "",  # Store the image alt text.
+                "display_order": image_counter,  # Store the image order.
             }
         )
 
-        return {
-            "src": f"parsed-image:{token}",
-            "alt": getattr(image, "alt_text", "") or "",
+        return {  # Return the parsed payload.
+            "src": f"parsed-image:{token}",  # Point to the parsed image.
+            "alt": getattr(image, "alt_text", "") or "",  # Store the image alt text.
         }
 
-    result = mammoth.convert_to_html(
-        io.BytesIO(file_bytes),
-        convert_image=img_element(convert_image),
-        include_embedded_style_map=False,
+    result = mammoth.convert_to_html(  # Store Mammoth conversion output.
+        io.BytesIO(file_bytes),  # Wrap bytes for Mammoth.
+        convert_image=img_element(convert_image),  # Set convert image.
+        include_embedded_style_map=False,  # Set include embedded style map.
     )
 
-    blocks = _docx_html_to_blocks(result.value)
+    blocks = _docx_html_to_blocks(result.value)  # Store parsed content blocks.
 
-    return {
-        "blocks": blocks,
-        "page_count": len(blocks),
-        "images": captured_images,
-        "warnings": [str(message) for message in getattr(result, "messages", [])],
+    return {  # Return the parsed payload.
+        "blocks": blocks,  # Return parsed content blocks.
+        "page_count": len(blocks),  # Return the page count.
+        "images": captured_images,  # Return extracted images.
+        "warnings": [str(message) for message in getattr(result, "messages", [])],  # Return Mammoth warnings.
     }
 
-def parse_pptx_file(file_bytes: bytes) -> dict[str, Any]:
-    presentation = Presentation(io.BytesIO(file_bytes))
+# ============
+# PPTX Helpers
+# ============
+def parse_pptx_file(file_bytes: bytes) -> dict[str, Any]:  # Define the PPTX parser.
+    """Parse a PPTX file."""
+    presentation = Presentation(io.BytesIO(file_bytes))  # Open the PowerPoint file.
 
-    blocks: list[dict[str, Any]] = []
-    captured_images: list[dict[str, Any]] = []
-    image_counter = 0
+    blocks: list[dict[str, Any]] = []  # Initialise parsed blocks.
+    captured_images: list[dict[str, Any]] = []  # Initialise captured images.
+    image_counter = 0  # Track extracted image order.
 
-    for slide_index, slide in enumerate(presentation.slides, start=1):
-        page_elements: list[dict[str, Any]] = []
+    for slide_index, slide in enumerate(presentation.slides, start=1):  # Iterate through the collection.
+        page_elements: list[dict[str, Any]] = []  # Initialise slide elements.
 
-        slide_title = ""
-        title_shape = getattr(slide.shapes, "title", None)
-        if title_shape and getattr(title_shape, "text", "").strip():
-            slide_title = title_shape.text.strip()
+        slide_title = ""  # Store the slide title.
+        title_shape = getattr(slide.shapes, "title", None)  # Read the title placeholder.
+        if title_shape and getattr(title_shape, "text", "").strip():  # Check the current condition.
+            slide_title = title_shape.text.strip()  # Store the slide title.
 
-        for shape in _sorted_shapes(slide.shapes):
-            extracted_elements, image_counter, new_images = _extract_pptx_shape_content(
-                shape=shape,
-                slide_index=slide_index,
-                image_counter=image_counter,
+        for shape in _sorted_shapes(slide.shapes):  # Iterate through the collection.
+            extracted_elements, image_counter, new_images = _extract_pptx_shape_content(  # Extract content from the shape.
+                shape=shape,  # Set shape.
+                slide_index=slide_index,  # Set slide index.
+                image_counter=image_counter,  # Track extracted image order.
             )
-            if extracted_elements:
-                page_elements.extend(extracted_elements)
-            if new_images:
-                captured_images.extend(new_images)
+            if extracted_elements:  # Check the current condition.
+                page_elements.extend(extracted_elements)  # Append extracted elements.
+            if new_images:  # Check the current condition.
+                captured_images.extend(new_images)  # Append extracted images.
 
-        if not page_elements:
-            continue
+        if not page_elements:  # Check the current condition.
+            continue  # Skip to the next item.
 
-        blocks.append(
-            {
-                "type": "page",
-                "page_number": slide_index,
-                "label": slide_title or f"Slide {slide_index}",
-                "elements": page_elements,
+        blocks.append(  # Append the page block.
+            {  # Build the payload dictionary.
+                "type": "page",  # Mark this block as a page.
+                "page_number": slide_index,  # Store the slide number.
+                "label": slide_title or f"Slide {slide_index}",  # Use the slide label.
+                "elements": page_elements,  # Store page elements.
             }
         )
 
-    return {
-        "blocks": blocks,
-        "page_count": len(blocks),
-        "images": captured_images,
-        "warnings": [],
+    return {  # Return the parsed payload.
+        "blocks": blocks,  # Return parsed content blocks.
+        "page_count": len(blocks),  # Return the page count.
+        "images": captured_images,  # Return extracted images.
+        "warnings": [],  # Return an empty warning list.
     }
 
-def build_rendered_html_from_blocks(
-    blocks: list[dict[str, Any]],
-    image_lookup: dict[str, dict[str, str]],
-) -> str:
-    page_html: list[str] = []
-    total_pages = len(blocks)
+def build_rendered_html_from_blocks(  # Define the HTML renderer.
+    blocks: list[dict[str, Any]],  # Initialise parsed blocks.
+    image_lookup: dict[str, dict[str, str]],  # Annotate stored images.
+) -> str:  # Finish the function signature.
+    """Build rendered HTML from blocks."""
+    page_html: list[str] = []  # Annotate page html.
+    total_pages = len(blocks)  # Set total pages.
 
-    for index, page in enumerate(blocks, start=1):
-        label = escape(str(page.get("label") or f"Page {index}"))
-        inner_html: list[str] = []
+    for index, page in enumerate(blocks, start=1):  # Iterate through the collection.
+        label = escape(str(page.get("label") or f"Page {index}"))  # Build the page label.
+        inner_html: list[str] = []  # Annotate inner html.
 
-        for element in page.get("elements", []):
-            if element.get("type") != "raw_html":
-                continue
+        for element in page.get("elements", []):  # Iterate through the collection.
+            if element.get("type") != "raw_html":  # Check the current condition.
+                continue  # Skip to the next item.
 
-            snippet = _hydrate_image_placeholders(
-                element.get("html", ""),
-                image_lookup=image_lookup,
+            snippet = _hydrate_image_placeholders(  # Store the current HTML snippet.
+                element.get("html", ""),  # Read the raw HTML snippet.
+                image_lookup=image_lookup,  # Set image lookup.
             )
-            snippet = _sanitize_user_html(snippet)
+            snippet = _sanitize_user_html(snippet)  # Store the current HTML snippet.
 
-            if "<table" in snippet:
-                snippet = f'<div class="parsed-table-wrap">{snippet}</div>'
+            if "<table" in snippet:  # Check the current condition.
+                snippet = f'<div class="parsed-table-wrap">{snippet}</div>'  # Store the current HTML snippet.
 
-            inner_html.append(snippet)
+            inner_html.append(snippet)  # Store the rendered snippet.
 
-        page_html.append(
-            f'<section class="parsed-page" aria-label="{label}">'
-            f'<div class="parsed-page-header">{label}</div>'
-            f'{"".join(inner_html)}'
-            f"</section>"
+        page_html.append(  # Append the page HTML.
+            f'<section class="parsed-page" aria-label="{label}">'  # Build this path segment.
+            f'<div class="parsed-page-header">{label}</div>'  # Build this path segment.
+            f'{"".join(inner_html)}'  # Render the inner page HTML.
+            f"</section>"  # Close the page section.
         )
 
-        if index < total_pages:
-            page_html.append('<hr class="parsed-page-break" aria-hidden="true">')
+        if index < total_pages:  # Check the current condition.
+            page_html.append('<hr class="parsed-page-break" aria-hidden="true">')  # Insert a page break.
 
-    return "".join(page_html)
+    return "".join(page_html)  # Return the computed value.
 
-def _docx_html_to_blocks(html: str) -> list[dict[str, Any]]:
-    soup = BeautifulSoup(html or "", "html.parser")
-    body_nodes: list[Tag] = []
+def _docx_html_to_blocks(html: str) -> list[dict[str, Any]]:  # Define the DOCX block builder.
+    """Convert DOCX HTML into blocks."""
+    soup = BeautifulSoup(html or "", "html.parser")  # Parse the HTML fragment.
+    body_nodes: list[Tag] = []  # Initialise body nodes.
 
-    for child in soup.contents:
-        if isinstance(child, NavigableString):
-            if child.strip():
-                frag = BeautifulSoup(f"<p>{escape(str(child).strip())}</p>", "html.parser")
-                if frag.p:
-                    body_nodes.append(frag.p)
-            continue
+    for child in soup.contents:  # Iterate through the collection.
+        if isinstance(child, NavigableString):  # Check the current condition.
+            if child.strip():  # Check the current condition.
+                frag = BeautifulSoup(f"<p>{escape(str(child).strip())}</p>", "html.parser")  # Wrap loose text in a paragraph.
+                if frag.p:  # Check the current condition.
+                    body_nodes.append(frag.p)  # Store the wrapped node.
+            continue  # Skip to the next item.
 
-        if isinstance(child, Tag):
-            body_nodes.append(child)
+        if isinstance(child, Tag):  # Check the current condition.
+            body_nodes.append(child)  # Store the HTML node.
 
-    pages: list[dict[str, Any]] = []
-    current_page = {
-        "type": "page",
-        "page_number": 1,
-        "label": "Page 1",
-        "elements": [],
+    pages: list[dict[str, Any]] = []  # Initialise page blocks.
+    current_page = {  # Track the current page block.
+        "type": "page",  # Mark this block as a page.
+        "page_number": 1,  # Store the first page number.
+        "label": "Page 1",  # Store the first page label.
+        "elements": [],  # Start with no page elements.
     }
 
-    for node in body_nodes:
-        if node.name in {"h1", "h2"} and current_page["elements"]:
-            pages.append(current_page)
-            next_number = len(pages) + 1
-            current_page = {
-                "type": "page",
-                "page_number": next_number,
-                "label": f"Page {next_number}",
-                "elements": [],
+    for node in body_nodes:  # Iterate through the collection.
+        if node.name in {"h1", "h2"} and current_page["elements"]:  # Check the current condition.
+            pages.append(current_page)  # Store the completed page.
+            next_number = len(pages) + 1  # Calculate the next page number.
+            current_page = {  # Track the current page block.
+                "type": "page",  # Mark this block as a page.
+                "page_number": next_number,  # Store the next page number.
+                "label": f"Page {next_number}",  # Store the next page label.
+                "elements": [],  # Start with no page elements.
             }
 
-        snippet = str(node)
-        if snippet.strip():
-            current_page["elements"].append(
-                {
-                    "type": "raw_html",
-                    "html": snippet,
+        snippet = str(node)  # Store the current HTML snippet.
+        if snippet.strip():  # Check the current condition.
+            current_page["elements"].append(  # Append the page element.
+                {  # Build the payload dictionary.
+                    "type": "raw_html",  # Mark this element as raw HTML.
+                    "html": snippet,  # Store the raw HTML.
                 }
             )
 
-    if current_page["elements"]:
-        pages.append(current_page)
+    if current_page["elements"]:  # Check the current condition.
+        pages.append(current_page)  # Store the completed page.
 
-    if not pages:
-        pages.append(
-            {
-                "type": "page",
-                "page_number": 1,
-                "label": "Page 1",
-                "elements": [
-                    {
-                        "type": "raw_html",
-                        "html": "<p>No readable content could be extracted from this document.</p>",
+    if not pages:  # Check the current condition.
+        pages.append(  # Append the fallback page.
+            {  # Build the payload dictionary.
+                "type": "page",  # Mark this block as a page.
+                "page_number": 1,  # Store the first page number.
+                "label": "Page 1",  # Store the first page label.
+                "elements": [  # Store this dictionary value.
+                    {  # Build the payload dictionary.
+                        "type": "raw_html",  # Mark this element as raw HTML.
+                        "html": "<p>No readable content could be extracted from this document.</p>",  # Store this dictionary value.
                     }
                 ],
             }
         )
 
-    return pages
+    return pages  # Return the computed value.
 
-def _sorted_shapes(shapes) -> list[Any]:
-    ordered: list[Any] = []
+def _sorted_shapes(shapes) -> list[Any]:  # Define the shape sorter.
+    """Sort PowerPoint shapes."""
+    ordered: list[Any] = []  # Initialise sorted shapes.
 
-    for shape in shapes:
-        if getattr(shape, "shape_type", None) == MSO_SHAPE_TYPE.GROUP:
-            ordered.extend(_sorted_shapes(shape.shapes))
-        else:
-            ordered.append(shape)
+    for shape in shapes:  # Iterate through the collection.
+        if getattr(shape, "shape_type", None) == MSO_SHAPE_TYPE.GROUP:  # Check the current condition.
+            ordered.extend(_sorted_shapes(shape.shapes))  # Flatten grouped shapes.
+        else:  # Handle the fallback case.
+            ordered.append(shape)  # Store the current shape.
 
-    return sorted(ordered, key=lambda shp: (getattr(shp, "top", 0), getattr(shp, "left", 0)))
+    return sorted(ordered, key=lambda shp: (getattr(shp, "top", 0), getattr(shp, "left", 0)))  # Return the computed value.
 
-def _extract_pptx_shape_content(shape, slide_index: int, image_counter: int):
-    elements: list[dict[str, Any]] = []
-    images: list[dict[str, Any]] = []
+def _extract_pptx_shape_content(shape, slide_index: int, image_counter: int):  # Define the shape extractor.
+    """Extract slide shape content."""
+    elements: list[dict[str, Any]] = []  # Initialise extracted elements.
+    images: list[dict[str, Any]] = []  # Initialise extracted images.
 
-    shape_type = getattr(shape, "shape_type", None)
+    shape_type = getattr(shape, "shape_type", None)  # Read the current shape type.
 
-    if shape_type == MSO_SHAPE_TYPE.PICTURE:
-        image_counter += 1
-        token = f"img-{image_counter}"
+    if shape_type == MSO_SHAPE_TYPE.PICTURE:  # Check the current condition.
+        image_counter += 1  # Increment the image counter.
+        token = f"img-{image_counter}"  # Build a stable image token.
 
-        img = shape.image
-        extension = (getattr(img, "ext", "") or "png").lower()
-        filename = getattr(img, "filename", "") or f"{token}.{extension}"
-        blob = img.blob
+        img = shape.image  # Read the picture payload.
+        extension = (getattr(img, "ext", "") or "png").lower()  # Store the detected extension.
+        filename = getattr(img, "filename", "") or f"{token}.{extension}"  # Build the stored image name.
+        blob = img.blob  # Read the raw image bytes.
 
-        blob, extension, filename = _normalise_image_blob(blob, extension, filename)
-        alt_text = _best_picture_alt_text(shape, slide_index)
+        blob, extension, filename = _normalise_image_blob(blob, extension, filename)  # Normalise the extracted image.
+        alt_text = _best_picture_alt_text(shape, slide_index)  # Build the image alt text.
 
-        images.append(
-            {
-                "token": token,
-                "filename": filename,
-                "content": blob,
-                "page_number": slide_index,
-                "alt_text": alt_text,
-                "display_order": image_counter,
+        images.append(  # Store the picture metadata.
+            {  # Build the payload dictionary.
+                "token": token,  # Store the image token.
+                "filename": filename,  # Store the image filename.
+                "content": blob,  # Store raw image bytes.
+                "page_number": slide_index,  # Store the slide number.
+                "alt_text": alt_text,  # Store the image alt text.
+                "display_order": image_counter,  # Store the image order.
             }
         )
 
-        elements.append(
-            {
-                "type": "raw_html",
-                "html": (
-                    f'<figure><img src="parsed-image:{token}" alt="{escape(alt_text)}"></figure>'
+        elements.append(  # Store the rendered element.
+            {  # Build the payload dictionary.
+                "type": "raw_html",  # Mark this element as raw HTML.
+                "html": (  # Build the figure HTML.
+                    f'<figure><img src="parsed-image:{token}" alt="{escape(alt_text)}"></figure>'  # Build this path segment.
                 ),
             }
         )
-        return elements, image_counter, images
+        return elements, image_counter, images  # Return the computed value.
 
-    if getattr(shape, "has_table", False):
-        table_html = _table_to_html(shape.table)
-        if table_html:
-            elements.append({"type": "raw_html", "html": table_html})
-        return elements, image_counter, images
+    if getattr(shape, "has_table", False):  # Check the current condition.
+        table_html = _table_to_html(shape.table)  # Render the table as HTML.
+        if table_html:  # Check the current condition.
+            elements.append({"type": "raw_html", "html": table_html})  # Store the table element.
+        return elements, image_counter, images  # Return the computed value.
 
-    if getattr(shape, "has_text_frame", False):
-        text_html = _text_frame_to_html(shape)
-        if text_html:
-            elements.append({"type": "raw_html", "html": text_html})
-        return elements, image_counter, images
+    if getattr(shape, "has_text_frame", False):  # Check the current condition.
+        text_html = _text_frame_to_html(shape)  # Render the text frame as HTML.
+        if text_html:  # Check the current condition.
+            elements.append({"type": "raw_html", "html": text_html})  # Store the text element.
+        return elements, image_counter, images  # Return the computed value.
 
-    return elements, image_counter, images
+    return elements, image_counter, images  # Return the computed value.
 
-def _text_frame_to_html(shape) -> str:
-    text_frame = shape.text_frame
-    paragraphs = [p for p in text_frame.paragraphs if (p.text or "").strip()]
+def _text_frame_to_html(shape) -> str:  # Define the text-frame renderer.
+    """Convert a text frame to HTML."""
+    text_frame = shape.text_frame  # Read the text frame.
+    paragraphs = [p for p in text_frame.paragraphs if (p.text or "").strip()]  # Drop the handled paragraph.
 
-    if not paragraphs:
-        return ""
+    if not paragraphs:  # Check the current condition.
+        return ""  # Return the computed value.
 
-    placeholder_type = None
-    if getattr(shape, "is_placeholder", False):
-        try:
-            placeholder_type = shape.placeholder_format.type
-        except Exception:
-            placeholder_type = None
+    placeholder_type = None  # Reset the placeholder type.
+    if getattr(shape, "is_placeholder", False):  # Check the current condition.
+        try:  # Start guarded parsing.
+            placeholder_type = shape.placeholder_format.type  # Track the placeholder type.
+        except Exception:  # Handle parsing failures.
+            placeholder_type = None  # Reset the placeholder type.
 
-    html_parts: list[str] = []
+    html_parts: list[str] = []  # Initialise HTML parts.
 
-    if placeholder_type in {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE}:
-        html_parts.append(f"<h2>{_paragraph_inline_html(paragraphs[0])}</h2>")
-        paragraphs = paragraphs[1:]
-    elif placeholder_type == PP_PLACEHOLDER.SUBTITLE:
-        html_parts.append(f"<h3>{_paragraph_inline_html(paragraphs[0])}</h3>")
-        paragraphs = paragraphs[1:]
+    if placeholder_type in {PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE}:  # Check the current condition.
+        html_parts.append(f"<h2>{_paragraph_inline_html(paragraphs[0])}</h2>")  # Render the title heading.
+        paragraphs = paragraphs[1:]  # Drop the handled paragraph.
+    elif placeholder_type == PP_PLACEHOLDER.SUBTITLE:  # Check the next condition.
+        html_parts.append(f"<h3>{_paragraph_inline_html(paragraphs[0])}</h3>")  # Render the subtitle heading.
+        paragraphs = paragraphs[1:]  # Drop the handled paragraph.
 
-    if not paragraphs:
-        return "".join(html_parts)
+    if not paragraphs:  # Check the current condition.
+        return "".join(html_parts)  # Return the computed value.
 
-    should_render_as_list = (
-        placeholder_type in {PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT}
-        and len(paragraphs) > 1
+    should_render_as_list = (  # Decide whether to render a list.
+        placeholder_type in {PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT}  # Check body-style placeholders.
+        and len(paragraphs) > 1  # Require multiple paragraphs.
     )
 
-    if should_render_as_list:
-        html_parts.append("<ul>")
-        for paragraph in paragraphs:
-            html_parts.append(f"<li>{_paragraph_inline_html(paragraph)}</li>")
-        html_parts.append("</ul>")
-    else:
-        for paragraph in paragraphs:
-            html_parts.append(f"<p>{_paragraph_inline_html(paragraph)}</p>")
+    if should_render_as_list:  # Check the current condition.
+        html_parts.append("<ul>")  # Open the list wrapper.
+        for paragraph in paragraphs:  # Iterate through the collection.
+            html_parts.append(f"<li>{_paragraph_inline_html(paragraph)}</li>")  # Render the list item.
+        html_parts.append("</ul>")  # Close the list wrapper.
+    else:  # Handle the fallback case.
+        for paragraph in paragraphs:  # Iterate through the collection.
+            html_parts.append(f"<p>{_paragraph_inline_html(paragraph)}</p>")  # Render the paragraph.
 
-    return "".join(html_parts)
+    return "".join(html_parts)  # Return the computed value.
 
-def _paragraph_inline_html(paragraph) -> str:
-    fragments: list[str] = []
-    runs = list(getattr(paragraph, "runs", []))
+def _paragraph_inline_html(paragraph) -> str:  # Define the inline HTML builder.
+    """Build inline HTML for a paragraph."""
+    fragments: list[str] = []  # Initialise inline fragments.
+    runs = list(getattr(paragraph, "runs", []))  # Collect text runs.
 
-    if not runs:
-        return escape((paragraph.text or "").strip())
+    if not runs:  # Check the current condition.
+        return escape((paragraph.text or "").strip())  # Return the computed value.
 
-    for run in runs:
-        text = escape(run.text or "")
-        if not text:
-            continue
+    for run in runs:  # Iterate through the collection.
+        text = escape(run.text or "")  # Escape the run text.
+        if not text:  # Check the current condition.
+            continue  # Skip to the next item.
 
-        href = getattr(getattr(run, "hyperlink", None), "address", None)
-        if href:
-            text = (
-                f'<a href="{escape(href, quote=True)}" '
-                f'target="_blank">{text}</a>'
+        href = getattr(getattr(run, "hyperlink", None), "address", None)  # Read the hyperlink target.
+        if href:  # Check the current condition.
+            text = (  # Escape the run text.
+                f'<a href="{escape(href, quote=True)}" '  # Build this path segment.
+                f'target="_blank">{text}</a>'  # Build this path segment.
             )
 
-        if getattr(getattr(run, "font", None), "bold", False):
-            text = f"<strong>{text}</strong>"
+        if getattr(getattr(run, "font", None), "bold", False):  # Check the current condition.
+            text = f"<strong>{text}</strong>"  # Escape the run text.
 
-        if getattr(getattr(run, "font", None), "italic", False):
-            text = f"<em>{text}</em>"
+        if getattr(getattr(run, "font", None), "italic", False):  # Check the current condition.
+            text = f"<em>{text}</em>"  # Escape the run text.
 
-        fragments.append(text)
+        fragments.append(text)  # Store the rendered fragment.
 
-    return "".join(fragments).strip()
+    return "".join(fragments).strip()  # Return the computed value.
 
-def _table_to_html(table) -> str:
-    rows_html: list[str] = []
+def _table_to_html(table) -> str:  # Define the table renderer.
+    """Convert a table to HTML."""
+    rows_html: list[str] = []  # Initialise table rows.
 
-    for row_index, row in enumerate(table.rows):
-        cell_tag = "th" if row_index == 0 else "td"
-        cell_html: list[str] = []
+    for row_index, row in enumerate(table.rows):  # Iterate through the collection.
+        cell_tag = "th" if row_index == 0 else "td"  # Choose the cell tag.
+        cell_html: list[str] = []  # Initialise cell HTML.
 
-        for cell in row.cells:
-            text = escape(cell.text.strip()) if cell.text else ""
-            cell_html.append(f"<{cell_tag}>{text}</{cell_tag}>")
+        for cell in row.cells:  # Iterate through the collection.
+            text = escape(cell.text.strip()) if cell.text else ""  # Escape the run text.
+            cell_html.append(f"<{cell_tag}>{text}</{cell_tag}>")  # Render the table cell.
 
-        rows_html.append(f"<tr>{''.join(cell_html)}</tr>")
+        rows_html.append(f"<tr>{''.join(cell_html)}</tr>")  # Render the table row.
 
-    if not rows_html:
-        return ""
+    if not rows_html:  # Check the current condition.
+        return ""  # Return the computed value.
 
-    return f"<table><tbody>{''.join(rows_html)}</tbody></table>"
+    return f"<table><tbody>{''.join(rows_html)}</tbody></table>"  # Return the display string.
 
-def _hydrate_image_placeholders(
-    snippet: str,
-    image_lookup: dict[str, dict[str, str]],
-) -> str:
-    soup = BeautifulSoup(snippet or "", "html.parser")
+def _hydrate_image_placeholders(  # Define the image hydrator.
+    snippet: str,  # Annotate snippet.
+    image_lookup: dict[str, dict[str, str]],  # Annotate stored images.
+) -> str:  # Finish the function signature.
+    """Replace parsed image placeholders."""
+    soup = BeautifulSoup(snippet or "", "html.parser")  # Parse the HTML fragment.
 
-    for img in soup.find_all("img"):
-        src = (img.get("src") or "").strip()
+    for img in soup.find_all("img"):  # Iterate through the collection.
+        src = (img.get("src") or "").strip()  # Read the image source.
 
-        if not src.startswith("parsed-image:"):
-            continue
+        if not src.startswith("parsed-image:"):  # Check the current condition.
+            continue  # Skip to the next item.
 
-        token = src.split("parsed-image:", 1)[1]
-        data = image_lookup.get(token)
+        token = src.split("parsed-image:", 1)[1]  # Build a stable image token.
+        data = image_lookup.get(token)  # Read the image lookup data.
 
-        if not data:
-            img.decompose()
-            continue
+        if not data:  # Check the current condition.
+            img.decompose()  # Remove the missing image.
+            continue  # Skip to the next item.
 
-        img["src"] = data["src"]
-        img["alt"] = data.get("alt_text", "") or img.get("alt", "") or ""
+        img["src"] = data["src"]  # Replace the image source.
+        img["alt"] = data.get("alt_text", "") or img.get("alt", "") or ""  # Replace the image alt text.
 
-    return str(soup)
+    return str(soup)  # Return the computed value.
 
-def _sanitize_user_html(html: str) -> str:
-    return nh3.clean(
-        html or "",
-        tags=SAFE_TAGS,
-        attributes=SAFE_ATTRIBUTES,
-        url_schemes={"http", "https", "mailto"},
-        link_rel="noopener noreferrer",
+def _sanitize_user_html(html: str) -> str:  # Define the HTML sanitizer.
+    """Sanitize extracted user HTML."""
+    return nh3.clean(  # Return the computed value.
+        html or "",  # Clean the provided HTML.
+        tags=SAFE_TAGS,  # Set tags.
+        attributes=SAFE_ATTRIBUTES,  # Set attributes.
+        url_schemes={"http", "https", "mailto"},  # Set url schemes.
+        link_rel="noopener noreferrer",  # Set link rel.
     )
 
-def _best_picture_alt_text(shape, slide_index: int) -> str:
-    try:
-        descr = shape._element.xpath(
-            ".//p:cNvPr/@descr",
-            namespaces={"p": "http://schemas.openxmlformats.org/presentationml/2006/main"},
+def _best_picture_alt_text(shape, slide_index: int) -> str:  # Define the alt-text helper.
+    """Get picture alt text."""
+    try:  # Start guarded parsing.
+        descr = shape._element.xpath(  # Read the image description.
+            ".//p:cNvPr/@descr",  # Allow the .//p:cNvPr/@descr value.
+            namespaces={"p": "http://schemas.openxmlformats.org/presentationml/2006/main"},  # Set namespaces.
         )
-        if descr and descr[0].strip():
-            return descr[0].strip()
-    except Exception:
-        pass
+        if descr and descr[0].strip():  # Check the current condition.
+            return descr[0].strip()  # Return the computed value.
+    except Exception:  # Handle parsing failures.
+        pass  # Ignore the failure safely.
 
-    return f"Image from slide {slide_index}"
+    return f"Image from slide {slide_index}"  # Return the display string.
 
-def _extension_from_content_type(content_type: str) -> str:
-    mapping = {
-        "image/jpeg": "jpg",
-        "image/png": "png",
-        "image/gif": "gif",
-        "image/svg+xml": "svg",
-        "image/webp": "webp",
-        "image/tiff": "tiff",
-        "image/bmp": "bmp",
-        "image/x-emf": "emf",
-        "image/x-wmf": "wmf",
+# =============
+# Image Helpers
+# =============
+def _extension_from_content_type(content_type: str) -> str:  # Define the extension mapper.
+    """Map content type to an extension."""
+    mapping = {  # Map MIME types to extensions.
+        "image/jpeg": "jpg",  # Define a MIME mapping.
+        "image/png": "png",  # Define a MIME mapping.
+        "image/gif": "gif",  # Define a MIME mapping.
+        "image/svg+xml": "svg",  # Define a MIME mapping.
+        "image/webp": "webp",  # Define a MIME mapping.
+        "image/tiff": "tiff",  # Define a MIME mapping.
+        "image/bmp": "bmp",  # Define a MIME mapping.
+        "image/x-emf": "emf",  # Define a MIME mapping.
+        "image/x-wmf": "wmf",  # Define a MIME mapping.
     }
-    return mapping.get((content_type or "").lower(), "png")
+    return mapping.get((content_type or "").lower(), "png")  # Return the computed value.
 
-def _normalise_image_blob(blob: bytes, extension: str, filename: str):
-    extension = (extension or "png").lower()
+def _normalise_image_blob(blob: bytes, extension: str, filename: str):  # Define the image normaliser.
+    """Normalise an image blob."""
+    extension = (extension or "png").lower()  # Store the detected extension.
 
-    if extension in {"emf", "wmf"}:
-        return blob, extension, filename
+    if extension in {"emf", "wmf"}:  # Check the current condition.
+        return blob, extension, filename  # Return the computed value.
 
-    try:
-        with Image.open(io.BytesIO(blob)) as img:
-            output = io.BytesIO()
+    try:  # Start guarded parsing.
+        with Image.open(io.BytesIO(blob)) as img:  # Open the resource safely.
+            output = io.BytesIO()  # Buffer the converted image.
 
-            save_format = "PNG" if img.mode in {"RGBA", "LA", "P"} else "JPEG"
-            converted = img.convert("RGBA" if save_format == "PNG" else "RGB")
-            converted.save(output, format=save_format)
+            save_format = "PNG" if img.mode in {"RGBA", "LA", "P"} else "JPEG"  # Choose the image save format.
+            converted = img.convert("RGBA" if save_format == "PNG" else "RGB")  # Convert the image mode.
+            converted.save(output, format=save_format)  # Write the converted image.
 
-            new_extension = "png" if save_format == "PNG" else "jpg"
-            root, _ = os.path.splitext(filename)
-            return output.getvalue(), new_extension, f"{root}.{new_extension}"
+            new_extension = "png" if save_format == "PNG" else "jpg"  # Store the new extension.
+            root, _ = os.path.splitext(filename)  # Split the filename root.
+            return output.getvalue(), new_extension, f"{root}.{new_extension}"  # Return the computed value.
 
-    except (UnidentifiedImageError, OSError):
-        return blob, extension, filename
+    except (UnidentifiedImageError, OSError):  # Handle parsing failures.
+        return blob, extension, filename  # Return the computed value.

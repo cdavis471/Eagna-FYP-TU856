@@ -1,62 +1,100 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Add Lecturer | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Add Lecturer{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
+    <!-- Provide a compact action button or link. -->
     <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for add lecturer. -->
     <h1 class="section-title">Add Lecturer</h1>
 
+    <!-- Show validation errors when the form has problems. -->
     {% if errors %}
+      <!-- Begin a list of related items. -->
       <ul class="error-list">
+        <!-- Loop through each e from errors. -->
         {% for e in errors %}
+          <!-- Render one item within the current list. -->
           <li>{{ e }}</li>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </ul>
+    <!-- End this conditional template block. -->
     {% endif %}
 
+    <!-- Wrap the authentication card content. -->
     <form method="post" class="auth-container admin-form-shell">
+      <!-- Insert the CSRF token for secure form submission. -->
       {% csrf_token %}
 
+      <!-- Render admin interface content for this page. -->
       <div class="admin-form-grid">
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the first name field. -->
           <label for="id_first_name">First Name</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_first_name" name="first_name" value="{{ initial.first_name }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the surname field. -->
           <label for="id_last_name">Surname</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_last_name" name="last_name" value="{{ initial.last_name }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the email field. -->
           <label for="id_email">Email</label>
+          <!-- Render a email input for user entry. -->
           <input type="email" id="id_email" name="email" value="{{ initial.email }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the staff id field. -->
           <label for="id_staff_id">Staff ID</label>
+          <!-- Render a text input for user entry. -->
           <input type="text" id="id_staff_id" name="staff_id" value="{{ initial.staff_id }}">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the password field. -->
           <label for="id_password1">Password</label>
+          <!-- Render a password input for user entry. -->
           <input type="password" id="id_password1" name="password1">
         </div>
 
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the confirm password field. -->
           <label for="id_password2">Confirm Password</label>
+          <!-- Render a password input for user entry. -->
           <input type="password" id="id_password2" name="password2">
         </div>
       </div>
 
+      <!-- Provide the create lecturer button for this action. -->
       <button type="submit">Create Lecturer</button>
     </form>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

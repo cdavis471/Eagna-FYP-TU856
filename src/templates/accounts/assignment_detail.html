@@ -9,64 +9,144 @@
 <!-- Outer container for the assignment detail page using dashboard styling -->
 <div class="dashboard-container assessment-detail-page assignment-detail-page">
   <!-- Section containing assignment overview and materials -->
-  <section class="dashboard-section">
-    <a href="{{ back_url }}" class="return-link">← Return</a>
-    {% if read_only %}
-      <div class="flash-message flash-message--info">
-        This is a previous academic year. Content is read-only.
+    <section class="dashboard-section">
+      <!-- Wrap the assessment detail toolbar area for layout or styling. -->
+      <div class="assessment-detail-toolbar">
+        <!-- Wrap the return link area for layout or styling. -->
+        <a href="{{ back_url }}" class="return-link">← Return</a>
+        <!-- Conditionally render this block when the data is available. -->
+        {% if role == "lecturer" and not read_only %}
+          <!-- Wrap the assessment detail toolbar actions area for layout or styling. -->
+          <div class="assessment-detail-toolbar__actions">
+            <!-- Conditionally render this block when the data is available. -->
+            {% if can_edit_assignment %}
+              <!-- Provide a compact action button or link. -->
+              <a href="{% url 'accounts:offering_edit_assignment' offering.id assignment.id %}?next={{ request.get_full_path|urlencode }}"
+                class="small-button">
+                Edit
+              </a>
+            <!-- End this conditional template block. -->
+            {% endif %}
+
+            <!-- Conditionally render this block when the data is available. -->
+            {% if can_delete_assignment %}
+              <!-- Render admin interface content for this page. -->
+              <form method="post"
+                    action="{% url 'accounts:offering_delete_assignment' offering.id assignment.id %}"
+                    class="admin-inline-form">
+                <!-- Insert the CSRF token for secure form submission. -->
+                {% csrf_token %}
+                <!-- Provide a compact action button or link. -->
+                <button type="submit"
+                        class="small-button small-button--danger"
+                        onclick="return confirm('Delete this assignment? This will also remove any related submissions and grades.');">
+                  Delete
+                </button>
+              </form>
+            <!-- End this conditional template block. -->
+            {% endif %}
+          </div>
+        <!-- End this conditional template block. -->
+        {% endif %}
       </div>
-    {% endif %}
+      <!-- Conditionally render this block when the data is available. -->
+      {% if read_only %}
+        <!-- Display one flash message to the user. -->
+        <div class="flash-message flash-message--info">
+          This is a previous academic year. Content is read-only.
+        </div>
+      <!-- Handle the next possible condition for this block. -->
+      {% elif role == "lecturer" and not can_edit_assignment %}
+        <!-- Display one flash message to the user. -->
+        <div class="flash-message flash-message--info">
+          This assignment can no longer be edited because the due date has passed.
+        </div>
+      <!-- End this conditional template block. -->
+      {% endif %}
+    <!-- Render assignment-related content for this page. -->
     <div class="assessment-hero-card assignment-overview-card">
+      <!-- Wrap the assessment detail header area for layout or styling. -->
       <div class="assessment-detail-header">
+        <!-- Wrap this part of the page for layout and styling. -->
         <div>
+          <!-- Wrap the assessment detail kicker area for layout or styling. -->
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <!-- Display the main page heading. -->
           <h1 class="section-title">{{ assignment.title }}</h1>
         </div>
 
+        <!-- Show the assessment type badge. -->
         <span class="assessment-badge assignment">Assignment</span>
       </div>
 
+      <!-- Render assignment-related content for this page. -->
       <div class="assessment-meta-grid assignment-overview-meta-grid">
+        <!-- Render assignment-related content for this page. -->
         <div class="assessment-meta-card assignment-overview-panel assignment-overview-meta-card">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">Due</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ assignment.due_datetime|date:"Y-m-d H:i" }}</span>
         </div>
 
+        <!-- Render assignment-related content for this page. -->
         <div class="assessment-meta-card assignment-overview-panel assignment-overview-meta-card">
+          <!-- Wrap the assessment meta label area for layout or styling. -->
           <span class="assessment-meta-label">Percentage of Module</span>
+          <!-- Wrap the assessment meta value area for layout or styling. -->
           <span class="assessment-meta-value">{{ assignment.max_mark }}%</span>
         </div>
       </div>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if assignment.description %}
+        <!-- Render assignment-related content for this page. -->
         <div class="assessment-surface assignment-overview-panel assignment-description-panel">
+          <!-- Display the subsection heading for description. -->
           <h3 class="week-title">DESCRIPTION</h3>
+          <!-- Wrap the assessment body text area for layout or styling. -->
           <p class="assessment-body-text">{{ assignment.description }}</p>
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if assignment.files.all %}
+        <!-- Render assignment-related content for this page. -->
         <div class="assessment-surface assignment-overview-panel assignment-materials-panel">
+          <!-- Display the subsection heading for assignment materials. -->
           <h3 class="week-title">ASSIGNMENT MATERIALS</h3>
 
+          <!-- Begin a list of related items. -->
           <ul class="assessment-file-list assignment-materials-list">
+            <!-- Loop through each f from assignment. -->
             {% for f in assignment.files.all %}
+              <!-- Render one item within the current list. -->
               <li class="assessment-file-row assignment-material-row">
+                <!-- Wrap the assessment file main area for layout or styling. -->
                 <div class="assessment-file-main">
+                  <!-- Wrap the assessment file name area for layout or styling. -->
                   <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer" class="assessment-file-name">
+                    <!-- Render the f value here. -->
                     {{ f.original_name|default:f.file.name }}
                   </a>
 
+                  <!-- Wrap the week file meta area for layout or styling. -->
                   <span class="week-file-meta">
                     (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                   </span>
                 </div>
 
+                <!-- Wrap the assessment action row area for layout or styling. -->
                 <div class="assessment-action-row">
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if f.parsed_document_safe %}
+                    <!-- Conditionally render this block when the data is available. -->
                     {% if f.parsed_document_safe.parser_status == "READY" %}
+                      <!-- Wrap the status badge area for layout or styling. -->
                       <span class="status-badge ready">Ready</span>
 
+                      <!-- Provide a compact action button or link. -->
                       <button type="button"
                               class="small-button"
                               hx-get="{% url 'accounts:parsed_document_modal' f.parsed_document_safe.id %}"
@@ -75,23 +155,34 @@
                         View
                       </button>
 
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if role == "lecturer" and f.parsed_document_safe.images.all %}
+                        <!-- Provide a compact action button or link. -->
                         <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document_safe.id %}?next={{ request.get_full_path|urlencode }}"
                           class="small-button">
                           Edit Image Descriptions
                         </a>
+                      <!-- End this conditional template block. -->
                       {% endif %}
+                    <!-- Handle the next possible condition for this block. -->
                     {% elif f.parsed_document_safe.parser_status == "PROCESSING" %}
+                      <!-- Wrap the status badge area for layout or styling. -->
                       <span class="status-badge processing">Processing</span>
+                    <!-- Handle the next possible condition for this block. -->
                     {% elif f.parsed_document_safe.parser_status == "FAILED" %}
+                      <!-- Wrap the status badge area for layout or styling. -->
                       <span class="status-badge failed">Failed</span>
+                    <!-- End this conditional template block. -->
                     {% endif %}
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </div>
               </li>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </ul>
         </div>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </section>
@@ -102,64 +193,96 @@
     <!-- Student submission area -->
     <section class="dashboard-section">
 
+      <!-- Wrap the assessment detail grid area for layout or styling. -->
       <div class="assessment-detail-grid">
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface">
+          <!-- Display the subsection heading for current submission. -->
           <h3 class="week-title">Current Submission</h3>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if submission %}
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">
               Status: {{ submission.get_status_display }}<br>
               Submitted: {{ submission.submitted_at|date:"Y-m-d H:i" }}
             </p>
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if submission.files.all %}
               <h4 class="week-files-title">Submitted Files</h4>
+              <!-- Begin a list of related items. -->
               <ul class="week-files">
+                <!-- Loop through each f from submission. -->
                 {% for f in submission.files.all %}
+                  <!-- Render one item within the current list. -->
                   <li>
+                    <!-- Render a link to the related page or resource. -->
                     <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
+                      <!-- Render the f value here. -->
                       {{ f.original_name|default:f.file.name }}
                     </a>
+                    <!-- Wrap the week file meta area for layout or styling. -->
                     <span class="week-file-meta">
                       (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                     </span>
                   </li>
+                <!-- End the loop for this repeated content. -->
                 {% endfor %}
               </ul>
+            <!-- End this conditional template block. -->
             {% endif %}
 
+            <!-- Conditionally render this block when the data is available. -->
             {% if submission.grade_safe %}
               <h4 class="week-files-title">Grade</h4>
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
                 Mark: {{ submission.grade_safe.value }} / {{ assignment.max_mark }}<br>
+                <!-- Conditionally render this block when the data is available. -->
                 {% if submission.grade_safe.feedback_text %}
                   Feedback: {{ submission.grade_safe.feedback_text }}
+                <!-- End this conditional template block. -->
                 {% endif %}
               </p>
+            <!-- End this conditional template block. -->
             {% endif %}
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">You have not submitted this assignment yet.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
 
+        <!-- Wrap the assessment surface area for layout or styling. -->
         <div class="assessment-surface">
+          <!-- Display the subsection heading for submit work. -->
           <h3 class="week-title">Submit Work</h3>
+          <!-- Conditionally render this block when the data is available. -->
           {% if read_only %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">
               This assignment belongs to a previous academic year, so submissions are read-only.
             </p>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the week upload form area for layout or styling. -->
             <form method="post"
                   action="{% url 'accounts:offering_submit_assignment' offering.id assignment.id %}"
                   enctype="multipart/form-data"
                   class="week-upload-form">
+              <!-- Insert the CSRF token for secure form submission. -->
               {% csrf_token %}
 
+              <!-- Wrap the muted area for layout or styling. -->
               <p class="muted">
                 Upload one or more files. New uploads will be added to your submission and update the submitted time.
               </p>
 
+              <!-- Wrap the upload dropzone area for layout or styling. -->
               <div class="upload-dropzone upload-dropzone--compact" data-upload-dropzone>
+                <!-- Render a file input for user entry. -->
                 <input
                   type="file"
                   id="assignment-submission-files"
@@ -167,15 +290,21 @@
                   multiple
                   class="upload-dropzone__input">
 
+                <!-- Label the related form control for accessibility. -->
                 <label for="assignment-submission-files" class="upload-dropzone__label">
+                  <!-- Wrap the upload dropzone title area for layout or styling. -->
                   <span class="upload-dropzone__title">Drag and drop submission files here</span>
+                  <!-- Wrap the upload dropzone hint area for layout or styling. -->
                   <span class="upload-dropzone__hint">or click to browse</span>
                 </label>
 
+                <!-- Wrap the upload dropzone files area for layout or styling. -->
                 <div class="upload-dropzone__files" data-upload-filelist>No files selected</div>
               </div>
+              <!-- Provide a compact action button or link. -->
               <button type="submit" class="small-button">Submit / Upload</button>
             </form>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
 
@@ -184,74 +313,113 @@
 
   <!-- Branch for the lecturer-facing view of this assignment -->
   {% elif role == "lecturer" %}
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-panel-shell">
+        <!-- Wrap the workflow panel header area for layout or styling. -->
         <div class="workflow-panel-header">
+          <!-- Wrap this part of the page for layout and styling. -->
           <div>
+            <!-- Display the section heading for student submissions. -->
             <h2 class="workflow-panel-title">Student Submissions</h2>
           </div>
         </div>
+        <!-- Wrap the workflow panel subtitle area for layout or styling. -->
         <p class="workflow-panel-subtitle">
           Review uploaded work and open the grading form for each student from this panel.
         </p>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if submissions %}
+          <!-- Render submission-related content for this page. -->
           <div class="assessment-submissions-grid">
+            <!-- Loop through each s from submissions. -->
             {% for s in submissions %}
+              <!-- Render submission-related content for this page. -->
               <div class="assessment-surface assessment-submission-card lecturer-submission-card">
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="week-title">
+                  <!-- Render the s value here. -->
                   {{ s.student.user.get_full_name|default:s.student.user.username }}
                 </h3>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
                   Status: {{ s.get_status_display }}<br>
                   Submitted: {{ s.submitted_at|date:"Y-m-d H:i" }}
                 </p>
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if s.files.all %}
                   <h4 class="week-files-title">Submitted Files</h4>
+                  <!-- Begin a list of related items. -->
                   <ul class="week-files">
+                    <!-- Loop through each f from s. -->
                     {% for f in s.files.all %}
+                      <!-- Render one item within the current list. -->
                       <li>
+                        <!-- Render a link to the related page or resource. -->
                         <a href="{{ f.file.url }}" target="_blank" rel="noopener noreferrer">
+                          <!-- Render the f value here. -->
                           {{ f.original_name|default:f.file.name }}
                         </a>
+                        <!-- Wrap the week file meta area for layout or styling. -->
                         <span class="week-file-meta">
                           (uploaded {{ f.uploaded_at|date:"Y-m-d H:i" }})
                         </span>
                       </li>
+                    <!-- End the loop for this repeated content. -->
                     {% endfor %}
                   </ul>
+                <!-- Show the fallback content for the alternative case. -->
                 {% else %}
+                  <!-- Wrap the muted area for layout or styling. -->
                   <p class="muted">No files uploaded yet.</p>
+                <!-- End this conditional template block. -->
                 {% endif %}
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if s.grade_safe %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
                     Grade: {{ s.grade_safe.value }} / {{ assignment.max_mark }}<br>
+                    <!-- Conditionally render this block when the data is available. -->
                     {% if s.grade_safe.feedback_text %}
                       Feedback: {{ s.grade_safe.feedback_text }}
+                    <!-- End this conditional template block. -->
                     {% endif %}
                   </p>
+                <!-- End this conditional template block. -->
                 {% endif %}
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if not read_only %}
+                  <!-- Wrap the workflow submit row area for layout or styling. -->
                   <div class="workflow-submit-row workflow-submit-row--start">
+                    <!-- Provide a compact action button or link. -->
                     <a href="{% url 'accounts:offering_grade_submission' offering.id assignment.id s.id %}?next={{ request.get_full_path|urlencode }}"
                       class="small-button">
+                      <!-- Conditionally render this block when the data is available. -->
                       {% if s.grade_safe %}Edit Grade{% else %}Add Grade{% endif %}
                     </a>
                   </div>
+                <!-- End this conditional template block. -->
                 {% endif %}
                 
               </div>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </div>
+        <!-- Show the fallback content for the alternative case. -->
         {% else %}
+          <!-- Wrap the muted area for layout or styling. -->
           <p class="muted">No submissions yet for this assignment.</p>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 </div>
 <!-- End of the main content block for this assignment detail page -->

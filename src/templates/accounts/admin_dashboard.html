@@ -1,134 +1,209 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Admin Dashboard | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Admin Dashboard{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Arrange the card heading details in one row. -->
     <div class="assessment-card-topline">
+      <!-- Wrap this part of the page for layout and styling. -->
       <div>
+        <!-- Display the main heading for admin dashboard. -->
         <h1 class="section-title">Admin Dashboard</h1>
+        <!-- Wrap the muted area for layout or styling. -->
         <p class="muted">
           Manage accounts, modules, enrolments, and global platform announcements.
         </p>
       </div>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if monitoring_url %}
+        <!-- Provide a compact action button or link. -->
         <a href="{{ monitoring_url }}"
            target="_blank"
            rel="noopener noreferrer"
            class="small-button">
           Access Prometheus / Grafana Dashboard
         </a>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Wrap the card grid area for layout or styling. -->
     <div class="card-grid">
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_add_lecturer' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for add lecturer. -->
           <h3 class="card-title">Add Lecturer</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Create a brand new lecturer account and lecturer profile.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_manage_lecturer_account' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for manage lecturer account. -->
           <h3 class="card-title">Manage Lecturer Account</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Search by lecturer username to lock or unlock lecturer access.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_manage_student_account' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for manage student account. -->
           <h3 class="card-title">Manage Student Account</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Search by student username to lock or unlock student access.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_add_course' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for add course. -->
           <h3 class="card-title">Add Course</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Create a new course code, title, and course length.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_add_module' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for add module. -->
           <h3 class="card-title">Add Module</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Create a new module and define the course/year placements it can appear in.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_retire_module' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for retire module. -->
           <h3 class="card-title">Retire Module</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Search for a module and make it unavailable now and/or in the next academic year rollover.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_edit_enrollment' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for edit enrollment. -->
           <h3 class="card-title">Edit Enrollment</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Search-first add/remove enrolment tools for students and lecturers.</p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_manage_academic_year' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for manage academic year. -->
           <h3 class="card-title">Manage Academic Year</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">
+            <!-- Conditionally render this block when the data is available. -->
             {% if current_academic_year %}
               Current: {{ current_academic_year.label }} · Sync offerings or start the next academic year.
+            <!-- Show the fallback content for the alternative case. -->
             {% else %}
               Set the current academic year and synchronize live offerings.
+            <!-- End this conditional template block. -->
             {% endif %}
           </p>
         </article>
       </a>
 
+      <!-- Wrap the card link wrapper area for layout or styling. -->
       <a href="{% url 'accounts:admin_create_global_announcement' %}" class="card-link-wrapper">
+        <!-- Wrap the card area for layout or styling. -->
         <article class="card card-clickable">
+          <!-- Display the subsection heading for create global announcement. -->
           <h3 class="card-title">Create Global Announcement</h3>
+          <!-- Wrap the card meta area for layout or styling. -->
           <p class="card-meta">Publish a new global announcement to all users.</p>
         </article>
       </a>
     </div>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Render admin interface content for this page. -->
     <div class="admin-stat-grid">
       
+      <!-- Render admin interface content for this page. -->
       <article class="admin-stat-card">
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-label">Students</span>
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-value">{{ total_students }}</span>
       </article>
 
+      <!-- Render admin interface content for this page. -->
       <article class="admin-stat-card">
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-label">Lecturers</span>
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-value">{{ total_lecturers }}</span>
       </article>
 
+      <!-- Render admin interface content for this page. -->
       <article class="admin-stat-card">
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-label">Modules</span>
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-value">{{ total_modules }}</span>
       </article>
 
+      <!-- Render admin interface content for this page. -->
       <article class="admin-stat-card">
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-label">Courses</span>
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-value">{{ total_courses }}</span>
       </article>
 
+      <!-- Render admin interface content for this page. -->
       <article class="admin-stat-card">
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-label">Current Academic Year</span>
+        <!-- Render admin interface content for this page. -->
         <span class="admin-stat-value">
+          <!-- Conditionally render this block when the data is available. -->
           {% if current_academic_year %}
+            <!-- Render the current academic year value here. -->
             {{ current_academic_year.label }}
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
             —
+          <!-- End this conditional template block. -->
           {% endif %}
         </span>
       </article>
@@ -136,41 +211,64 @@
     </div>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the section heading for recent global announcements. -->
     <h2 class="section-title">Recent Global Announcements</h2>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if recent_global_announcements %}
+      <!-- Loop through each announcement from recent global announcements. -->
       {% for announcement in recent_global_announcements %}
+        <!-- Wrap one announcement card. -->
         <div class="announcement-card">
+          <!-- Arrange the card heading details in one row. -->
           <div class="assessment-card-topline">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Display a subsection heading within this area. -->
               <h3 class="card-title">{{ announcement.title }}</h3>
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
+                <!-- Render the announcement value here. -->
                 {{ announcement.created_at|date:"Y-m-d H:i" }}
+                <!-- Conditionally render this block when the data is available. -->
                 {% if announcement.updated_at and announcement.updated_at != announcement.created_at %}
                   · Updated {{ announcement.updated_at|date:"Y-m-d H:i" }}
+                <!-- End this conditional template block. -->
                 {% endif %}
               </p>
             </div>
 
+            <!-- Hold actions related to this announcement. -->
             <div class="announcement-actions">
+              <!-- Provide a compact action button or link. -->
               <a href="{% url 'accounts:admin_edit_global_announcement' announcement.id %}" class="small-button">
                 Edit
               </a>
 
+              <!-- Render admin interface content for this page. -->
               <form method="post" action="{% url 'accounts:admin_delete_global_announcement' announcement.id %}" class="admin-inline-form">
+                <!-- Insert the CSRF token for secure form submission. -->
                 {% csrf_token %}
+                <!-- Provide a compact action button or link. -->
                 <button type="submit" class="small-button">Delete</button>
               </form>
             </div>
           </div>
 
+          <!-- Display the main announcement text. -->
           <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No global announcements have been posted yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

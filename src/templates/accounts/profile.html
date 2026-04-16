@@ -1,148 +1,241 @@
+<!-- Use the shared base template for this page. -->
 {% extends "accounts/base.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}My Profile | Eagna{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for my profile. -->
     <h1 class="section-title">My Profile</h1>
 
+    <!-- Render profile-related content for this page. -->
     <div class="profile-summary-grid">
+      <!-- Render profile-related content for this page. -->
       <article class="profile-summary-card">
+        <!-- Render profile-related content for this page. -->
         <span class="profile-summary-label">Name</span>
+        <!-- Render profile-related content for this page. -->
         <span class="profile-summary-value">{{ display_name }}</span>
       </article>
 
+      <!-- Render profile-related content for this page. -->
       <article class="profile-summary-card">
+        <!-- Render profile-related content for this page. -->
         <span class="profile-summary-label">Email</span>
+        <!-- Render profile-related content for this page. -->
         <span class="profile-summary-value">{{ profile_email }}</span>
       </article>
 
+      <!-- Conditionally render this block when the data is available. -->
       {% if profile_role == "student" %}
+        <!-- Render profile-related content for this page. -->
         <article class="profile-summary-card">
+          <!-- Render profile-related content for this page. -->
           <span class="profile-summary-label">Course</span>
+          <!-- Render profile-related content for this page. -->
           <span class="profile-summary-value">{{ course }}</span>
         </article>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the section heading for modules. -->
     <h2 class="section-title">Modules</h2>
+    <!-- Conditionally render this block when the data is available. -->
     {% if module_rows %}
+      <!-- Loop through each module row from module rows. -->
       {% for module_row in module_rows %}
+        <!-- Group items under a shared label or timeframe. -->
         <div class="week-block">
+          <!-- Arrange the card heading details in one row. -->
           <div class="assessment-card-topline">
+            <!-- Wrap this part of the page for layout and styling. -->
             <div>
+              <!-- Display a subsection heading within this area. -->
               <h3 class="week-title">{{ module_row.code }} – {{ module_row.title }}</h3>
 
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
+                <!-- Render the module row value here. -->
                 {{ module_row.academic_year_label }}
               </p>
 
+              <!-- Conditionally render this block when the data is available. -->
               {% if profile_role == "lecturer" %}
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">Enrolled students: {{ module_row.student_count }}</p>
+              <!-- End this conditional template block. -->
               {% endif %}
             </div>
 
+            <!-- Provide a compact action button or link. -->
             <a href="{{ module_row.url }}" class="small-button">
               Open Module
             </a>
           </div>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if module_row.items %}
+            <!-- Begin a list of related items. -->
             <ul class="profile-assessment-list">
+              <!-- Loop through each item from module row. -->
               {% for item in module_row.items %}
+                <!-- Render one item within the current list. -->
                 <li class="profile-assessment-row">
+                  <!-- Render profile-related content for this page. -->
                   <div class="profile-assessment-main">
+                    <!-- Show the assessment type badge. -->
                     <span class="assessment-badge {{ item.kind_class }}">
+                      <!-- Render the item value here. -->
                       {{ item.kind_label }}
                     </span>
 
+                    <!-- Render profile-related content for this page. -->
                     <a href="{{ item.url }}" class="profile-assessment-link">
+                      <!-- Render the item value here. -->
                       {{ item.title }}
                     </a>
                   </div>
 
+                  <!-- Render profile-related content for this page. -->
                   <span class="profile-metric {{ item.metric_class }}">
+                    <!-- Render the item value here. -->
                     {{ item.metric }}
                   </span>
                 </li>
+              <!-- End the loop for this repeated content. -->
               {% endfor %}
             </ul>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No modules are currently assigned.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the section heading for previous years. -->
     <h2 class="section-title">Previous Years</h2>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if previous_year_groups %}
+      <!-- Loop through each group from previous year groups. -->
       {% for group in previous_year_groups %}
+        <!-- Group items under a shared label or timeframe. -->
         <div class="week-block">
+          <!-- Display a subsection heading within this area. -->
           <h3 class="week-title">{{ group.academic_year_label }}</h3>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if group.module_rows %}
+            <!-- Loop through each module row from group. -->
             {% for module_row in group.module_rows %}
+              <!-- Group items under a shared label or timeframe. -->
               <div class="week-block">
+                <!-- Arrange the card heading details in one row. -->
                 <div class="assessment-card-topline">
+                  <!-- Wrap this part of the page for layout and styling. -->
                   <div>
+                    <!-- Display a subsection heading within this area. -->
                     <h3 class="week-title">{{ module_row.code }} – {{ module_row.title }}</h3>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
+                      <!-- Render the module row value here. -->
                       {{ module_row.academic_year_label }}
                     </p>
 
+                    <!-- Conditionally render this block when the data is available. -->
                     {% if profile_role == "lecturer" %}
+                      <!-- Wrap the card meta area for layout or styling. -->
                       <p class="card-meta">Enrolled students: {{ module_row.student_count }}</p>
+                    <!-- End this conditional template block. -->
                     {% endif %}
                   </div>
 
+                  <!-- Provide a compact action button or link. -->
                   <a href="{{ module_row.url }}" class="small-button">
                     Open Module
                   </a>
                 </div>
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if module_row.items %}
+                  <!-- Begin a list of related items. -->
                   <ul class="profile-assessment-list">
+                    <!-- Loop through each item from module row. -->
                     {% for item in module_row.items %}
+                      <!-- Render one item within the current list. -->
                       <li class="profile-assessment-row">
+                        <!-- Render profile-related content for this page. -->
                         <div class="profile-assessment-main">
+                          <!-- Show the assessment type badge. -->
                           <span class="assessment-badge {{ item.kind_class }}">
+                            <!-- Render the item value here. -->
                             {{ item.kind_label }}
                           </span>
 
+                          <!-- Render profile-related content for this page. -->
                           <a href="{{ item.url }}" class="profile-assessment-link">
+                            <!-- Render the item value here. -->
                             {{ item.title }}
                           </a>
                         </div>
 
+                        <!-- Render profile-related content for this page. -->
                         <span class="profile-metric {{ item.metric_class }}">
+                          <!-- Render the item value here. -->
                           {{ item.metric }}
                         </span>
                       </li>
+                    <!-- End the loop for this repeated content. -->
                     {% endfor %}
                   </ul>
+                <!-- Show the fallback content for the alternative case. -->
                 {% else %}
+                  <!-- Wrap the muted area for layout or styling. -->
                   <p class="muted">No assignments or quizzes are currently defined for this module.</p>
+                <!-- End this conditional template block. -->
                 {% endif %}
               </div>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">No historical modules recorded for this year.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No previous-year modules are available yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

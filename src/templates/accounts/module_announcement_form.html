@@ -1,61 +1,98 @@
-﻿{% extends "accounts/base.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}
+  <!-- Conditionally render this block when the data is available. -->
   {% if announcement %}Edit Module Announcement{% else %}Create Module Announcement{% endif %}
   – {{ module.code }} | Eagna
+<!-- End this template block for the parent layout. -->
 {% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container workflow-page module-announcement-page">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Wrap the assessment hero card area for layout or styling. -->
     <div class="assessment-hero-card workflow-hero-card">
+      <!-- Wrap the return link area for layout or styling. -->
       <a href="{{ back_url }}" class="return-link">← Return</a>
+      <!-- Wrap the workflow panel header area for layout or styling. -->
       <div class="workflow-panel-header">
+        <!-- Wrap this part of the page for layout and styling. -->
         <div>
+          <!-- Wrap the assessment detail kicker area for layout or styling. -->
           <div class="assessment-detail-kicker">{{ module.code }} · {{ module.title }}</div>
+          <!-- Display the main page heading. -->
           <h1 class="section-title">
+            <!-- Conditionally render this block when the data is available. -->
             {% if announcement %}Edit Module Announcement{% else %}Create Module Announcement{% endif %}
           </h1>
         </div>
       </div>
 
+      <!-- Wrap the assessment body text area for layout or styling. -->
       <p class="assessment-body-text">
         Write a clear update for everyone enrolled on this module. Keep the headline concise and the content easy to scan.
       </p>
     </div>
   </section>
 
+  <!-- Show validation errors when the form has problems. -->
   {% if errors %}
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-alert-card">
+        <!-- Begin a list of related items. -->
         <ul class="error-list">
+          <!-- Loop through each e from errors. -->
           {% for e in errors %}
+            <!-- Render one item within the current list. -->
             <li>{{ e }}</li>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </ul>
       </div>
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Wrap the assessment surface area for layout or styling. -->
     <div class="assessment-surface workflow-form-card">
+      <!-- Wrap the workflow form area for layout or styling. -->
       <form method="post" class="workflow-form">
+        <!-- Insert the CSRF token for secure form submission. -->
         {% csrf_token %}
 
+        <!-- Wrap the workflow form grid area for layout or styling. -->
         <div class="workflow-form-grid">
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group workflow-field--full">
+            <!-- Label the title field. -->
             <label for="id_title">Title</label>
+            <!-- Render a text input for user entry. -->
             <input type="text" id="id_title" name="title" value="{{ initial.title }}">
           </div>
 
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group workflow-field--full">
+            <!-- Label the content field. -->
             <label for="id_content">Content</label>
+            <!-- Render a multi-line input for longer text. -->
             <textarea id="id_content" name="content" rows="8" class="week-description-input">{{ initial.content }}</textarea>
           </div>
         </div>
 
+        <!-- Wrap the workflow submit row area for layout or styling. -->
         <div class="workflow-submit-row">
+          <!-- Provide a compact action button or link. -->
           <button type="submit" class="small-button">
+            <!-- Conditionally render this block when the data is available. -->
             {% if announcement %}Save Announcement{% else %}Create Announcement{% endif %}
           </button>
         </div>
@@ -63,4 +100,5 @@
     </div>
   </section>
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

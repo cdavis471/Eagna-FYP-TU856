@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <!-- Root HTML element with language set to English -->
 <html lang="en">
+<!-- Begin the document head for metadata and assets. -->
 <head>
   <!-- Load Django's static template tag library so we can reference static files -->
   {% load static %}
@@ -9,8 +10,11 @@
   <meta charset="UTF-8" />
   <!-- Preconnect to Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Load the external font resource for this page. -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Load the external font resource for this page. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Load a stylesheet used by this page. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic/index.css">
   <!-- Define the contents of the <title> element, allowing child templates to override -->
   <title>{% block title %}Eagna VLE{% endblock %}</title>
@@ -21,13 +25,17 @@
   <!-- Extra head content block for child templates to inject additional meta tags or links -->
   {% block extra_head %}{% endblock %}
 </head>
+<!-- Start the page body content. -->
 <body class="{% block body_class %}{% endblock %}"
       data-colour-scheme="{% if user.is_authenticated %}{{ user.colour_scheme }}{% else %}default{% endif %}"
       data-font-scheme="{% if user.is_authenticated %}{{ user.font_scheme }}{% else %}default{% endif %}">
   <!-- Site-wide header displayed at the top of every page -->
   <header class="site-header">
+    <!-- Hold the left side of the header. -->
     <div class="header-left">
+      <!-- Link the user back to the main dashboard. -->
       <a class="brand" href="{% url 'accounts:dashboard' %}" aria-label="Eagna Home">
+        <!-- Display the Eagna brand logo. -->
         <img
           src="{% static 'accounts/logos/eagna-logo-white.png' %}"
           alt="Eagna"
@@ -35,76 +43,118 @@
       </a>
     </div>
 
+    <!-- Hold the centred header content. -->
     <div class="header-center">
+      <!-- Begin the navigation region for this page area. -->
       <nav class="main-nav" aria-label="Primary navigation">
+        <!-- Conditionally render this block when the data is available. -->
         {% if nav_items %}
+          <!-- Begin a list of related items. -->
           <ul class="nav-button-list">
+            <!-- Loop through each item from nav items. -->
             {% for item in nav_items %}
+              <!-- Render one item within the current list. -->
               <li>
+                <!-- Wrap the site nav button area for layout or styling. -->
                 <a href="{{ item.url }}" class="site-nav-button">{{ item.label }}</a>
               </li>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </ul>
+        <!-- End this conditional template block. -->
         {% endif %}
       </nav>
     </div>
 
+    <!-- Hold the right side of the header actions. -->
     <div class="header-right">
+      <!-- Only show this content to authenticated users. -->
       {% if user.is_authenticated %}
+        <!-- Include the shared notifications dropdown partial. -->
         {% include "accounts/partials/notifications_dropdown.html" %}
+        <!-- Include the shared user preferences dropdown partial. -->
         {% include "accounts/partials/user_preferences_dropdown.html" %}
+        <!-- Begin the logout form shown in the header. -->
         <form method="post" action="{% url 'accounts:logout' %}" class="header-logout-form">
+          <!-- Insert the CSRF token for secure form submission. -->
           {% csrf_token %}
+          <!-- Wrap the site nav button area for layout or styling. -->
           <button type="submit" class="site-nav-button logout-button">Logout</button>
         </form>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </header>
+  <!-- Show feedback messages when any are available. -->
   {% if messages %}
+    <!-- Wrap temporary feedback messages for the user. -->
     <div class="flash-messages">
+      <!-- Loop through each message from messages. -->
       {% for message in messages %}
+        <!-- Display one flash message to the user. -->
         <div class="flash-message flash-message--{{ message.tags|default:'info' }}">
+          <!-- Render the message value here. -->
           {{ message }}
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
     </div>
+  <!-- End this conditional template block. -->
   {% endif %}
 
   <!-- Main page content area where child templates inject their specific content -->
   <main class="page-content">
 
+  <!-- Begin the main content block for this page. -->
   {% block content %}{% endblock %}
 
   </main>
 
   <!-- Site-wide footer shown at the bottom of every page -->
   <footer class="site-footer">
+    <!-- Display the main branding area of the footer. -->
     <div class="footer-top">
+      <!-- Display the TU Dublin logo in the footer. -->
       <img src="{% static 'accounts/logos/tu-dublin-logo.svg' %}" alt="TU Dublin" class="footer-logo">
     </div>
 
+    <!-- Wrap the footer navigation links. -->
     <div class="footer-nav">
+      <!-- Conditionally render this block when the data is available. -->
       {% if nav_items %}
+        <!-- Begin a list of related items. -->
         <ul class="nav-button-list footer-button-list">
+          <!-- Loop through each item from nav items. -->
           {% for item in nav_items %}
+            <!-- Render one item within the current list. -->
             <li>
+              <!-- Wrap the footer navigation links. -->
               <a href="{{ item.url }}" class="site-nav-button footer-nav-button">{{ item.label }}</a>
             </li>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </ul>
+      <!-- End this conditional template block. -->
       {% endif %}
     </div>
   </footer>
+  <!-- Define the shared modal used for parsed documents. -->
   <div id="parsed-modal" class="parsed-modal hidden" aria-hidden="true">
+    <!-- Provide the backdrop behind the modal. -->
     <div class="parsed-modal-backdrop" id="parsed-modal-backdrop"></div>
+    <!-- Wrap the modal dialog panel content. -->
     <div class="parsed-modal-panel" role="dialog" aria-modal="true" aria-labelledby="parsed-modal-title">
+      <!-- Provide the button used to close the modal. -->
       <button type="button" class="small-button parsed-modal-close" id="parsed-modal-close">
         Close
       </button>
+      <!-- Hold content loaded into the modal. -->
       <div id="parsed-modal-body"></div>
     </div>
   </div>
+  <!-- Load JavaScript required for this page. -->
   <script src="{% static 'accounts/base.js' %}" defer></script>
+  <!-- Allow child templates to add page-specific scripts. -->
   {% block extra_scripts %}{% endblock %}
 </body>
 </html>

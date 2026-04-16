@@ -1,34 +1,56 @@
-﻿{% extends "accounts/base_admin.html" %}
+﻿<!-- Use the shared base template for this page. -->
+{% extends "accounts/base_admin.html" %}
 
+<!-- Set the page title shown in the browser tab. -->
 {% block title %}Retire Module | Eagna{% endblock %}
+<!-- Begin the admin header title block for this template. -->
 {% block admin_header_title %}Retire Module{% endblock %}
 
+<!-- Begin the main content block for this page. -->
 {% block content %}
+<!-- Wrap the full dashboard page content. -->
 <div class="dashboard-container">
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
+    <!-- Provide a compact action button or link. -->
     <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Display the main heading for retire module. -->
     <h1 class="section-title">Retire Module</h1>
+    <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
       Search for a module, then make it unavailable right now and/or unavailable in the next academic year rollover.
     </p>
   </section>
 
+  <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
+    <!-- Group items under a shared label or timeframe. -->
     <div class="week-block">
+      <!-- Show validation errors when the form has problems. -->
       {% if errors %}
+        <!-- Begin a list of related items. -->
         <ul class="error-list">
+          <!-- Loop through each e from errors. -->
           {% for e in errors %}
+            <!-- Render one item within the current list. -->
             <li>{{ e }}</li>
+          <!-- End the loop for this repeated content. -->
           {% endfor %}
         </ul>
+      <!-- End this conditional template block. -->
       {% endif %}
 
+      <!-- Render admin interface content for this page. -->
       <form method="get" class="admin-stacked-form admin-form-shell">
+        <!-- Group a label, field, and help text together. -->
         <div class="form-group">
+          <!-- Label the search module field. -->
           <label for="id_module_query">Search Module</label>
+          <!-- Render a text input for user entry. -->
           <input type="text"
                  id="id_module_query"
                  name="module_query"
@@ -36,128 +58,200 @@
                  placeholder="Search by module code or title">
         </div>
 
+        <!-- Provide the search module button for this action. -->
         <button type="submit">Search Module</button>
       </form>
     </div>
   </section>
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if module_query %}
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Group items under a shared label or timeframe. -->
       <div class="week-block">
+        <!-- Display the section heading for search results. -->
         <h2 class="week-title">Search Results</h2>
 
+        <!-- Conditionally render this block when the data is available. -->
         {% if search_results %}
+          <!-- Wrap the card grid area for layout or styling. -->
           <div class="card-grid">
+            <!-- Loop through each module from search results. -->
             {% for module in search_results %}
+              <!-- Wrap one dashboard card panel. -->
               <article class="card dashboard-card-panel">
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="card-title">{{ module.code }} – {{ module.title }}</h3>
 
+                <!-- Hold actions related to this announcement. -->
                 <div class="announcement-actions">
+                  <!-- Provide a compact action button or link. -->
                   <a href="{% url 'accounts:admin_retire_module' %}?module_query={{ module_query|urlencode }}&module_id={{ module.id }}"
                      class="small-button">
                     Select Module
                   </a>
                 </div>
               </article>
+            <!-- End the loop for this repeated content. -->
             {% endfor %}
           </div>
+        <!-- Show the fallback content for the alternative case. -->
         {% else %}
+          <!-- Wrap the muted area for layout or styling. -->
           <p class="muted">No modules matched that search.</p>
+        <!-- End this conditional template block. -->
         {% endif %}
       </div>
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 
+  <!-- Conditionally render this block when the data is available. -->
   {% if selected_module and selected_summary %}
+    <!-- Group a related section of dashboard content. -->
     <section class="dashboard-section">
+      <!-- Group items under a shared label or timeframe. -->
       <div class="week-block">
+        <!-- Arrange the card heading details in one row. -->
         <div class="assessment-card-topline">
+          <!-- Wrap this part of the page for layout and styling. -->
           <div>
+            <!-- Display a secondary heading for this section. -->
             <h2 class="week-title">{{ selected_module.code }} – {{ selected_module.title }}</h2>
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">
+              <!-- Conditionally render this block when the data is available. -->
               {% if selected_summary.current_year %}
                 Current Academic Year: {{ selected_summary.current_year.label }}
+              <!-- Show the fallback content for the alternative case. -->
               {% else %}
                 No current academic year is set.
+              <!-- End this conditional template block. -->
               {% endif %}
             </p>
           </div>
         </div>
 
+        <!-- Render admin interface content for this page. -->
         <div class="admin-entity-summary">
+          <!-- Display the subsection heading for placements. -->
           <h3 class="week-title">Placements</h3>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if selected_summary.placements %}
+            <!-- Begin a list of related items. -->
             <ul class="week-files">
+              <!-- Loop through each placement from selected summary. -->
               {% for placement in selected_summary.placements %}
+                <!-- Render one item within the current list. -->
                 <li>
+                  <!-- Render the placement value here. -->
                   {{ placement.course.code }}
                   — Available now:
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if placement.available_now %}Yes{% else %}No{% endif %}
                   — Available next rollover:
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if placement.available_next_rollover %}Yes{% else %}No{% endif %}
                 </li>
+              <!-- End the loop for this repeated content. -->
               {% endfor %}
             </ul>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">No placements exist for this module yet.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
 
+        <!-- Render admin interface content for this page. -->
         <div class="admin-entity-summary">
+          <!-- Display the subsection heading for current offerings. -->
           <h3 class="week-title">Current Offerings</h3>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if selected_summary.current_offerings %}
+            <!-- Begin a list of related items. -->
             <ul class="week-files">
+              <!-- Loop through each offering from selected summary. -->
               {% for offering in selected_summary.current_offerings %}
+                <!-- Render one item within the current list. -->
                 <li>
+                  <!-- Render the offering value here. -->
                   {{ offering.module.code }}
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if offering.course_codes_display %}
                     — Courses: {{ offering.course_codes_display }}
+                  <!-- End this conditional template block. -->
                   {% endif %}
                   — Current:
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if offering.is_current %}Yes{% else %}No{% endif %}
                   — Read only:
+                  <!-- Conditionally render this block when the data is available. -->
                   {% if offering.is_read_only %}Yes{% else %}No{% endif %}
                   — Students: {{ offering.student_count }}
                   — Lecturers: {{ offering.lecturer_count }}
                 </li>
+              <!-- End the loop for this repeated content. -->
               {% endfor %}
             </ul>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">No current offerings exist for this module.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
 
+        <!-- Render admin interface content for this page. -->
         <form method="post" class="admin-stacked-form admin-form-shell">
+          <!-- Insert the CSRF token for secure form submission. -->
           {% csrf_token %}
+          <!-- Render a hidden input for user entry. -->
           <input type="hidden" name="action" value="retire_module">
+          <!-- Render a hidden input for user entry. -->
           <input type="hidden" name="module_id" value="{{ selected_module.id }}">
+          <!-- Render a hidden input for user entry. -->
           <input type="hidden" name="module_query" value="{{ module_query }}">
 
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
+            <!-- Label the related form control for accessibility. -->
             <label class="quiz-checkbox-row">
+              <!-- Render a checkbox input for user entry. -->
               <input type="checkbox" name="retire_now">
+              <!-- Display inline text for unavailable right now. -->
               <span>Unavailable right now</span>
             </label>
           </div>
 
+          <!-- Group a label, field, and help text together. -->
           <div class="form-group">
+            <!-- Label the related form control for accessibility. -->
             <label class="quiz-checkbox-row">
+              <!-- Render a checkbox input for user entry. -->
               <input type="checkbox" name="retire_next_rollover">
+              <!-- Display inline text or status information. -->
               <span>Unavailable in next Academic Year rollover</span>
             </label>
           </div>
 
+          <!-- Wrap the muted area for layout or styling. -->
           <p class="muted">
             “Unavailable right now” will archive current offerings of this module into read-only history.
             “Unavailable in next rollover” prevents new offerings from being created during the next year transition.
           </p>
 
+          <!-- Provide the apply retirement options button for this action. -->
           <button type="submit">Apply Retirement Options</button>
         </form>
       </div>
     </section>
+  <!-- End this conditional template block. -->
   {% endif %}
 </div>
+<!-- End this template block for the parent layout. -->
 {% endblock %}

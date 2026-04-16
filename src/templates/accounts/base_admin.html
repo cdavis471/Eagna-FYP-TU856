@@ -1,45 +1,75 @@
-﻿{% load static %}
+﻿<!-- Load Django's static tag library for asset references. -->
+{% load static %}
+<!-- Declare the HTML5 document type for the browser. -->
 <!DOCTYPE html>
+<!-- Start the root HTML document element. -->
 <html lang="en">
+<!-- Begin the document head for metadata and assets. -->
 <head>
+  <!-- Provide metadata used by the browser. -->
   <meta charset="UTF-8" />
+  <!-- Set the document title for the browser tab. -->
   <title>{% block title %}Admin Panel | Eagna{% endblock %}</title>
+  <!-- Load the external font resource for this page. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <!-- Load the external font resource for this page. -->
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <!-- Load the external font resource for this page. -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Load a stylesheet used by this page. -->
   <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
 </head>
+<!-- Start the page body content. -->
 <body>
+  <!-- Begin the document head for metadata and assets. -->
   <header class="site-header admin-site-header">
+    <!-- Hold the left side of the header. -->
     <div class="header-left">
+      <!-- Link the user back to the main dashboard. -->
       <a class="brand" href="{% url 'accounts:admin_dashboard' %}" aria-label="Eagna Admin Dashboard">
+        <!-- Display the Eagna brand logo. -->
         <img src="{% static 'accounts/logos/eagna-logo-white.png' %}" alt="Eagna" class="brand-logo">
       </a>
     </div>
 
+    <!-- Hold the centred admin header content. -->
     <div class="header-center admin-header-center">
+      <!-- Display the current admin page title. -->
       <span class="admin-header-title">{% block admin_header_title %}Admin Panel{% endblock %}</span>
     </div>
 
+    <!-- Hold the right side of the header actions. -->
     <div class="header-right">
+      <!-- Begin the logout form shown in the header. -->
       <form method="post" action="{% url 'accounts:logout' %}" class="header-logout-form">
+        <!-- Insert the CSRF token for secure form submission. -->
         {% csrf_token %}
+        <!-- Wrap the site nav button area for layout or styling. -->
         <button type="submit" class="site-nav-button logout-button">Logout</button>
       </form>
     </div>
   </header>
 
+  <!-- Show feedback messages when any are available. -->
   {% if messages %}
+    <!-- Wrap temporary feedback messages for the user. -->
     <div class="flash-messages">
+      <!-- Loop through each message from messages. -->
       {% for message in messages %}
+        <!-- Display one flash message to the user. -->
         <div class="flash-message flash-message--{{ message.tags|default:'info' }}">
+          <!-- Render the message value here. -->
           {{ message }}
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
     </div>
+  <!-- End this conditional template block. -->
   {% endif %}
 
+  <!-- Begin the main content area of the page. -->
   <main class="page-content">
+    <!-- Begin the main content block for this page. -->
     {% block content %}{% endblock %}
   </main>
 </body>

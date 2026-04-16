@@ -2,7 +2,7 @@
 {% extends "accounts/base.html" %}
 
 <!-- Set the page title that will appear in the browser tab or base template -->
-{% block title %}Student Dashboard - Eagna{% endblock %}
+{% block title %}Student Dashboard | Eagna{% endblock %}
 
 <!-- Begin the main content area that will be injected into the base layout -->
 {% block content %}
@@ -10,92 +10,147 @@
 <div class="dashboard-container">
   <!-- Section that highlights the student's upcoming assessments -->
   <section class="dashboard-section dashboard-card-section">
+    <!-- Display the section heading for upcoming assessments. -->
     <h2 class="section-title">Upcoming Assessments</h2>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if upcoming_items %}
+      <!-- Arrange the cards in a responsive grid. -->
       <div class="card-grid dashboard-cards-grid">
+        <!-- Loop through each item from upcoming items. -->
         {% for item in upcoming_items %}
+          <!-- Conditionally render this block when the data is available. -->
           {% if item.is_clickable %}
+            <!-- Wrap the card link wrapper area for layout or styling. -->
             <a href="{{ item.url }}" class="card-link-wrapper">
+              <!-- Wrap one dashboard card panel. -->
               <article class="card card-clickable dashboard-card-panel">
+                <!-- Arrange the card heading details in one row. -->
                 <div class="assessment-card-topline">
+                  <!-- Show the assessment type badge. -->
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  <!-- Show the status text when one is available. -->
                   {% if item.status_label %}
+                    <!-- Style this status as upcoming or not yet open. -->
                     <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                      <!-- Render the item value here. -->
                       {{ item.status_label }}
                     </span>
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </div>
 
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="card-title">{{ item.title }}</h3>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Display inline text or status information. -->
                   <span>{{ item.module_title }}</span> ·
+                  <!-- Display inline text or status information. -->
                   <span>{{ item.module_code }}</span>
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Render the item value here. -->
                   {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
                   Percentage of Module: {{ item.max_mark }}%
                 </p>
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.detail_line %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">{{ item.detail_line }}</p>
+                <!-- End this conditional template block. -->
                 {% endif %}
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.description %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
+                    <!-- Render the item value here. -->
                     {{ item.description|truncatechars:120 }}
                   </p>
+                <!-- End this conditional template block. -->
                 {% endif %}
               </article>
             </a>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the card link wrapper area for layout or styling. -->
             <div class="card-link-wrapper card-link-wrapper-disabled">
+              <!-- Style this card as locked until it becomes available. -->
               <article class="card card-disabled dashboard-card-panel{% if item.status_label == 'Not open yet' %} assessment-card--locked{% endif %}">
+                <!-- Arrange the card heading details in one row. -->
                 <div class="assessment-card-topline">
+                  <!-- Show the assessment type badge. -->
                   <span class="assessment-badge {{ item.kind }}">{{ item.label }}</span>
+                  <!-- Show the status text when one is available. -->
                   {% if item.status_label %}
+                    <!-- Style this status as upcoming or not yet open. -->
                     <span class="assessment-status{% if item.status_label == 'Submitted' or item.status_label == 'Closed' %} assessment-status--dark{% elif item.status_label == 'Not open yet' %} assessment-status--upcoming{% endif %}">
+                      <!-- Render the item value here. -->
                       {{ item.status_label }}
                     </span>
+                  <!-- End this conditional template block. -->
                   {% endif %}
                 </div>
 
+                <!-- Display a subsection heading within this area. -->
                 <h3 class="card-title">{{ item.title }}</h3>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Display inline text or status information. -->
                   <span>{{ item.module_title }}</span> ·
+                  <!-- Display inline text or status information. -->
                   <span>{{ item.module_code }}</span>
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
+                  <!-- Render the item value here. -->
                   {{ item.date_label }}: {{ item.date_value|date:"Y-m-d H:i" }}
                 </p>
 
+                <!-- Wrap the card meta area for layout or styling. -->
                 <p class="card-meta">
                   Percentage of Module: {{ item.max_mark }}%
                 </p>
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.detail_line %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">{{ item.detail_line }}</p>
+                <!-- End this conditional template block. -->
                 {% endif %}
 
+                <!-- Conditionally render this block when the data is available. -->
                 {% if item.description %}
+                  <!-- Wrap the card meta area for layout or styling. -->
                   <p class="card-meta">
+                    <!-- Render the item value here. -->
                     {{ item.description|truncatechars:120 }}
                   </p>
+                <!-- End this conditional template block. -->
                 {% endif %}
               </article>
             </div>
+          <!-- End this conditional template block. -->
           {% endif %}
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No upcoming assessments.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
@@ -103,48 +158,76 @@
   <!-- Your Modules -->
   <!-- Semantic section for listing all of the student's modules -->
   <section class="dashboard-section dashboard-card-section dashboard-modules-section">
+    <!-- Wrap the module section heading and actions. -->
     <div class="module-section-header">
+      <!-- Display the section heading for your modules. -->
       <h2 class="section-title">Your Modules</h2>
+      <!-- Hold actions related to the current section. -->
       <div class="module-section-actions">
+        <!-- Provide a compact action button or link. -->
         <a href="{% url 'accounts:student_join_modules' %}" class="small-button">
           + Join Modules
         </a>
       </div>
     </div>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if current_module_rows %}
+      <!-- Arrange the module cards in a responsive grid. -->
       <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
+        <!-- Loop through each row from current module rows. -->
         {% for row in current_module_rows %}
+          <!-- Wrap the card link wrapper area for layout or styling. -->
           <a href="{{ row.url }}" class="card-link-wrapper">
+            <!-- Display one module card in the dashboard. -->
             <article class="card card-clickable dashboard-card-panel dashboard-module-card">
+              <!-- Display a subsection heading within this area. -->
               <h3 class="card-title">{{ row.title }}</h3>
 
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
+                <!-- Display inline text or status information. -->
                 <span>{{ row.code }}</span>
               </p>
 
+              <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">
                 Lecturer - {{ row.lecturer_name }}
               </p>
             </article>
           </a>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No modules are currently assigned.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
+  <!-- Wrap this content in a card-style dashboard section. -->
   <section class="dashboard-section dashboard-card-section">
+    <!-- Display the section heading for global announcements. -->
     <h2 class="section-title">Global Announcements</h2>
+    <!-- Conditionally render this block when the data is available. -->
     {% if global_announcements %}
+      <!-- Lay out the announcement cards in a grid. -->
       <div class="card-grid dashboard-cards-grid dashboard-announcements-grid">
+        <!-- Loop through each announcement from global announcements. -->
         {% for announcement in global_announcements %}
+          <!-- Display one announcement card on the dashboard. -->
           <article class="announcement-card dashboard-card-panel dashboard-announcement-card">
+            <!-- Display a subsection heading within this area. -->
             <h3 class="card-title">{{ announcement.title }}</h3>
+            <!-- Wrap the card meta area for layout or styling. -->
             <p class="card-meta">{{ announcement.created_at|date:"Y-m-d H:i" }}</p>
+            <!-- Display the main announcement text. -->
             <p class="announcement-content">{{ announcement.content|linebreaksbr }}</p>
+            <!-- Hold actions related to this announcement. -->
             <div class="announcement-actions">
+              <!-- Provide a compact action button or link. -->
               <button type="button"
                       class="small-button"
                       hx-get="{% url 'accounts:global_announcement_modal' announcement.id %}"
@@ -154,50 +237,79 @@
               </button>
             </div>
           </article>
+        <!-- End the loop for this repeated content. -->
         {% endfor %}
       </div>
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No global announcements have been posted yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
 
+  <!-- Group module-related content on the dashboard. -->
   <section class="dashboard-section dashboard-card-section dashboard-modules-section">
+    <!-- Display the section heading for previous years. -->
     <h2 class="section-title">Previous Years</h2>
 
+    <!-- Conditionally render this block when the data is available. -->
     {% if previous_year_groups %}
+      <!-- Loop through each group from previous year groups. -->
       {% for group in previous_year_groups %}
+        <!-- Group items under a shared label or timeframe. -->
         <div class="week-block">
+          <!-- Display a subsection heading within this area. -->
           <h3 class="week-title">{{ group.academic_year_label }}</h3>
 
+          <!-- Conditionally render this block when the data is available. -->
           {% if group.rows %}
+            <!-- Arrange the module cards in a responsive grid. -->
             <div class="card-grid dashboard-cards-grid dashboard-modules-grid">
+              <!-- Loop through each row from group. -->
               {% for row in group.rows %}
+                <!-- Wrap the card link wrapper area for layout or styling. -->
                 <a href="{{ row.url }}" class="card-link-wrapper">
+                  <!-- Display one module card in the dashboard. -->
                   <article class="card card-clickable dashboard-card-panel dashboard-module-card">
+                    <!-- Display a subsection heading within this area. -->
                     <h3 class="card-title">{{ row.title }}</h3>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
+                      <!-- Display inline text or status information. -->
                       <span>{{ row.code }}</span>
                     </p>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
                       Lecturer - {{ row.lecturer_name }}
                     </p>
 
+                    <!-- Wrap the card meta area for layout or styling. -->
                     <p class="card-meta">
+                      <!-- Render the row value here. -->
                       {{ row.academic_year_label }}
                     </p>
                   </article>
                 </a>
+              <!-- End the loop for this repeated content. -->
               {% endfor %}
             </div>
+          <!-- Show the fallback content for the alternative case. -->
           {% else %}
+            <!-- Wrap the muted area for layout or styling. -->
             <p class="muted">No historical modules recorded for this year.</p>
+          <!-- End this conditional template block. -->
           {% endif %}
         </div>
+      <!-- End the loop for this repeated content. -->
       {% endfor %}
+    <!-- Show the fallback content for the alternative case. -->
     {% else %}
+      <!-- Wrap the muted area for layout or styling. -->
       <p class="muted">No previous-year modules are available yet.</p>
+    <!-- End this conditional template block. -->
     {% endif %}
   </section>
   
