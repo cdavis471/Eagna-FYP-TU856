@@ -20,7 +20,7 @@
   <link rel="stylesheet" href="{% static 'accounts/styles.css' %}">
 </head>
 <!-- Start the page body content. -->
-<body>
+<body class="admin-body">
   <!-- Begin the document head for metadata and assets. -->
   <header class="site-header admin-site-header">
     <!-- Hold the left side of the header. -->
@@ -68,7 +68,7 @@
   {% endif %}
 
   <!-- Begin the main content area of the page. -->
-  <main class="page-content">
+  <main class="page-content admin-page-content">
     <!-- Begin the main content block for this page. -->
     {% block content %}{% endblock %}
   </main>

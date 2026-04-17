@@ -67,6 +67,18 @@ Colour System
 
   --portal-icon-hover-filter: brightness(0) saturate(100%) invert(8%) sepia(56%) saturate(2485%) hue-rotate(208deg) brightness(91%) contrast(110%);
 
+  --user-chip-bg: var(--primary);
+  --user-chip-text: var(--secondary);
+  --user-chip-hover-bg: var(--primary);
+  --user-chip-hover-text: var(--tertiary);
+
+  --quiz-builder-add-button-bg: var(--secondary);
+  --quiz-builder-add-button-text: var(--tertiary);
+  --quiz-builder-add-button-border: var(--primary);
+  --quiz-builder-add-button-hover-bg: var(--primary);
+  --quiz-builder-add-button-hover-text: var(--tertiary);
+  --quiz-builder-add-button-hover-border: var(--secondary);
+
 }
 
 body[data-font-scheme="open-dyslexic"] {
@@ -150,6 +162,18 @@ body[data-colour-scheme="high-contrast"] {
   --muted-dark: #111827;
   --muted-light: #ffffff;
   --portal-icon-hover-filter: brightness(0) saturate(100%);
+
+  --user-chip-bg: #000000;
+  --user-chip-text: #ffffff;
+  --user-chip-hover-bg: #ffffff;
+  --user-chip-hover-text: #000000;
+
+  --quiz-builder-add-button-bg: #ffffff;
+  --quiz-builder-add-button-text: #000000;
+  --quiz-builder-add-button-border: #000000;
+  --quiz-builder-add-button-hover-bg: #ffffff;
+  --quiz-builder-add-button-hover-text: #000000;
+  --quiz-builder-add-button-hover-border: #000000;
 }
 
 /*
@@ -192,6 +216,10 @@ Page Content
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.admin-page-content {
+  padding-top: 0;
 }
 
 .dashboard-container {
@@ -2384,19 +2412,19 @@ Header / Footer - Final UI
 }
 
 .user-chip {
-  background: var(--primary);
-  color: var(--secondary);
+  background: var(--user-chip-bg);
+  color: var(--user-chip-text);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 4px 12px rgba(53, 81, 184, 0.22);
 }
 
 .user-chip:visited {
-  color: var(--secondary);
+  color: var(--user-chip-text);
 }
 
 .user-chip:hover {
-  background: var(--primary);
-  color: var(--tertiary);
+  background: var(--user-chip-hover-bg);
+  color: var(--user-chip-hover-text);
   text-decoration: none;
   transform: none;
 }
@@ -3454,15 +3482,15 @@ Lecturer Workflow / Forms - Final UI
 }
 
 #add-question-button.small-button {
-  background: var(--secondary);
-  color: var(--tertiary);
-  border: 2px solid var(--primary);
+  background: var(--quiz-builder-add-button-bg);
+  color: var(--quiz-builder-add-button-text);
+  border: 2px solid var(--quiz-builder-add-button-border);
 }
 
 #add-question-button.small-button:hover {
-  background: var(--primary);
-  color: var(--tertiary);
-  border: 2px solid var(--secondary);
+  background: var(--quiz-builder-add-button-hover-bg);
+  color: var(--quiz-builder-add-button-hover-text);
+  border: 2px solid var(--quiz-builder-add-button-hover-border);
 }
 
 .quiz-builder-header {
@@ -3578,7 +3606,45 @@ Create Pages / Module Detail - Final UI
 .module-students-card {
   display: flex;
   flex-direction: column;
+}
+
+.module-students-disclosure {
+  width: 100%;
+}
+
+.module-students-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.module-students-summary::-webkit-details-marker {
+  display: none;
+}
+
+.module-students-summary__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.module-students-summary__toggle {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  color: var(--tertiary);
+  transition: transform 0.2s ease;
+}
+
+.module-students-disclosure[open] .module-students-summary__toggle {
+  transform: rotate(180deg);
+}
+
+.module-students-disclosure__body {
+  padding-top: 1rem;
 }
 
 .module-panel-count {
@@ -3615,7 +3681,6 @@ Create Pages / Module Detail - Final UI
   color: var(--primary);
   font-size: 0.92rem;
   word-break: break-word;
-  text-align: right;
 }
 
 .quiz-builder-options {
@@ -3943,6 +4008,29 @@ General Features - Final UI
   padding-top: 0.85rem;
 }
 
+.dropdown-item--locked {
+  cursor: default;
+  opacity: 0.8;
+  background: var(--surface-neutral-soft);
+  color: var(--text-on-light);
+  font-weight: 600;
+}
+
+.selected-modules--locked {
+  margin-bottom: 1rem;
+}
+
+.module-chip--locked {
+  cursor: default;
+  background: var(--surface-neutral-soft);
+  color: var(--text-on-light);
+  border: 1px solid var(--border-soft);
+}
+
+.module-chip--locked:hover {
+  opacity: 1;
+}
+
 /*
 ======================
 Admin Panel - Final UI
@@ -4044,7 +4132,7 @@ Responsive Rules - Final UI
   }
 
   .portal-app-grid--primary {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -4249,8 +4337,17 @@ Responsive Rules - Final UI
     grid-template-columns: 1fr;
   }
 
-  .portal-app-grid--primary {
+  .portal-office-section .portal-app-grid--primary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .portal-office-section .portal-app-grid--more {
+    grid-template-columns: 1fr;
+  }
+
+  .portal-office-section .portal-app-card--more {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .assessment-detail-toolbar {

@@ -36,6 +36,7 @@
         id: opt.value, // Preserve the option value.
         label: opt.text, // Preserve the visible label.
         allowedCourses: parseCourses(opt.dataset.courses), // Parse supported course codes.
+        isLockedCurrent: opt.dataset.lockedCurrent === "true", // Mark already joined current modules.
         optionEl: opt, // Keep a reference to the source option.
       });
     }
@@ -44,6 +45,7 @@
   }
 
   function setSelected(module, selected) { // Toggle a module selection.
+    if (module.isLockedCurrent) return; // Prevent changes to already joined current modules.
     module.optionEl.selected = selected; // Update the backing option state.
   }
 
@@ -53,7 +55,9 @@
 
   function clearAllSelections(modules) { // Clear every selected module.
     for (const module of modules) { // Walk all indexed modules.
-      setSelected(module, false); // Deselect the current module.
+      if (!module.isLockedCurrent) { // Only clear newly selectable modules.
+        setSelected(module, false); // Deselect the current module.
+      }
     }
   }
 
@@ -62,7 +66,7 @@
     if (!container) return; // Exit when chip markup is absent.
 
     container.replaceChildren(); // Clear existing chips first.
-    const selected = modules.filter(isSelected); // Collect selected modules only.
+    const selected = modules.filter((module) => isSelected(module) && !module.isLockedCurrent); // Collect removable selections only.
 
     selected.forEach((m) => { // Render one chip per selection.
       const chip = document.createElement("div"); // Create the chip wrapper.
@@ -133,16 +137,21 @@
       item.className = "dropdown-item"; // Apply dropdown item styling.
       item.textContent = m.label; // Show the module label.
 
-      if (isSelected(m)) { // Mark already selected modules.
+      if (m.isLockedCurrent) { // Mark modules the student already has.
+        item.classList.add("dropdown-item--locked"); // Apply locked styling.
+        item.textContent = `${m.label} — Already Joined`; // Clarify the state.
+      } else if (isSelected(m)) { // Mark already selected new modules.
         item.classList.add("dropdown-item--selected"); // Apply selected item styling.
       }
 
-      item.addEventListener("click", () => { // Toggle selection on click.
-        setSelected(m, !isSelected(m)); // Flip the selection state.
-        renderSelected(modules); // Refresh the selected chips.
-        renderDropdown(modules); // Refresh dropdown highlighting.
-        input.focus(); // Return focus to the search field.
-      });
+      if (!m.isLockedCurrent) { // Only attach click behaviour to selectable modules.
+        item.addEventListener("click", () => { // Toggle selection on click.
+          setSelected(m, !isSelected(m)); // Flip the selection state.
+          renderSelected(modules); // Refresh the selected chips.
+          renderDropdown(modules); // Refresh dropdown highlighting.
+          input.focus(); // Return focus to the search field.
+        });
+      }
 
       dropdown.appendChild(item); // Append the dropdown item.
     });

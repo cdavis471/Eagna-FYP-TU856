@@ -1179,6 +1179,12 @@ def _build_portal_week_context(user, today=None, next_url=None):  # Define _buil
             )  # Close the current call.
 
             for attempt in quiz_attempts:  # Iterate through the collection.
+                summary = (  # Store the computed value.
+                    f"{attempt.weighted_score}/{attempt.quiz.max_mark} · released {attempt.submitted_at.strftime('%Y-%m-%d %H:%M')}"  # Continue the current block.
+                    if _quiz_results_released(attempt.quiz)  # Check the current condition.
+                    else f"Submitted {attempt.submitted_at.strftime('%Y-%m-%d %H:%M')} · results release when the quiz closes"  # Continue the current block.
+                )  # Close the current call.
+
                 grade_items.append(  # Append to the list.
                     {  # Start the current mapping.
                         "title": attempt.quiz.title,  # Set title.
@@ -1186,7 +1192,7 @@ def _build_portal_week_context(user, today=None, next_url=None):  # Define _buil
                             reverse("accounts:offering_quiz_detail", args=[offering.id, attempt.quiz.id]),  # Resolve the named URL.
                             next_url,  # Continue the current value.
                         ),  # Close the current call.
-                        "summary": f"{attempt.weighted_score}/{attempt.quiz.max_mark} · released {attempt.submitted_at.strftime('%Y-%m-%d %H:%M')}",  # Set summary.
+                        "summary": summary,  # Set summary.
                     }  # Close the current mapping.
                 )  # Close the current call.
 
@@ -1905,6 +1911,11 @@ def _delete_assignment_with_assets(assignment):  # Define _delete_assignment_wit
 
     assignment.delete()  # Delete the record.
 
+def _quiz_results_released(quiz, now=None):  # Define _quiz_results_released.
+    """Return whether quiz results should be visible to students."""
+    now = now or timezone.now()  # Store the computed value.
+    return now >= quiz.close_datetime  # Return the computed value.
+
 def _get_student_quiz_state(quiz, student, now=None):  # Define _get_student_quiz_state.
     """Return the student's quiz state."""
     now = now or timezone.now()  # Store the computed value.
@@ -1989,6 +2000,7 @@ def _build_question_rows(quiz, attempt=None):  # Define _build_question_rows.
                 "number": question_number,  # Set number.
                 "prompt": question.prompt,  # Set prompt.
                 "question_type": question.question_type,  # Set question type.
+                "question_type_label": question.get_question_type_display(),  # Set the human-friendly question type label.
                 "marks": question.marks,  # Set marks.
                 "awarded_marks": answer.awarded_marks if answer else Decimal("0.00"),  # Set awarded marks.
                 "options": options,  # Set options.
@@ -2437,12 +2449,15 @@ def _build_student_profile_modules(offerings_qs, student, next_url=None):  # Def
         for quiz in quizzes:  # Iterate through the collection.
             best_attempt = best_quiz_attempt_by_quiz.get(quiz.id)  # Fetch a single record.
 
-            if best_attempt:  # Check the current condition.
+            if best_attempt and _quiz_results_released(quiz):  # Check the current condition.
                 metric = (  # Store the computed value.
                     f"{_format_mark_display(best_attempt.weighted_score)}"  # Continue the current block.
                     f"/{_format_mark_display(quiz.max_mark)}"  # Continue the current block.
                 )  # Close the current call.
                 metric_class = "profile-metric--complete"  # Store the computed value.
+            elif best_attempt:  # Check the alternate condition.
+                metric = "Awaiting release"  # Store the computed value.
+                metric_class = "profile-metric--pending"  # Store the computed value.
             else:  # Handle the fallback case.
                 metric = "Not attempted"  # Store the computed value.
                 metric_class = "profile-metric--empty"  # Store the computed value.
@@ -2912,7 +2927,6 @@ def register_student(request):  # Define register_student.
     return render(request, "accounts/registration.html", context)  # Return the rendered template.
 
 @login_required  # Require login.
-@require_http_methods(["GET", "POST"])  # Restrict allowed HTTP methods.
 def student_join_modules(request):  # Define student_join_modules.
     """Handle student module joining."""
     user: User = request.user  # Store the current user.
@@ -2931,8 +2945,18 @@ def student_join_modules(request):  # Define student_join_modules.
         return redirect("accounts:dashboard")  # Return the redirect response.
 
     module_rows = _build_module_selector_rows(course_code=course_code)  # Build the list values.
+    module_rows_by_id = {row["id"]: row for row in module_rows}  # Build the value mapping.
     valid_module_ids = {row["id"] for row in module_rows}  # Store matching ids.
     existing_current_ids = _current_module_ids_for_student(student)  # Store matching ids.
+
+    current_module_rows = [  # Build the list values.
+        module_rows_by_id[module_id]  # Continue the current value.
+        for module_id in sorted(  # Sort the current ids by label.
+            existing_current_ids,  # Continue the current value.
+            key=lambda module_id: module_rows_by_id.get(module_id, {}).get("label", ""),  # Continue the current value.
+        )  # Close the current call.
+        if module_id in module_rows_by_id  # Check the current condition.
+    ]  # Close the current list.
 
     if request.method == "POST":  # Check the current condition.
         submitted_ids = {  # Store matching ids.
@@ -2941,10 +2965,16 @@ def student_join_modules(request):  # Define student_join_modules.
             if str(module_id).isdigit()  # Check the current condition.
         }  # Close the current mapping.
 
+        submitted_ids -= existing_current_ids  # Remove already joined modules from the submitted set.
+
         invalid_ids = submitted_ids - valid_module_ids  # Store matching ids.
         if invalid_ids:  # Check the current condition.
             messages.error(request, "One or more selected modules are not valid for your course.")  # Queue an error message.
-            submitted_ids = existing_current_ids  # Store matching ids.
+            submitted_ids = {  # Store matching ids.
+                module_id  # Continue the current value.
+                for module_id in submitted_ids  # Iterate through the collection.
+                if module_id in valid_module_ids  # Check the current condition.
+            }  # Close the current mapping.
         else:  # Handle the fallback case.
             current_academic_year = _get_current_academic_year()  # Store the computed value.
 
@@ -2957,7 +2987,7 @@ def student_join_modules(request):  # Define student_join_modules.
                         academic_year=current_academic_year,  # Store the computed value.
                     )  # Close the current call.
 
-            newly_added = len(submitted_ids - existing_current_ids)  # Store the computed value.
+            newly_added = len(submitted_ids)  # Store the computed value.
             if newly_added:  # Check the current condition.
                 messages.success(request, f"{newly_added} module(s) added successfully.")  # Queue a success message.
             else:  # Handle the fallback case.
@@ -2965,7 +2995,7 @@ def student_join_modules(request):  # Define student_join_modules.
 
             return redirect("accounts:student_join_modules")  # Return the redirect response.
     else:  # Handle the fallback case.
-        submitted_ids = existing_current_ids  # Store matching ids.
+        submitted_ids = set()  # Store the computed value.
 
     context = {  # Build template context.
         "user": user,  # Set user.
@@ -2973,6 +3003,8 @@ def student_join_modules(request):  # Define student_join_modules.
         "student": student,  # Set student.
         "course_code": course_code,  # Set course code.
         "module_rows": module_rows,  # Set module rows.
+        "current_module_rows": current_module_rows,  # Set current module rows.
+        "current_module_ids": {str(module_id) for module_id in existing_current_ids},  # Set this mapping value.
         "selected_module_ids": {str(module_id) for module_id in submitted_ids},  # Set this mapping value.
     }  # Close the current mapping.
     return render(request, "accounts/student_join_modules.html", context)  # Return the rendered template.
@@ -5061,15 +5093,17 @@ def offering_quiz_detail(request, offering_id, quiz_id):  # Define offering_quiz
         if not read_only:  # Check the current condition.
             _auto_submit_expired_attempt_if_needed(quiz, student)  # Call the helper function.
 
-        state = _get_student_quiz_state(quiz, student, now=timezone.now())  # Store the computed value.
+        now = timezone.now()  # Store the computed value.
+        state = _get_student_quiz_state(quiz, student, now=now)  # Store the computed value.
         active_attempt = state["active_attempt"] if not read_only else None  # Store the computed value.
         latest_submitted_attempt = state["latest_submitted_attempt"]  # Store the computed value.
+        quiz_results_released = _quiz_results_released(quiz, now=now)  # Store the computed value.
 
         can_start_attempt = (  # Store the boolean state.
             not read_only  # Continue the current block.
             and quiz.is_published  # Continue the current block.
-            and timezone.now() >= quiz.open_datetime  # Continue the current block.
-            and timezone.now() <= quiz.close_datetime  # Continue the current block.
+            and now >= quiz.open_datetime  # Continue the current block.
+            and now <= quiz.close_datetime  # Continue the current block.
             and active_attempt is None  # Continue the current block.
             and state["attempts_used"] < quiz.max_attempts  # Continue the current block.
         )  # Close the current call.
@@ -5081,9 +5115,9 @@ def offering_quiz_detail(request, offering_id, quiz_id):  # Define offering_quiz
             question_rows = _build_question_rows(quiz, attempt=active_attempt)  # Build the list values.
             remaining_seconds = max(  # Store the computed value.
                 0,  # Continue the current value.
-                int((active_attempt.expires_at - timezone.now()).total_seconds())  # Call the helper function.
+                int((active_attempt.expires_at - now).total_seconds())  # Call the helper function.
             )  # Close the current call.
-        elif latest_submitted_attempt:  # Check the alternate condition.
+        elif latest_submitted_attempt and quiz_results_released:  # Check the alternate condition.
             question_rows = _build_question_rows(quiz, attempt=latest_submitted_attempt)  # Build the list values.
 
         context = {  # Build template context.
@@ -5097,6 +5131,7 @@ def offering_quiz_detail(request, offering_id, quiz_id):  # Define offering_quiz
             "state": state,  # Set state.
             "active_attempt": active_attempt,  # Set active attempt.
             "submitted_attempt": latest_submitted_attempt,  # Set submitted attempt.
+            "quiz_results_released": quiz_results_released,  # Set quiz results released.
             "can_start_attempt": can_start_attempt,  # Set can start attempt.
             "question_rows": question_rows,  # Set question rows.
             "remaining_seconds": remaining_seconds,  # Set remaining seconds.
@@ -5430,7 +5465,7 @@ def parsed_document_modal(request, parsed_id):  # Define parsed_document_modal.
         "module": module,  # Set module.
         "source_file": source_file,  # Set source file.
         "document_title": parsed_document.get_source_name(),  # Set document title.
-        "can_edit_images": user.is_lecturer(),  # Set can edit images.
+        "can_edit_images": user.is_lecturer() and not _is_read_only_offering(offering),  # Set can edit images.
     }  # Close the current mapping.
     return render(request, "accounts/partials/parsed_document_modal.html", context)  # Return the rendered template.
 

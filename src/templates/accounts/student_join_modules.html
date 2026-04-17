@@ -43,10 +43,37 @@
           <input type="text" id="id_course" name="course" value="{{ course_code }}" readonly>
         </div>
 
+        <!-- Conditionally render this block when the data is available. -->
+        {% if current_module_rows %}
+          <!-- Group a label, field, and help text together. -->
+          <div class="form-group">
+            <!-- Label the current modules area. -->
+            <label class="registration-form-label">ALREADY JOINED</label>
+            <!-- Wrap the muted area for layout or styling. -->
+            <p class="registration-hint">
+              These are your current academic year module enrolments. They are shown separately and cannot be removed here.
+            </p>
+
+            <!-- Wrap the selected modules area for layout or styling. -->
+            <div class="selected-modules selected-modules--locked">
+              <!-- Loop through each row from current module rows. -->
+              {% for row in current_module_rows %}
+                <!-- Wrap one selected module chip for layout or styling. -->
+                <div class="module-chip module-chip--locked">
+                  <!-- Wrap the chip label area for layout or styling. -->
+                  <span>{{ row.label }}</span>
+                </div>
+              <!-- End the loop for this repeated content. -->
+              {% endfor %}
+            </div>
+          </div>
+        <!-- End this conditional template block. -->
+        {% endif %}
+
         <!-- Group a label, field, and help text together. -->
         <div class="form-group">
           <!-- Label the modules field. -->
-          <label for="module-search" class="registration-form-label">MODULES</label>
+          <label for="module-search" class="registration-form-label">ADD MODULES</label>
 
           <!-- Render a text input for user entry. -->
           <input
@@ -59,7 +86,7 @@
           <!-- Wrap the dropdown area for layout or styling. -->
           <div id="module-dropdown" class="dropdown" hidden></div>
 
-          <!-- List the modules selected by the student. -->
+          <!-- List the newly selected modules only. -->
           <div id="selected-modules" class="selected-modules"></div>
 
           <!-- Show helper text for the related input. -->
@@ -73,6 +100,7 @@
               <option
                 value="{{ row.id }}"
                 data-courses="{{ row.course_codes|join:',' }}"
+                data-locked-current="{% if row.id|stringformat:'s' in current_module_ids %}true{% else %}false{% endif %}"
                 {% if row.id|stringformat:'s' in selected_module_ids %}
                   selected
                 {% endif %}

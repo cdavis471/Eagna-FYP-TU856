@@ -178,7 +178,7 @@
               <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">{{ row.prompt }}</p>
               <!-- Wrap the card meta area for layout or styling. -->
-              <p class="card-meta">Type: {{ row.question_type }}</p>
+              <p class="card-meta">Type: {{ row.question_type_label }}</p>
               <!-- Wrap the card meta area for layout or styling. -->
               <p class="card-meta">Marks: {{ row.marks }}</p>
 
@@ -396,8 +396,16 @@
           <div class="workflow-panel-header">
             <!-- Wrap this part of the page for layout and styling. -->
             <div>
-              <!-- Display the section heading for attempt summary. -->
-              <h2 class="workflow-panel-title">Attempt Summary</h2>
+              <!-- Conditionally render this block when the data is available. -->
+              {% if quiz_results_released %}
+                <!-- Display the section heading for attempt summary. -->
+                <h2 class="workflow-panel-title">Attempt Summary</h2>
+              <!-- Show the fallback content for the alternative case. -->
+              {% else %}
+                <!-- Display the section heading for submission received. -->
+                <h2 class="workflow-panel-title">Submission Received</h2>
+              <!-- End this conditional template block. -->
+              {% endif %}
             </div>
           </div>
 
@@ -410,6 +418,7 @@
               <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.attempt_number }}</span>
             </div>
+
             <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
               <!-- Highlight important text within this area. -->
@@ -417,20 +426,36 @@
               <!-- Display inline text or status information. -->
               <span>{{ submitted_attempt.status }}</span>
             </div>
-            <!-- Render quiz-related content for this page. -->
-            <div class="quiz-meta-card">
-              <!-- Highlight important text within this area. -->
-              <strong>Raw score</strong>
-              <!-- Display inline text or status information. -->
-              <span>{{ submitted_attempt.raw_score }}</span>
-            </div>
-            <!-- Render quiz-related content for this page. -->
-            <div class="quiz-meta-card">
-              <!-- Highlight important text within this area. -->
-              <strong>Weighted score</strong>
-              <!-- Display inline text or status information. -->
-              <span>{{ submitted_attempt.weighted_score }}/{{ quiz.max_mark }}</span>
-            </div>
+
+            <!-- Conditionally render this block when the data is available. -->
+            {% if quiz_results_released %}
+              <!-- Render quiz-related content for this page. -->
+              <div class="quiz-meta-card">
+                <!-- Highlight important text within this area. -->
+                <strong>Raw score</strong>
+                <!-- Display inline text or status information. -->
+                <span>{{ submitted_attempt.raw_score }}</span>
+              </div>
+
+              <!-- Render quiz-related content for this page. -->
+              <div class="quiz-meta-card">
+                <!-- Highlight important text within this area. -->
+                <strong>Weighted score</strong>
+                <!-- Display inline text or status information. -->
+                <span>{{ submitted_attempt.weighted_score }}/{{ quiz.max_mark }}</span>
+              </div>
+            <!-- Show the fallback content for the alternative case. -->
+            {% else %}
+              <!-- Render quiz-related content for this page. -->
+              <div class="quiz-meta-card">
+                <!-- Highlight important text within this area. -->
+                <strong>Results</strong>
+                <!-- Display inline text or status information. -->
+                <span>Available after {{ quiz.close_datetime|date:"Y-m-d H:i" }}</span>
+              </div>
+            <!-- End this conditional template block. -->
+            {% endif %}
+
             <!-- Render quiz-related content for this page. -->
             <div class="quiz-meta-card">
               <!-- Highlight important text within this area. -->
@@ -439,6 +464,15 @@
               <span>{{ submitted_attempt.submitted_at|date:"Y-m-d H:i" }}</span>
             </div>
           </div>
+
+          <!-- Conditionally render this block when the data is available. -->
+          {% if not quiz_results_released %}
+            <!-- Wrap the muted area for layout or styling. -->
+            <p class="muted">
+              Your answers have been submitted successfully. Quiz results and question review will appear once the quiz has closed.
+            </p>
+          <!-- End this conditional template block. -->
+          {% endif %}
 
           <!-- Conditionally render this block when the data is available. -->
           {% if can_start_attempt and not read_only %}
@@ -457,67 +491,70 @@
         </div>
       </section>
 
-      <!-- Group a related section of dashboard content. -->
-      <section class="dashboard-section">
-        <!-- Wrap the assessment surface area for layout or styling. -->
-        <div class="assessment-surface workflow-panel-shell">
-          <!-- Wrap the workflow panel header area for layout or styling. -->
-          <div class="workflow-panel-header">
-            <!-- Wrap this part of the page for layout and styling. -->
-            <div>
-              <!-- Display the section heading for question review. -->
-              <h2 class="workflow-panel-title">Question Review</h2>
+      <!-- Conditionally render this block when the data is available. -->
+      {% if quiz_results_released %}
+        <!-- Group a related section of dashboard content. -->
+        <section class="dashboard-section">
+          <!-- Wrap the assessment surface area for layout or styling. -->
+          <div class="assessment-surface workflow-panel-shell">
+            <!-- Wrap the workflow panel header area for layout or styling. -->
+            <div class="workflow-panel-header">
+              <!-- Wrap this part of the page for layout and styling. -->
+              <div>
+                <!-- Display the section heading for question review. -->
+                <h2 class="workflow-panel-title">Question Review</h2>
+              </div>
+            </div>
+
+            <!-- Render quiz-related content for this page. -->
+            <div class="quiz-question-stack">
+              <!-- Loop through each row from question rows. -->
+              {% for row in question_rows %}
+                <!-- Render quiz-related content for this page. -->
+                <div class="quiz-question-editor">
+                  <!-- Display the subsection heading for question {{ row.number }}. -->
+                  <h3 class="card-title">Question {{ row.number }}</h3>
+                  <!-- Wrap the card meta area for layout or styling. -->
+                  <p class="card-meta">{{ row.prompt }}</p>
+                  <!-- Wrap the card meta area for layout or styling. -->
+                  <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
+                  <!-- Wrap the card meta area for layout or styling. -->
+                  <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
+                  <!-- Wrap the card meta area for layout or styling. -->
+                  <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
+
+                  <!-- Begin a list of related items. -->
+                  <ul class="week-files">
+                    <!-- Loop through each option from row. -->
+                    {% for option in row.options %}
+                      <!-- Render one item within the current list. -->
+                      <li>
+                        <!-- Render the option value here. -->
+                        {{ option.text }}
+                        <!-- Conditionally render this block when the data is available. -->
+                        {% if option.selected %}
+                          <!-- Highlight important text within this area. -->
+                          <strong>(your choice)</strong>
+                        <!-- End this conditional template block. -->
+                        {% endif %}
+                        <!-- Conditionally render this block when the data is available. -->
+                        {% if option.is_correct %}
+                          <!-- Highlight important text within this area. -->
+                          <strong>(correct)</strong>
+                        <!-- End this conditional template block. -->
+                        {% endif %}
+                      </li>
+                    <!-- End the loop for this repeated content. -->
+                    {% endfor %}
+                  </ul>
+                </div>
+              <!-- End the loop for this repeated content. -->
+              {% endfor %}
             </div>
           </div>
-
-          <!-- Render quiz-related content for this page. -->
-          <div class="quiz-question-stack">
-            <!-- Loop through each row from question rows. -->
-            {% for row in question_rows %}
-              <!-- Render quiz-related content for this page. -->
-              <div class="quiz-question-editor">
-                <!-- Display the subsection heading for question {{ row.number }}. -->
-                <h3 class="card-title">Question {{ row.number }}</h3>
-                <!-- Wrap the card meta area for layout or styling. -->
-                <p class="card-meta">{{ row.prompt }}</p>
-                <!-- Wrap the card meta area for layout or styling. -->
-                <p class="card-meta">Awarded marks: {{ row.awarded_marks }} / {{ row.marks }}</p>
-                <!-- Wrap the card meta area for layout or styling. -->
-                <p class="card-meta">Your answer: {{ row.selected_answer_text }}</p>
-                <!-- Wrap the card meta area for layout or styling. -->
-                <p class="card-meta">Correct answer: {{ row.correct_answer_text }}</p>
-
-                <!-- Begin a list of related items. -->
-                <ul class="week-files">
-                  <!-- Loop through each option from row. -->
-                  {% for option in row.options %}
-                    <!-- Render one item within the current list. -->
-                    <li>
-                      <!-- Render the option value here. -->
-                      {{ option.text }}
-                      <!-- Conditionally render this block when the data is available. -->
-                      {% if option.selected %}
-                        <!-- Highlight important text within this area. -->
-                        <strong>(your choice)</strong>
-                      <!-- End this conditional template block. -->
-                      {% endif %}
-                      <!-- Conditionally render this block when the data is available. -->
-                      {% if option.is_correct %}
-                        <!-- Highlight important text within this area. -->
-                        <strong>(correct)</strong>
-                      <!-- End this conditional template block. -->
-                      {% endif %}
-                    </li>
-                  <!-- End the loop for this repeated content. -->
-                  {% endfor %}
-                </ul>
-              </div>
-            <!-- End the loop for this repeated content. -->
-            {% endfor %}
-          </div>
-        </div>
-      </section>
-
+        </section>
+      <!-- End this conditional template block. -->
+      {% endif %}
     <!-- Show the fallback content for the alternative case. -->
     {% else %}
       <!-- Group a related section of dashboard content. -->

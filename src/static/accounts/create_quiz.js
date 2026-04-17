@@ -119,7 +119,7 @@
     if (type === "TRUE_FALSE") { // Render true/false-specific settings.
       const selectedValue = String(data.correct_true_false || "true").toLowerCase(); // Read the selected boolean value.
 
-      settingsContainer.innerHTML = ` // Inject the true/false settings markup.
+      settingsContainer.innerHTML = `
         <div class="form-group">
           <label>Correct answer</label>
           <select class="question-correct-true-false">
@@ -131,7 +131,7 @@
       return; // Stop after rendering true/false settings.
     }
 
-    settingsContainer.innerHTML = ` // Inject the option-based settings markup.
+    settingsContainer.innerHTML = `
       <div class="form-group">
         <label>Answer Options</label>
         <div class="quiz-builder-options"></div>
@@ -156,7 +156,7 @@
     function renderOptions() { // Render the editable option rows.
       ensureMultipleChoiceSelection(); // Enforce a single-choice default.
 
-      optionsContainer.innerHTML = options.map((option, index) => ` // Build option row markup.
+      optionsContainer.innerHTML = options.map((option, index) => `
         <div class="quiz-option-editor-row" data-option-index="${index}">
           <label class="quiz-option-choice">
             <input
@@ -246,7 +246,7 @@
 
     const selectedType = data.question_type || "MULTIPLE_CHOICE"; // Default to multiple choice questions.
 
-    card.innerHTML = ` // Inject the question card markup.
+    card.innerHTML = `
       <div class="assessment-card-topline">
         <h3 class="card-title">Question <span class="question-number">${questionCounter}</span></h3>
         <button type="button" class="small-button remove-question-button">Remove</button>

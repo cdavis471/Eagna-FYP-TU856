@@ -638,7 +638,7 @@
                           </button>
 
                           <!-- Conditionally render this block when the data is available. -->
-                          {% if f.parsed_document_safe.images.all %}
+                          {% if role == "lecturer" and not read_only and f.parsed_document_safe.images.all %}
                             <!-- Provide a compact action button or link. -->
                             <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document_safe.id %}?next={{ request.get_full_path|urlencode }}"
                                class="small-button">
@@ -689,40 +689,48 @@
     <section class="dashboard-section dashboard-card-section module-page-section module-students-section">
       <!-- Wrap the assessment surface area for layout or styling. -->
       <div class="assessment-surface workflow-panel-shell module-students-card">
-        <!-- Wrap the workflow panel header area for layout or styling. -->
-        <div class="workflow-panel-header">
-          <!-- Wrap this part of the page for layout and styling. -->
-          <div>
-            <!-- Display the section heading for enrolled students. -->
-            <h2 class="workflow-panel-title">Enrolled Students</h2>
-          </div>
-        </div>
+        <!-- Wrap the enrolled students disclosure area for layout or styling. -->
+        <details class="module-students-disclosure">
+          <!-- Wrap the enrolled students summary row for layout or styling. -->
+          <summary class="module-students-summary">
+            <!-- Wrap the enrolled students summary text area for layout or styling. -->
+            <div class="module-students-summary__text">
+              <!-- Display the section heading for enrolled students. -->
+              <h2 class="workflow-panel-title">Enrolled Students</h2>
+              <!-- Wrap the module panel count area for layout or styling. -->
+              <p class="module-panel-count">Currently Enrolled: {{ enrolled_student_count }}</p>
+            </div>
 
-        <!-- Wrap the module panel count area for layout or styling. -->
-        <p class="module-panel-count">Currently Enrolled: {{ enrolled_student_count }}</p>
+            <!-- Wrap the disclosure icon area for layout or styling. -->
+            <span class="module-students-summary__toggle" aria-hidden="true">▾</span>
+          </summary>
 
-        <!-- Conditionally render this block when the data is available. -->
-        {% if enrolled_students %}
-          <!-- Wrap the enrolled students list area for layout or styling. -->
-          <div class="enrolled-students-list">
-            <!-- Loop through each student from enrolled students. -->
-            {% for student in enrolled_students %}
-              <!-- Wrap the enrolled student row area for layout or styling. -->
-              <div class="enrolled-student-row">
-                <!-- Wrap the enrolled student name area for layout or styling. -->
-                <span class="enrolled-student-name">{{ student.name }}</span>
-                <!-- Wrap the enrolled student email area for layout or styling. -->
-                <span class="enrolled-student-email">{{ student.email }}</span>
+          <!-- Wrap the enrolled students disclosure body area for layout or styling. -->
+          <div class="module-students-disclosure__body">
+            <!-- Conditionally render this block when the data is available. -->
+            {% if enrolled_students %}
+              <!-- Wrap the enrolled students list area for layout or styling. -->
+              <div class="enrolled-students-list">
+                <!-- Loop through each student from enrolled students. -->
+                {% for student in enrolled_students %}
+                  <!-- Wrap the enrolled student row area for layout or styling. -->
+                  <div class="enrolled-student-row">
+                    <!-- Wrap the enrolled student name area for layout or styling. -->
+                    <span class="enrolled-student-name">{{ student.name }}</span>
+                    <!-- Wrap the enrolled student email area for layout or styling. -->
+                    <span class="enrolled-student-email">{{ student.email }}</span>
+                  </div>
+                <!-- End the loop for this repeated content. -->
+                {% endfor %}
               </div>
-            <!-- End the loop for this repeated content. -->
-            {% endfor %}
+            <!-- Show the fallback content for the alternative case. -->
+            {% else %}
+              <!-- Wrap the muted area for layout or styling. -->
+              <p class="muted">No students are currently enrolled on this module.</p>
+            <!-- End this conditional template block. -->
+            {% endif %}
           </div>
-        <!-- Show the fallback content for the alternative case. -->
-        {% else %}
-          <!-- Wrap the muted area for layout or styling. -->
-          <p class="muted">No students are currently enrolled on this module.</p>
-        <!-- End this conditional template block. -->
-        {% endif %}
+        </details>
       </div>
     </section>
   <!-- End this conditional template block. -->
