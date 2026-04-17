@@ -5375,21 +5375,25 @@ def offering_grade_submission(request, offering_id, assignment_id, submission_id
         raise Http404("Not found")  # Raise a not found error.
 
     lecturer = user.lecturer_profile  # Store the computed value.
-    offering = _get_writable_lecturer_offering_by_id(user, offering_id)  # Store the computed value.
-    assignment = get_object_or_404(  # Store the computed value.
-        Assignment.objects.select_related("offering__module"),  # Follow related objects.
-        pk=assignment_id,  # Store the computed value.
-        offering=offering,  # Store the computed value.
+    offering, assignment = _get_accessible_offering_assignment_for_user(  # Store the computed value.
+        user,  # Continue the current value.
+        offering_id,  # Continue the current value.
+        assignment_id,  # Continue the current value.
     )  # Close the current call.
 
+    if _is_read_only_offering(offering):  # Check the current condition.
+        raise Http404("Not found")  # Raise a not found error.
+
     submission = get_object_or_404(  # Store the computed value.
-        AssignmentSubmission.objects.select_related("student__user").prefetch_related("files"),  # Follow related objects.
+        AssignmentSubmission.objects  # Continue the current block.
+        .select_related("student__user")  # Follow related objects.
+        .prefetch_related("files"),  # Prefetch related objects.
         pk=submission_id,  # Store the computed value.
         assignment=assignment,  # Store the computed value.
     )  # Close the current call.
 
     errors = []  # Initialise error messages.
-    grade_obj = submission.grade_safe  # Store the computed value safely.
+    grade_obj = AssignmentGrade.objects.filter(submission=submission).first()  # Store the computed value safely.
     initial_value = ""  # Store the computed value.
     initial_feedback = ""  # Store the computed value.
 
@@ -5431,8 +5435,8 @@ def offering_grade_submission(request, offering_id, assignment_id, submission_id
                 grade_obj.save(update_fields=["value", "feedback_text", "marker"])  # Save model changes.
 
             _notify_student_assignment_graded(grade_obj)  # Call the helper function.
-
             messages.success(request, "Grade saved successfully.")  # Queue a success message.
+
             return redirect(  # Return the redirect response.
                 "accounts:offering_assignment_detail",  # Continue the current value.
                 offering_id=offering.id,  # Store the related id.
