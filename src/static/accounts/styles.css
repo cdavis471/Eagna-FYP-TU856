@@ -107,7 +107,16 @@ body[data-colour-scheme="protanopia"] {
   --muted-dark: #45637f;
   --muted-light: #d7e6f6;
   --portal-icon-hover-filter: brightness(0) saturate(100%) invert(15%) sepia(57%) saturate(1564%) hue-rotate(184deg) brightness(96%) contrast(96%);
+
+  --user-chip-bg: #2f6db3;
+  --user-chip-text: #ffffff;
+  --user-chip-border: rgba(255, 255, 255, 0.18);
   --user-chip-shadow: 0 4px 12px rgba(47, 109, 179, 0.22);
+
+  --user-chip-hover-bg: #ffffff;
+  --user-chip-hover-text: #0d2f4f;
+  --user-chip-hover-border: #c7d6e6;
+  --user-chip-hover-shadow: 0 4px 12px rgba(13, 47, 79, 0.16);
 }
 
 body[data-colour-scheme="deuteranopia"] {
@@ -123,7 +132,16 @@ body[data-colour-scheme="deuteranopia"] {
   --muted-dark: #58627d;
   --muted-light: #dde2ff;
   --portal-icon-hover-filter: brightness(0) saturate(100%) invert(17%) sepia(25%) saturate(1779%) hue-rotate(214deg) brightness(93%) contrast(95%);
+
+  --user-chip-bg: #5b63b7;
+  --user-chip-text: #ffffff;
+  --user-chip-border: rgba(255, 255, 255, 0.18);
   --user-chip-shadow: 0 4px 12px rgba(91, 99, 183, 0.22);
+
+  --user-chip-hover-bg: #ffffff;
+  --user-chip-hover-text: #22285b;
+  --user-chip-hover-border: #d1d6ee;
+  --user-chip-hover-shadow: 0 4px 12px rgba(34, 40, 91, 0.16);
 }
 
 body[data-colour-scheme="tritanopia"] {
@@ -139,7 +157,16 @@ body[data-colour-scheme="tritanopia"] {
   --muted-dark: #75556a;
   --muted-light: #f2d9e7;
   --portal-icon-hover-filter: brightness(0) saturate(100%) invert(11%) sepia(49%) saturate(1692%) hue-rotate(287deg) brightness(88%) contrast(97%);
+
+  --user-chip-bg: #a33f7f;
+  --user-chip-text: #ffffff;
+  --user-chip-border: rgba(255, 255, 255, 0.18);
   --user-chip-shadow: 0 4px 12px rgba(163, 63, 127, 0.22);
+
+  --user-chip-hover-bg: #ffffff;
+  --user-chip-hover-text: #4b1638;
+  --user-chip-hover-border: #e0c7d6;
+  --user-chip-hover-shadow: 0 4px 12px rgba(75, 22, 56, 0.16);
 }
 
 body[data-colour-scheme="achromatopsia"] {
@@ -155,7 +182,16 @@ body[data-colour-scheme="achromatopsia"] {
   --muted-dark: #6b7280;
   --muted-light: #e5e7eb;
   --portal-icon-hover-filter: brightness(0) saturate(100%) invert(16%) sepia(14%) saturate(555%) hue-rotate(175deg) brightness(94%) contrast(91%);
+
+  --user-chip-bg: #5f6672;
+  --user-chip-text: #ffffff;
+  --user-chip-border: rgba(255, 255, 255, 0.18);
   --user-chip-shadow: 0 4px 12px rgba(95, 102, 114, 0.22);
+
+  --user-chip-hover-bg: #ffffff;
+  --user-chip-hover-text: #1f2937;
+  --user-chip-hover-border: #d1d5db;
+  --user-chip-hover-shadow: 0 4px 12px rgba(31, 41, 55, 0.16);
 }
 
 body[data-colour-scheme="high-contrast"] {
