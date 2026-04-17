@@ -130,10 +130,10 @@
           <p class="card-meta">
             <!-- Conditionally render this block when the data is available. -->
             {% if current_academic_year %}
-              Current: {{ current_academic_year.label }} · Sync offerings or start the next academic year.
+              Current: {{ current_academic_year.label }} · Start the next academic year.
             <!-- Show the fallback content for the alternative case. -->
             {% else %}
-              Set the current academic year and synchronize live offerings.
+              Manage the academic year.
             <!-- End this conditional template block. -->
             {% endif %}
           </p>

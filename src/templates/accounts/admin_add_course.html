@@ -13,13 +13,18 @@
   <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
     <!-- Provide a compact action button or link. -->
-    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back</a>
   </section>
 
   <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
     <!-- Display the main heading for add course. -->
     <h1 class="section-title">Add Course</h1>
+
+    <!-- Wrap the muted area for layout or styling. -->
+    <p class="muted">
+      New courses are now created as active by default.
+    </p>
 
     <!-- Show validation errors when the form has problems. -->
     {% if errors %}
@@ -65,17 +70,6 @@
           <!-- Render a number input for user entry. -->
           <input type="number" id="id_length_years" name="length_years" min="1" value="{{ initial.length_years }}">
         </div>
-      </div>
-
-      <!-- Group a label, field, and help text together. -->
-      <div class="form-group">
-        <!-- Label the related form control for accessibility. -->
-        <label class="quiz-checkbox-row">
-          <!-- Render a checkbox input for user entry. -->
-          <input type="checkbox" name="is_active" {% if initial.is_active %}checked{% endif %}>
-          <!-- Display inline text for course is active. -->
-          <span>Course is active</span>
-        </label>
       </div>
 
       <!-- Provide the create course button for this action. -->

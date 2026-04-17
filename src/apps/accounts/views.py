@@ -3323,7 +3323,8 @@ def admin_add_course(request):  # Define admin_add_course.
         code = _normalize_course_code(request.POST.get("code", ""))  # Fetch a single record.
         title = (request.POST.get("title") or "").strip()  # Fetch a single record.
         length_years_raw = (request.POST.get("length_years") or "").strip()  # Fetch a single record.
-        is_active = request.POST.get("is_active") == "on"  # Fetch a single record.
+
+        is_active = True  # Store the default active state.
 
         if not code:  # Check the current condition.
             errors.append("Course code is required.")  # Append to the list.
@@ -3361,7 +3362,6 @@ def admin_add_course(request):  # Define admin_add_course.
                 "code": request.POST.get("code", ""),  # Fetch a single record.
                 "title": request.POST.get("title", ""),  # Fetch a single record.
                 "length_years": request.POST.get("length_years", "4"),  # Fetch a single record.
-                "is_active": (request.POST.get("is_active") == "on") if request.method == "POST" else True,  # Fetch a single record.
             },  # Close the current mapping.
         }  # Close the current mapping.
     )  # Close the current call.
@@ -3521,9 +3521,10 @@ def admin_add_module(request):  # Define admin_add_module.
         code = _normalize_course_code(request.POST.get("code", ""))  # Fetch a single record.
         title = (request.POST.get("title") or "").strip()  # Fetch a single record.
         placements_raw = request.POST.get("placements", "")  # Fetch a single record.
-        is_active = request.POST.get("is_active") == "on"  # Fetch a single record.
-        available_now = request.POST.get("available_now") == "on"  # Fetch a single record.
-        available_next_rollover = request.POST.get("available_next_rollover") == "on"  # Fetch a single record.
+
+        is_active = True  # Store the default active state.
+        available_now = True  # Store the default current-year availability state.
+        available_next_rollover = True  # Store the default rollover availability state.
 
         if not code:  # Check the current condition.
             errors.append("Module code is required.")  # Append to the list.
@@ -3565,9 +3566,6 @@ def admin_add_module(request):  # Define admin_add_module.
                 "code": request.POST.get("code", ""),  # Fetch a single record.
                 "title": request.POST.get("title", ""),  # Fetch a single record.
                 "placements": request.POST.get("placements", ""),  # Fetch a single record.
-                "is_active": (request.POST.get("is_active") == "on") if request.method == "POST" else True,  # Fetch a single record.
-                "available_now": (request.POST.get("available_now") == "on") if request.method == "POST" else True,  # Fetch a single record.
-                "available_next_rollover": (request.POST.get("available_next_rollover") == "on") if request.method == "POST" else True,  # Fetch a single record.
             },  # Close the current mapping.
         }  # Close the current mapping.
     )  # Close the current call.
@@ -5377,55 +5375,64 @@ def offering_grade_submission(request, offering_id, assignment_id, submission_id
         raise Http404("Not found")  # Raise a not found error.
 
     lecturer = user.lecturer_profile  # Store the computed value.
-    offering, assignment = _get_accessible_offering_assignment_for_user(user, offering_id, assignment_id)  # Unpack returned values.
-
-    if _is_read_only_offering(offering):  # Check the current condition.
-        raise Http404("Not found")  # Raise a not found error.
+    offering = _get_writable_lecturer_offering_by_id(user, offering_id)  # Store the computed value.
+    assignment = get_object_or_404(  # Store the computed value.
+        Assignment.objects.select_related("offering__module"),  # Follow related objects.
+        pk=assignment_id,  # Store the computed value.
+        offering=offering,  # Store the computed value.
+    )  # Close the current call.
 
     submission = get_object_or_404(  # Store the computed value.
-        AssignmentSubmission.objects.select_related("student__user"),  # Follow related objects.
+        AssignmentSubmission.objects.select_related("student__user").prefetch_related("files"),  # Follow related objects.
         pk=submission_id,  # Store the computed value.
         assignment=assignment,  # Store the computed value.
     )  # Close the current call.
 
     errors = []  # Initialise error messages.
-    grade_obj = getattr(submission, "grade", None)  # Store the computed value.
+    grade_obj = submission.grade_safe  # Store the computed value safely.
     initial_value = ""  # Store the computed value.
     initial_feedback = ""  # Store the computed value.
 
     if grade_obj:  # Check the current condition.
-        initial_value = grade_obj.value  # Store the computed value.
+        initial_value = str(grade_obj.value)  # Store the computed value.
         initial_feedback = grade_obj.feedback_text or ""  # Store the computed value.
 
     if request.method == "POST":  # Check the current condition.
         value_str = request.POST.get("value", "").strip()  # Fetch a single record.
         feedback = request.POST.get("feedback", "").strip()  # Fetch a single record.
+        value_decimal = None  # Store the computed value.
 
         if not value_str:  # Check the current condition.
             errors.append("A mark is required.")  # Append to the list.
         else:  # Handle the fallback case.
             try:  # Start guarded parsing.
-                value_float = float(value_str)  # Store the computed value.
-            except ValueError:  # Handle the raised exception.
-                errors.append("Mark must be a number.")  # Append to the list.
-                value_float = None  # Store the computed value.
+                value_decimal = Decimal(value_str)  # Store the computed value.
+            except (InvalidOperation, ValueError):  # Handle the raised exception.
+                errors.append("Mark must be a valid number.")  # Append to the list.
 
-        if not errors and value_float is not None:  # Check the current condition.
+        if value_decimal is not None and value_decimal < Decimal("0"):  # Check the current condition.
+            errors.append("Mark cannot be negative.")  # Append to the list.
+
+        if value_decimal is not None and value_decimal > assignment.max_mark:  # Check the current condition.
+            errors.append(f"Mark cannot be greater than {assignment.max_mark}.")  # Append to the list.
+
+        if not errors and value_decimal is not None:  # Check the current condition.
             if grade_obj is None:  # Check the current condition.
                 grade_obj = AssignmentGrade.objects.create(  # Create a database record.
                     submission=submission,  # Store the computed value.
                     marker=lecturer,  # Store the computed value.
-                    value=value_float,  # Store the computed value.
+                    value=value_decimal,  # Store the computed value.
                     feedback_text=feedback,  # Store the computed value.
                 )  # Close the current call.
             else:  # Handle the fallback case.
-                grade_obj.value = value_float  # Store the computed value.
+                grade_obj.value = value_decimal  # Store the computed value.
                 grade_obj.feedback_text = feedback  # Store the computed value.
                 grade_obj.marker = lecturer  # Store the computed value.
-                grade_obj.save()  # Save model changes.
+                grade_obj.save(update_fields=["value", "feedback_text", "marker"])  # Save model changes.
 
             _notify_student_assignment_graded(grade_obj)  # Call the helper function.
 
+            messages.success(request, "Grade saved successfully.")  # Queue a success message.
             return redirect(  # Return the redirect response.
                 "accounts:offering_assignment_detail",  # Continue the current value.
                 offering_id=offering.id,  # Store the related id.

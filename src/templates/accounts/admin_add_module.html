@@ -13,13 +13,18 @@
   <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section admin-back-row">
     <!-- Provide a compact action button or link. -->
-    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back to dashboard</a>
+    <a href="{% url 'accounts:admin_dashboard' %}" class="small-button">← Back</a>
   </section>
 
   <!-- Group a related section of dashboard content. -->
   <section class="dashboard-section">
     <!-- Display the main heading for add module. -->
     <h1 class="section-title">Add Module</h1>
+
+    <!-- Wrap the muted area for layout or styling. -->
+    <p class="muted">
+      New modules are now created as active, available immediately, and included in the next academic year rollover by default.
+    </p>
 
     <!-- Show validation errors when the form has problems. -->
     {% if errors %}
@@ -72,39 +77,6 @@
           placeholder="One course code per line, e.g.&#10;TU856&#10;TU857&#10;TU858">{{ initial.placements }}</textarea>
         <!-- Show helper text for the related field. -->
         <small class="registration-hint">Use one course code per line.</small>
-      </div>
-
-      <!-- Group a label, field, and help text together. -->
-      <div class="form-group">
-        <!-- Label the related form control for accessibility. -->
-        <label class="quiz-checkbox-row">
-          <!-- Render a checkbox input for user entry. -->
-          <input type="checkbox" name="available_now" {% if initial.available_now %}checked{% endif %}>
-          <!-- Display inline text for available immediately. -->
-          <span>Available Immediately</span>
-        </label>
-      </div>
-
-      <!-- Group a label, field, and help text together. -->
-      <div class="form-group">
-        <!-- Label the related form control for accessibility. -->
-        <label class="quiz-checkbox-row">
-          <!-- Render a checkbox input for user entry. -->
-          <input type="checkbox" name="available_next_rollover" {% if initial.available_next_rollover %}checked{% endif %}>
-          <!-- Display inline text for available next academic year. -->
-          <span>Available Next Academic Year</span>
-        </label>
-      </div>
-
-      <!-- Group a label, field, and help text together. -->
-      <div class="form-group">
-        <!-- Label the related form control for accessibility. -->
-        <label class="quiz-checkbox-row">
-          <!-- Render a checkbox input for user entry. -->
-          <input type="checkbox" name="is_active" {% if initial.is_active %}checked{% endif %}>
-          <!-- Display inline text for module is active. -->
-          <span>Module is active</span>
-        </label>
       </div>
 
       <!-- Provide the create module button for this action. -->
