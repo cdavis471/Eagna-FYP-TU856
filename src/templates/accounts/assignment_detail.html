@@ -156,7 +156,7 @@
                       </button>
 
                       <!-- Conditionally render this block when the data is available. -->
-                      {% if role == "lecturer" and f.parsed_document_safe.images.all %}
+                      {% if role == "lecturer" and not read_only and f.parsed_document_safe.images.all %}
                         <!-- Provide a compact action button or link. -->
                         <a href="{% url 'accounts:edit_parsed_document_images' f.parsed_document_safe.id %}?next={{ request.get_full_path|urlencode }}"
                           class="small-button">

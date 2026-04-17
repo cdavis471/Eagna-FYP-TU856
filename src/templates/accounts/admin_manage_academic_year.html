@@ -22,7 +22,7 @@
     <h1 class="section-title">Manage Academic Year</h1>
     <!-- Wrap the muted area for layout or styling. -->
     <p class="muted">
-      Set the current academic year, synchronize live offerings, and start a new academic year when required.
+      Review the current academic year and start a new academic year when required.
     </p>
   </section>
 
@@ -59,20 +59,10 @@
           </p>
         </div>
 
-        <!-- Hold actions related to this announcement. -->
-        <div class="announcement-actions">
-          <!-- Render admin interface content for this page. -->
-          <form method="post" class="admin-inline-form admin-form-shell">
-            <!-- Insert the CSRF token for secure form submission. -->
-            {% csrf_token %}
-            <!-- Render a hidden input for user entry. -->
-            <input type="hidden" name="action" value="sync_current_year">
-            <!-- Provide the sync current year offerings button for this action. -->
-            <button type="submit">Sync Current-Year Offerings</button>
-          </form>
-
-          <!-- Conditionally render this block when the data is available. -->
-          {% if not confirm_rollover %}
+        <!-- Conditionally render this block when the data is available. -->
+        {% if not confirm_rollover %}
+          <!-- Hold actions related to this announcement. -->
+          <div class="announcement-actions">
             <!-- Render admin interface content for this page. -->
             <form method="get" class="admin-inline-form">
               <!-- Render a hidden input for user entry. -->
@@ -80,9 +70,9 @@
               <!-- Provide a compact action button or link. -->
               <button type="submit" class="small-button">Start New Academic Year</button>
             </form>
-          <!-- End this conditional template block. -->
-          {% endif %}
-        </div>
+          </div>
+        <!-- End this conditional template block. -->
+        {% endif %}
 
         <!-- Conditionally render this block when the data is available. -->
         {% if confirm_rollover and next_year_preview %}
@@ -132,48 +122,6 @@
         <p class="muted">No current academic year is set yet.</p>
       <!-- End this conditional template block. -->
       {% endif %}
-    </div>
-  </section>
-
-  <!-- Group a related section of dashboard content. -->
-  <section class="dashboard-section">
-    <!-- Group items under a shared label or timeframe. -->
-    <div class="week-block">
-      <!-- Display a secondary heading for this section. -->
-      <h2 class="week-title">
-        <!-- Conditionally render this block when the data is available. -->
-        {% if current_academic_year %}Replace Current Academic Year{% else %}Create Current Academic Year{% endif %}
-      </h2>
-
-      <!-- Render admin interface content for this page. -->
-      <form method="post" class="admin-stacked-form admin-form-shell">
-        <!-- Insert the CSRF token for secure form submission. -->
-        {% csrf_token %}
-        <!-- Render a hidden input for user entry. -->
-        <input type="hidden" name="action" value="set_current_year">
-
-        <!-- Group a label, field, and help text together. -->
-        <div class="form-group">
-          <!-- Label the start date field. -->
-          <label for="id_start_date">Start Date</label>
-          <!-- Render a date input for user entry. -->
-          <input type="date" id="id_start_date" name="start_date" value="{{ initial.start_date }}">
-        </div>
-
-        <!-- Group a label, field, and help text together. -->
-        <div class="form-group">
-          <!-- Label the end date field. -->
-          <label for="id_end_date">End Date</label>
-          <!-- Render a date input for user entry. -->
-          <input type="date" id="id_end_date" name="end_date" value="{{ initial.end_date }}">
-        </div>
-
-        <!-- Provide a button for the related user action. -->
-        <button type="submit">
-          <!-- Conditionally render this block when the data is available. -->
-          {% if current_academic_year %}Set New Current Academic Year{% else %}Create Current Academic Year{% endif %}
-        </button>
-      </form>
     </div>
   </section>
 </div>
